@@ -143,17 +143,37 @@ async function runLint(): Promise<void> {
     console.log("  - L" + line + ": `" + rule + "` - " + msg + severity);
   }
 
-  // Show summary of remaining files
-  if (totalFiles > 1) {
-    console.log("");
-    console.log(
-      `+ ${totalFiles - 1} more file(s) with issues (use --all to see all)`
+  // Calculate total counts across all files
+  const totalErrors = diagnostics.filter(
+    (d: Diagnostic) => d.severity === "error"
+  ).length;
+  const totalWarnings = diagnostics.filter(
+    (d: Diagnostic) => d.severity === "warning"
+  ).length;
+
+  // Show summary
+  console.log("");
+  let summaryParts = [];
+  if (totalErrors > 0) {
+    summaryParts.push(`${totalErrors} error${totalErrors !== 1 ? "s" : ""}`);
+  }
+  if (totalWarnings > 0) {
+    summaryParts.push(
+      `${totalWarnings} warning${totalWarnings !== 1 ? "s" : ""}`
     );
+  }
+  const totalSummary = summaryParts.join(", ");
+
+  if (totalFiles > 1) {
+    console.log(
+      `Total: ${totalSummary} across ${totalFiles} files (showing first file only)`
+    );
+  } else {
+    console.log(`Total: ${totalSummary}`);
   }
 
   // Exit with error code if there are errors
-  const hasErrors = diagnostics.some((d: Diagnostic) => d.severity === "error");
-  process.exit(hasErrors ? 1 : 0);
+  process.exit(totalErrors > 0 ? 1 : 0);
 }
 
 runLint().catch((error: unknown) => {
