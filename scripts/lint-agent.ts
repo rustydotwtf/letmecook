@@ -92,42 +92,63 @@ async function runLint(): Promise<void> {
     return;
   }
 
-  // Group by file
+  // Group by file (already sorted alphabetically)
   const grouped = groupByFile(diagnostics);
+  const files = [...grouped.entries()];
+  const totalFiles = files.length;
 
-  // Generate markdown output
-  for (const [filename, issues] of grouped) {
-    const errorCount = issues.filter((i) => i.severity === "error").length;
-    const warningCount = issues.filter((i) => i.severity === "warning").length;
+  if (totalFiles === 0) {
+    console.log(
+      "✓ No lint errors" + (SHOW_ALL ? "" : " (use --all to include warnings)")
+    );
+    process.exit(0);
+    return;
+  }
 
-    let countStr = "";
-    if (errorCount > 0 && warningCount > 0) {
-      countStr = `${errorCount} errors, ${warningCount} warnings`;
-    } else if (errorCount > 0) {
-      countStr = `${errorCount} error${errorCount !== 1 ? "s" : ""}`;
-    } else {
-      countStr = `${warningCount} warning${warningCount !== 1 ? "s" : ""}`;
-    }
+  // Show only the first file to prevent context overload
+  const firstFile = files[0]!;
+  const filename = firstFile[0];
+  const issues = firstFile[1];
+  const errorCount = issues.filter(
+    (i: Diagnostic) => i.severity === "error"
+  ).length;
+  const warningCount = issues.filter(
+    (i: Diagnostic) => i.severity === "warning"
+  ).length;
 
-    console.log("- `" + filename + "` (" + countStr + ")");
+  let countStr = "";
+  if (errorCount > 0 && warningCount > 0) {
+    countStr = `${errorCount} errors, ${warningCount} warnings`;
+  } else if (errorCount > 0) {
+    countStr = `${errorCount} error${errorCount !== 1 ? "s" : ""}`;
+  } else {
+    countStr = `${warningCount} warning${warningCount !== 1 ? "s" : ""}`;
+  }
 
-    // Sort by line number
-    const sorted = issues.sort((a, b) => {
-      const lineA = a.labels[0]?.span?.line ?? 0;
-      const lineB = b.labels[0]?.span?.line ?? 0;
-      return lineA - lineB;
-    });
+  console.log("- `" + filename + "` (" + countStr + ")");
 
-    for (const issue of sorted) {
-      const line = issue.labels[0]?.span?.line ?? "?";
-      const rule = formatRuleName(issue.code);
-      const msg = shortenMessage(issue.message);
-      const severity = issue.severity === "warning" ? " (warn)" : "";
+  // Sort by line number
+  const sorted = issues.sort((a: Diagnostic, b: Diagnostic) => {
+    const lineA = a.labels[0]?.span?.line ?? 0;
+    const lineB = b.labels[0]?.span?.line ?? 0;
+    return lineA - lineB;
+  });
 
-      console.log("  - L" + line + ": `" + rule + "` - " + msg + severity);
-    }
+  for (const issue of sorted) {
+    const line = issue.labels[0]?.span?.line ?? "?";
+    const rule = formatRuleName(issue.code);
+    const msg = shortenMessage(issue.message);
+    const severity = issue.severity === "warning" ? " (warn)" : "";
 
-    console.log(""); // Empty line between files
+    console.log("  - L" + line + ": `" + rule + "` - " + msg + severity);
+  }
+
+  // Show summary of remaining files
+  if (totalFiles > 1) {
+    console.log("");
+    console.log(
+      `+ ${totalFiles - 1} more file(s) with issues (use --all to see all)`
+    );
   }
 
   // Exit with error code if there are errors
