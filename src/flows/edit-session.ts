@@ -77,6 +77,296 @@ function skillsToCommandTasks(
   }));
 }
 
+function runCommandBatch(
+  renderer: Awaited<ReturnType<typeof createRenderer>>,
+  tasks: CommandTask[],
+  title: string
+) {
+  return runCommands(renderer, {
+    allowAbort: true,
+    allowBackground: true,
+    allowSkip: tasks.length > 1,
+    outputLines: 5,
+    showOutput: true,
+    tasks,
+    title,
+  });
+}
+
+function wasAborted(results: { outcome: string }[]): boolean {
+  return results.some((r) => r.outcome === "aborted");
+}
+
+async function removeRepoDir(session: Session, repo: RepoSpec): Promise<void> {
+  const repoPath = join(session.path, repo.dir);
+  try {
+    await rm(repoPath, { force: true, recursive: true });
+  } catch {
+    // Ignore cleanup errors
+  }
+}
+
+async function cleanupAbortedRepos(
+  session: Session,
+  repos: RepoSpec[]
+): Promise<void> {
+  for (const repo of repos) {
+    await removeRepoDir(session, repo);
+  }
+}
+
+async function cleanupSkippedRepos(
+  session: Session,
+  skipped: { task: { label: string } },
+  repos: RepoSpec[]
+): Promise<void> {
+  const repoSpec = skipped.task.label.replace("Cloning ", "");
+  const repo = repos.find((r) => `${r.owner}/${r.name}` === repoSpec);
+  if (repo) {
+    await removeRepoDir(session, repo);
+  }
+}
+
+function getSuccessfulRepos(
+  repos: RepoSpec[],
+  results: { task: { label: string }; outcome: string }[]
+): RepoSpec[] {
+  return repos.filter((repo) => {
+    const result = results.find(
+      (r) => r.task.label === `Cloning ${repo.owner}/${repo.name}`
+    );
+    return result?.outcome === "completed";
+  });
+}
+
+function getSuccessfulSkills(
+  skills: string[],
+  results: { task: { label: string }; outcome: string }[]
+): string[] {
+  return skills.filter((skill) => {
+    const result = results.find((r) => r.task.label === `Installing ${skill}`);
+    return result?.outcome === "completed";
+  });
+}
+
+function logErrors(
+  results: { outcome: string; task: { label: string }; error?: string }[],
+  type: string
+): void {
+  const errors = results.filter((r) => r.outcome === "error");
+  if (errors.length === 0) {
+    return;
+  }
+
+  console.error(`\n⚠️  ${errors.length} ${type} failed:`);
+  for (const err of errors) {
+    console.error(`  ✗ ${err.task.label}`);
+    if (err.error) {
+      console.error(`    ${err.error}`);
+    }
+  }
+}
+
+async function sleepAndHide(
+  renderer: Awaited<ReturnType<typeof createRenderer>>
+): Promise<void> {
+  await Bun.sleep(700);
+  hideCommandRunner(renderer);
+}
+
+async function saveReposAndUpdateSession(
+  session: Session,
+  successfulRepos: RepoSpec[]
+): Promise<Session> {
+  if (successfulRepos.length > 0) {
+    await recordRepoHistory(successfulRepos);
+    await writeAgentsMd(session);
+  }
+
+  const allRepos = [...session.repos, ...successfulRepos];
+  const updated = await updateSessionRepos(session.name, allRepos);
+  return updated || session;
+}
+
+async function saveSkillsAndUpdateSession(
+  session: Session,
+  successfulSkills: string[]
+): Promise<Session> {
+  if (successfulSkills.length === 0) {
+    return session;
+  }
+
+  const allSkills = [...(session.skills || []), ...successfulSkills];
+  const updated = await updateSessionSkills(session.name, allSkills);
+
+  if (updated) {
+    await writeAgentsMd(updated);
+    return updated;
+  }
+
+  return session;
+}
+
+interface RepoUpdateResult {
+  aborted: boolean;
+  session: Session;
+}
+
+async function cleanupSkipped(
+  session: Session,
+  results: { outcome: string; task: { label: string } }[],
+  repos: RepoSpec[]
+): Promise<void> {
+  const skipped = results.filter((r) => r.outcome === "skipped");
+  for (const s of skipped) {
+    await cleanupSkippedRepos(session, s, repos);
+  }
+}
+
+async function processRepoResults(
+  session: Session,
+  repos: RepoSpec[],
+  results: { outcome: string; task: { label: string } }[],
+  renderer: Awaited<ReturnType<typeof createRenderer>>
+): Promise<Session> {
+  await cleanupSkipped(session, results, repos);
+  const successful = getSuccessfulRepos(repos, results);
+  logErrors(results, "repository(ies)");
+  await sleepAndHide(renderer);
+  return saveReposAndUpdateSession(session, successful);
+}
+
+async function handleRepoUpdates(
+  session: Session,
+  newRepos: RepoSpec[],
+  renderer: Awaited<ReturnType<typeof createRenderer>>
+): Promise<RepoUpdateResult> {
+  const tasks = reposToCommandTasks(newRepos, session.path);
+  const results = await runCommandBatch(renderer, tasks, "Adding repositories");
+
+  if (wasAborted(results)) {
+    hideCommandRunner(renderer);
+    await cleanupAbortedRepos(session, newRepos);
+    destroyRenderer();
+    return { aborted: true, session };
+  }
+
+  const updatedSession = await processRepoResults(
+    session,
+    newRepos,
+    results,
+    renderer
+  );
+  return { aborted: false, session: updatedSession };
+}
+
+async function handleSkillUpdates(
+  session: Session,
+  newSkills: string[],
+  renderer: Awaited<ReturnType<typeof createRenderer>>
+): Promise<Session> {
+  const tasks = skillsToCommandTasks(newSkills, session.path);
+  const results = await runCommandBatch(renderer, tasks, "Adding skills");
+
+  if (wasAborted(results)) {
+    hideCommandRunner(renderer);
+    destroyRenderer();
+    return session;
+  }
+
+  const successful = getSuccessfulSkills(newSkills, results);
+  logErrors(results, "skill(s)");
+  await sleepAndHide(renderer);
+
+  return saveSkillsAndUpdateSession(session, successful);
+}
+
+function getNewRepos(session: Session, updates: RepoSpec[]): RepoSpec[] {
+  const existingSpecs = new Set(session.repos.map((r) => r.spec));
+  return updates.filter((r) => !existingSpecs.has(r.spec));
+}
+
+function getNewSkills(session: Session, updates: string[]): string[] {
+  const existingSkills = new Set(session.skills || []);
+  return updates.filter((s) => !existingSkills.has(s));
+}
+
+async function updateGoal(
+  session: Session,
+  goal: string | undefined
+): Promise<Session> {
+  const updatedSession = { ...session, goal: goal || undefined };
+  await writeAgentsMd(updatedSession);
+  return updatedSession as Session;
+}
+
+async function processRepoUpdate(
+  session: Session,
+  repos: RepoSpec[],
+  renderer: Awaited<ReturnType<typeof createRenderer>>
+): Promise<Session | null> {
+  const newRepos = getNewRepos(session, repos);
+  if (newRepos.length === 0) {
+    const updated = await updateSessionRepos(session.name, repos);
+    return updated || session;
+  }
+
+  const result = await handleRepoUpdates(session, newRepos, renderer);
+  if (result.aborted) {
+    return null;
+  }
+  return result.session;
+}
+
+function processSkillUpdate(
+  session: Session,
+  skills: string[],
+  renderer: Awaited<ReturnType<typeof createRenderer>>
+): Promise<Session> {
+  const newSkills = getNewSkills(session, skills);
+  if (newSkills.length === 0) {
+    return Promise.resolve(session);
+  }
+  return handleSkillUpdates(session, newSkills, renderer);
+}
+
+async function processUpdates(
+  session: Session,
+  updates: EditSessionParams["updates"],
+  renderer: Awaited<ReturnType<typeof createRenderer>>
+): Promise<Session | null> {
+  let currentSession = session;
+
+  if (updates.repos) {
+    const result = await processRepoUpdate(session, updates.repos, renderer);
+    if (result === null) {
+      return null;
+    }
+    currentSession = result;
+  }
+
+  if (updates.skills) {
+    currentSession = await processSkillUpdate(
+      currentSession,
+      updates.skills,
+      renderer
+    );
+  }
+
+  return currentSession;
+}
+
+async function executeWithRenderer<T>(
+  fn: (renderer: Awaited<ReturnType<typeof createRenderer>>) => Promise<T>
+): Promise<T> {
+  const renderer = await createRenderer();
+  try {
+    return await fn(renderer);
+  } finally {
+    destroyRenderer();
+  }
+}
+
 export async function editSession(
   params: EditSessionParams
 ): Promise<Session | null> {
@@ -86,184 +376,16 @@ export async function editSession(
     return session;
   }
 
-  let currentSession = session;
-  const renderer = await createRenderer();
+  const currentSession = await executeWithRenderer((renderer) =>
+    processUpdates(session, updates, renderer)
+  );
 
-  try {
-    if (updates.repos) {
-      const existingSpecs = new Set(session.repos.map((r) => r.spec));
-      const newRepos = updates.repos.filter((r) => !existingSpecs.has(r.spec));
-
-      if (newRepos.length > 0) {
-        const tasks = reposToCommandTasks(newRepos, currentSession.path);
-
-        const results = await runCommands(renderer, {
-          allowAbort: true,
-          allowBackground: true,
-          allowSkip: tasks.length > 1,
-          outputLines: 5,
-          showOutput: true,
-          tasks,
-          title: "Adding repositories",
-        });
-
-        // Handle aborted operation
-        const wasAborted = results.some((r) => r.outcome === "aborted");
-        if (wasAborted) {
-          hideCommandRunner(renderer);
-          // Clean up any partially cloned repos
-          for (const repo of newRepos) {
-            const repoPath = join(currentSession.path, repo.dir);
-            try {
-              await rm(repoPath, { force: true, recursive: true });
-            } catch {
-              // Ignore cleanup errors
-            }
-          }
-          destroyRenderer();
-          return session; // Return unchanged session
-        }
-
-        // Clean up skipped repo directories
-        const skippedResults = results.filter((r) => r.outcome === "skipped");
-        for (const skipped of skippedResults) {
-          const repoSpec = skipped.task.label.replace("Cloning ", "");
-          const repo = newRepos.find(
-            (r) => `${r.owner}/${r.name}` === repoSpec
-          );
-          if (repo) {
-            const repoPath = join(currentSession.path, repo.dir);
-            try {
-              await rm(repoPath, { force: true, recursive: true });
-            } catch {
-              // Ignore cleanup errors
-            }
-          }
-        }
-
-        // Filter to only successfully cloned repos
-        const successfulRepos = newRepos.filter((repo) => {
-          const result = results.find(
-            (r) => r.task.label === `Cloning ${repo.owner}/${repo.name}`
-          );
-          return result?.outcome === "completed";
-        });
-
-        // Check for errors (not skipped/aborted)
-        const errors = results.filter((r) => r.outcome === "error");
-        if (errors.length > 0) {
-          console.error(
-            `\n⚠️  ${errors.length} repository(ies) failed to clone:`
-          );
-          for (const err of errors) {
-            console.error(`  ✗ ${err.task.label}`);
-            if (err.error) {
-              console.error(`    ${err.error}`);
-            }
-          }
-        }
-
-        await Bun.sleep(700);
-        hideCommandRunner(renderer);
-
-        if (successfulRepos.length > 0) {
-          await recordRepoHistory(successfulRepos);
-          await writeAgentsMd(currentSession);
-        }
-
-        // Update session with existing + successful repos only
-        const allRepos = [...session.repos, ...successfulRepos];
-        const updatedSession = await updateSessionRepos(session.name, allRepos);
-        if (updatedSession) {
-          currentSession = updatedSession;
-        }
-      } else {
-        // No new repos, just update with the provided list
-        const updatedSession = await updateSessionRepos(
-          session.name,
-          updates.repos
-        );
-        if (updatedSession) {
-          currentSession = updatedSession;
-        }
-      }
-    }
-
-    if (updates.skills) {
-      const existingSkills = new Set(session.skills || []);
-      const newSkills = updates.skills.filter((s) => !existingSkills.has(s));
-
-      if (newSkills.length > 0) {
-        const tasks = skillsToCommandTasks(newSkills, currentSession.path);
-
-        const results = await runCommands(renderer, {
-          allowAbort: true,
-          allowBackground: true,
-          allowSkip: tasks.length > 1,
-          outputLines: 5,
-          showOutput: true,
-          tasks,
-          title: "Adding skills",
-        });
-
-        // Handle aborted operation
-        const wasAborted = results.some((r) => r.outcome === "aborted");
-        if (wasAborted) {
-          hideCommandRunner(renderer);
-          destroyRenderer();
-          return currentSession; // Return current session state
-        }
-
-        // Filter to only successfully installed skills
-        const successfulSkills = newSkills.filter((skill) => {
-          const result = results.find(
-            (r) => r.task.label === `Installing ${skill}`
-          );
-          return result?.outcome === "completed";
-        });
-
-        // Check for errors (not skipped/aborted)
-        const skillErrors = results.filter((r) => r.outcome === "error");
-        if (skillErrors.length > 0) {
-          console.error(`\n⚠️  ${skillErrors.length} skill(s) failed to install:`);
-          for (const err of skillErrors) {
-            console.error(`  ✗ ${err.task.label}`);
-            if (err.error) {
-              console.error(`    ${err.error}`);
-            }
-          }
-        }
-
-        await Bun.sleep(700);
-        hideCommandRunner(renderer);
-
-        if (successfulSkills.length > 0) {
-          const allSkills = [
-            ...(currentSession.skills || []),
-            ...successfulSkills,
-          ];
-          const updatedSession = await updateSessionSkills(
-            currentSession.name,
-            allSkills
-          );
-
-          if (updatedSession) {
-            currentSession = updatedSession;
-            await writeAgentsMd(currentSession);
-          }
-        }
-      }
-    }
-  } finally {
-    destroyRenderer();
+  if (currentSession === null) {
+    return session;
   }
 
   if (updates.goal !== undefined) {
-    const sessionGoal = updates.goal || undefined;
-    const updatedSession = { ...currentSession, goal: sessionGoal };
-
-    await writeAgentsMd(updatedSession);
-    currentSession = updatedSession as Session;
+    return updateGoal(currentSession, updates.goal);
   }
 
   return currentSession;
