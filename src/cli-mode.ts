@@ -147,18 +147,22 @@ async function processNukeAction(
   }
 }
 
-async function processListAction(renderer: unknown, session: unknown): Promise<void> {
+async function processListAction(
+  renderer: unknown,
+  session: unknown
+): Promise<void> {
   await processResumeAction(renderer, session);
 }
 
-async function processQuitAction(): Promise<void> {
+function processQuitAction(): void {
   destroyRenderer();
 }
 
-async function listSessionLoop(renderer: unknown): Promise<void> {
-  const sessions = await listSessions();
-  const action = await showSessionList(renderer, sessions);
-
+async function handleSessionAction(
+  renderer: unknown,
+  action: { type: string; session?: unknown },
+  sessionCount: number
+): Promise<void> {
   switch (action.type) {
     case "resume": {
       await processListAction(renderer, action.session);
@@ -169,17 +173,23 @@ async function listSessionLoop(renderer: unknown): Promise<void> {
       break;
     }
     case "nuke": {
-      await processNukeAction(renderer, sessions.length);
+      await processNukeAction(renderer, sessionCount);
       break;
     }
     case "quit": {
-      await processQuitAction();
+      processQuitAction();
       break;
     }
     default: {
       break;
     }
   }
+}
+
+async function listSessionLoop(renderer: unknown): Promise<void> {
+  const sessions = await listSessions();
+  const action = await showSessionList(renderer, sessions);
+  await handleSessionAction(renderer, action, sessions.length);
 }
 
 export async function handleList(): Promise<void> {
@@ -201,7 +211,7 @@ function printSessionsList(sessions: unknown[]): void {
     console.log("  (none)");
   } else {
     for (const s of sessions) {
-      console.log(`  - (s as { name: string }).name}`);
+      console.log(`  - ${(s as { name: string }).name}`);
     }
   }
 }
@@ -266,7 +276,10 @@ async function confirmSessionDeletion(
   }
 }
 
-async function performNuke(skipConfirm: boolean, renderer: unknown): Promise<void> {
+async function performNuke(
+  skipConfirm: boolean,
+  renderer: unknown
+): Promise<void> {
   const sessions = await listSessions();
   if (sessions.length === 0) {
     console.log("Nothing to nuke.");
@@ -288,11 +301,11 @@ export async function handleNuke(skipConfirm = false): Promise<void> {
 }
 
 function readStdin(): Promise<string> {
-  return new Promise<string>((resolve) => {
-    process.stdin.once("data", (data) => {
-      resolve(data.toString().trim().toLowerCase());
-    });
+  const { promise, resolve } = Promise.withResolvers<string>();
+  process.stdin.once("data", (data) => {
+    resolve(data.toString().trim().toLowerCase());
   });
+  return promise;
 }
 
 async function confirmNudgeLogs(): Promise<void> {
@@ -300,11 +313,13 @@ async function confirmNudgeLogs(): Promise<void> {
   console.log(`Deleted ${count} chat log(s).`);
 }
 
-async function cancelNukeLogs(): Promise<void> {
+function cancelNukeLogs(): void {
   console.log("Cancelled.");
 }
 
-async function processChatLogsNukeConfirmation(logsCount: number): Promise<void> {
+async function processChatLogsNukeConfirmation(
+  logsCount: number
+): Promise<void> {
   process.stdout.write(`Delete all ${logsCount} chat logs? [y/N] `);
   const response = await readStdin();
 
@@ -401,7 +416,7 @@ export function parseRepos(args: string[]): RepoSpec[] {
 
 async function handleResumeCommand(
   secondArg: string | undefined,
-  args: string[]
+  _args: string[]
 ): Promise<void> {
   if (!secondArg) {
     console.error(
@@ -414,7 +429,7 @@ async function handleResumeCommand(
 
 async function handleDeleteCommand(
   secondArg: string | undefined,
-  args: string[]
+  _args: string[]
 ): Promise<void> {
   if (!secondArg) {
     console.error(
@@ -427,7 +442,7 @@ async function handleDeleteCommand(
 
 async function handleLogsViewCommand(
   thirdArg: string | undefined,
-  args: string[]
+  _args: string[]
 ): Promise<void> {
   if (!thirdArg) {
     console.error(
@@ -440,7 +455,7 @@ async function handleLogsViewCommand(
 
 async function handleLogsDeleteCommand(
   thirdArg: string | undefined,
-  args: string[]
+  _args: string[]
 ): Promise<void> {
   if (!thirdArg) {
     console.error(
@@ -480,7 +495,7 @@ async function handleNewSessionCommand(args: string[]): Promise<void> {
   await handleNewSessionCLI(repos);
 }
 
-async function handleUnknownCommand(firstArg: string | undefined): Promise<never> {
+function handleUnknownCommand(firstArg: string | undefined): never {
   if (firstArg?.startsWith("-")) {
     console.error(`Unknown CLI option: ${firstArg}`);
   }
@@ -493,27 +508,41 @@ async function handleNukeCommand(args: string[]): Promise<void> {
   await handleNuke(hasYes);
 }
 
-export async function handleCLIMode(args: string[]): Promise<void> {
-  const [firstArg, secondArg, thirdArg] = args;
+const CLI_COMMAND_MAP: Record<
+  string,
+  (args: string[], secondArg?: string) => Promise<void>
+> = {
+  "--delete": (args, secondArg) => handleDeleteCommand(secondArg, args),
+  "--list": () => handleList(),
+  "--logs": (args, secondArg) => handleLogsCommands(secondArg, args),
+  "--nuke": (args) => handleNukeCommand(args),
+  "--resume": (args, secondArg) => handleResumeCommand(secondArg, args),
+  "-d": (args, secondArg) => handleDeleteCommand(secondArg, args),
+  "-l": () => handleList(),
+  "-r": (args, secondArg) => handleResumeCommand(secondArg, args),
+};
 
-  if (firstArg === "--list" || firstArg === "-l") {
-    await handleList();
-  } else if (firstArg === "--resume" || firstArg === "-r") {
-    await handleResumeCommand(secondArg, args);
-  } else if (firstArg === "--delete" || firstArg === "-d") {
-    await handleDeleteCommand(secondArg, args);
-  } else if (firstArg === "--nuke") {
-    await handleNukeCommand(args);
-  } else if (firstArg === "--logs") {
-    await handleLogsCommands(secondArg, args);
-  } else if (!firstArg || firstArg.startsWith("-")) {
-    await handleUnknownCommand(firstArg);
-  } else {
-    try {
-      await handleNewSessionCommand(args);
-    } catch (error) {
-      console.error("Error:", error instanceof Error ? error.message : error);
-      process.exit(1);
-    }
+async function runNewSessionWithErrorHandling(args: string[]): Promise<void> {
+  try {
+    await handleNewSessionCommand(args);
+  } catch (error) {
+    console.error("Error:", error instanceof Error ? error.message : error);
+    process.exit(1);
   }
+}
+
+export async function handleCLIMode(args: string[]): Promise<void> {
+  const [firstArg, secondArg] = args;
+
+  const handler = firstArg ? CLI_COMMAND_MAP[firstArg] : undefined;
+  if (handler) {
+    await handler(args, secondArg);
+    return;
+  }
+
+  if (!firstArg || firstArg.startsWith("-")) {
+    handleUnknownCommand(firstArg);
+  }
+
+  await runNewSessionWithErrorHandling(args);
 }

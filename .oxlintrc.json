@@ -5,6 +5,7 @@
   "rules": {
     "func-style": "off",
     "import/consistent-type-specifier-style": "off",
+    "max-statements": "off",
     "no-inline-comments": "off"
   }
 }
