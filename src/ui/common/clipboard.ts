@@ -50,7 +50,7 @@ const getCopyMethod = (() => {
           });
           proc.stdin.write(text);
           proc.stdin.end();
-          await proc.exited.catch(() => {});
+          await proc.exited.catch(() => { /* ignore exit errors */ });
         };
         return method;
       }
@@ -63,7 +63,7 @@ const getCopyMethod = (() => {
           });
           proc.stdin.write(text);
           proc.stdin.end();
-          await proc.exited.catch(() => {});
+          await proc.exited.catch(() => { /* ignore exit errors */ });
         };
         return method;
       }
@@ -76,7 +76,7 @@ const getCopyMethod = (() => {
           });
           proc.stdin.write(text);
           proc.stdin.end();
-          await proc.exited.catch(() => {});
+          await proc.exited.catch(() => { /* ignore exit errors */ });
         };
         return method;
       }
@@ -96,13 +96,13 @@ const getCopyMethod = (() => {
         );
         proc.stdin.write(text);
         proc.stdin.end();
-        await proc.exited.catch(() => {});
+        await proc.exited.catch(() => { /* ignore exit errors */ });
       };
       return method;
     }
 
     // Fallback: no clipboard support
-    method = async () => {};
+    method = async () => { /* noop - no clipboard support */ };
     return method;
   };
 })();

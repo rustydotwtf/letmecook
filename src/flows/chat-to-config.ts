@@ -1,17 +1,14 @@
-import type { ToolSet } from "ai";
-
-import { streamText } from "ai";
+import { type ToolSet, streamText } from "ai";
 import { z } from "zod";
 
 import type { ConfigBuilder } from "../config-builder";
-import type { RepoSpec } from "../schemas";
 
 import {
   INCREMENTAL_CHAT_PROMPT,
   generateRepoHistorySection,
 } from "../prompts/chat-prompt";
 import { listRepoHistory } from "../repo-history";
-import { parseRepoSpec } from "../schemas";
+import { type RepoSpec, parseRepoSpec } from "../schemas";
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
@@ -65,7 +62,7 @@ export async function chatToConfigIncremental(
     .replace("{{repoHistory}}", repoHistory);
 
   try {
-    const toolTimings: Map<string, number> = new Map();
+    const toolTimings = new Map<string, number>();
 
     const tools: ToolSet = {
       // Config building tools
@@ -145,7 +142,7 @@ export async function chatToConfigIncremental(
       },
       add_skill: {
         description: "Add a skill or package to install in the workspace",
-        execute: async ({ skill }) => {
+        execute: ({ skill }) => {
           const startTime = Date.now();
           const added = configBuilder.addSkill(skill);
           const duration = Date.now() - startTime;
@@ -165,7 +162,7 @@ export async function chatToConfigIncremental(
       },
       set_goal: {
         description: "Set the goal/purpose for this workspace session",
-        execute: async ({ goal }) => {
+        execute: ({ goal }) => {
           const startTime = Date.now();
           configBuilder.setGoal(goal);
           const duration = Date.now() - startTime;
@@ -395,6 +392,9 @@ ${data.body || "*No description provided*"}`;
           console.error("Stream error:", chunk.error);
           break;
         }
+        default:
+          // Ignore other chunk types
+          break;
       }
     }
 

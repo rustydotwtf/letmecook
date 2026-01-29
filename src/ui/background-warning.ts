@@ -35,14 +35,14 @@ export function showQuitWarning(
     content.add(warning);
 
     // List the running processes
-    processes.forEach((proc, i) => {
+    for (const [i, proc] of processes.entries()) {
       const processInfo = new TextRenderable(renderer, {
         content: `  • ${proc.description}`,
         fg: "#94a3b8",
         id: `process-${i}`,
       });
       content.add(processInfo);
-    });
+    }
 
     const question = new TextRenderable(renderer, {
       content: "What would you like to do?",
@@ -127,14 +127,14 @@ export function showSessionStartWarning(
     content.add(warning);
 
     // List the running processes
-    processes.forEach((proc, i) => {
+    for (const [i, proc] of processes.entries()) {
       const processInfo = new TextRenderable(renderer, {
         content: `  • ${proc.description}`,
         fg: "#94a3b8",
         id: `process-${i}`,
       });
       content.add(processInfo);
-    });
+    }
 
     const note = new TextRenderable(renderer, {
       content: "Some repositories may not be fully cloned yet.",

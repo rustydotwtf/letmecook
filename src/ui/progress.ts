@@ -1,6 +1,4 @@
-import type { CliRenderer } from "@opentui/core";
-
-import { TextRenderable } from "@opentui/core";
+import { type CliRenderer, TextRenderable } from "@opentui/core";
 
 import type { RepoSpec } from "../types";
 
@@ -44,6 +42,44 @@ let statusTexts: TextRenderable[] = [];
 let phaseText: TextRenderable | null = null;
 let sessionText: TextRenderable | null = null;
 let outputText: TextRenderable | null = null;
+
+function getRepoStatusIcon(status: ProgressRepoStatus): string {
+  if (status === "done" || status === "updated") {
+    return "[x]";
+  }
+  if (status === "cloning" || status === "refreshing") {
+    return "[~]";
+  }
+  if (status === "error") {
+    return "[!]";
+  }
+  if (status === "up-to-date") {
+    return "[=]";
+  }
+  if (status === "skipped") {
+    return "[>]";
+  }
+  return "[ ]";
+}
+
+function getRepoStatusColor(status: ProgressRepoStatus): string {
+  if (status === "done" || status === "updated") {
+    return "#22c55e";
+  }
+  if (status === "cloning") {
+    return "#fbbf24";
+  }
+  if (status === "refreshing") {
+    return "#38bdf8";
+  }
+  if (status === "error") {
+    return "#ef4444";
+  }
+  if (status === "skipped") {
+    return "#f59e0b";
+  }
+  return "#94a3b8";
+}
 
 function getPhasePresentation(phase: ProgressPhase): {
   content: string;
@@ -120,7 +156,7 @@ export function showProgress(
     repos: repos.map((repo) => ({ repo, status: "pending" as const })),
   };
 
-  repos.forEach((repo, i) => {
+  for (const [i, repo] of repos.entries()) {
     const statusText = new TextRenderable(renderer, {
       content: `  [ ] ${repo.owner}/${repo.name}`,
       fg: "#94a3b8",
@@ -128,7 +164,7 @@ export function showProgress(
     });
     content.add(statusText);
     statusTexts.push(statusText);
-  });
+  }
 
   // Output display section (shows last 5 lines of git output)
   outputText = new TextRenderable(renderer, {
@@ -156,38 +192,16 @@ export function updateProgress(
     sessionText.content = `Session: ${state.sessionName}`;
   }
 
-  state.repos.forEach((item, i) => {
+  for (const [i, item] of state.repos.entries()) {
     const text = statusTexts[i];
     if (text) {
-      const icon =
-        item.status === "done" || item.status === "updated"
-          ? "[x]"
-          : item.status === "cloning" || item.status === "refreshing"
-            ? "[~]"
-            : item.status === "error"
-              ? "[!]"
-              : item.status === "up-to-date"
-                ? "[=]"
-                : item.status === "skipped"
-                  ? "[>]"
-                  : "[ ]";
-      const color =
-        item.status === "done" || item.status === "updated"
-          ? "#22c55e"
-          : item.status === "cloning"
-            ? "#fbbf24"
-            : item.status === "refreshing"
-              ? "#38bdf8"
-              : item.status === "error"
-                ? "#ef4444"
-                : item.status === "skipped"
-                  ? "#f59e0b"
-                  : "#94a3b8";
+      const icon = getRepoStatusIcon(item.status);
+      const color = getRepoStatusColor(item.status);
 
       text.content = `  ${icon} ${item.repo.owner}/${item.repo.name}`;
       text.fg = color;
     }
-  });
+  }
 
   // Update git output display
   if (outputText && state.currentOutput && state.currentOutput.length > 0) {

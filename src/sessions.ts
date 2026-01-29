@@ -2,9 +2,7 @@ import { mkdir, readdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import type { Session, SessionManifest, RepoSpec } from "./types";
-
-import { repoSpecsMatch } from "./types";
+import { type RepoSpec, type Session, type SessionManifest, repoSpecsMatch } from "./types";
 
 const LETMECOOK_DIR = join(homedir(), ".letmecook");
 const SESSIONS_DIR = join(LETMECOOK_DIR, "sessions");
@@ -13,7 +11,7 @@ export async function ensureSessionsDir(): Promise<void> {
   await mkdir(SESSIONS_DIR, { recursive: true });
 }
 
-export async function getSessionPath(name: string): Promise<string> {
+export function getSessionPath(name: string): string {
   return join(SESSIONS_DIR, name);
 }
 
@@ -189,7 +187,7 @@ export async function updateSessionSettings(
   };
 }
 
-export async function updateSessionSkills(
+export function updateSessionSkills(
   name: string,
   skills: string[]
 ): Promise<Session | null> {
@@ -231,7 +229,7 @@ export async function generateUniqueName(baseName: string): Promise<string> {
 
   while (await sessionExists(name)) {
     name = `${baseName}-${counter}`;
-    counter++;
+    counter += 1;
   }
 
   return name;

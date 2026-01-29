@@ -1,11 +1,7 @@
-import type { CliRenderer, KeyEvent } from "@opentui/core";
-
-import { TextRenderable, InputRenderable } from "@opentui/core";
-
-import type { RepoSpec } from "../types";
+import { type CliRenderer, InputRenderable, type KeyEvent, TextRenderable } from "@opentui/core";
 
 import { listRepoHistory } from "../repo-history";
-import { parseRepoSpec } from "../types";
+import { type RepoSpec, parseRepoSpec } from "../types";
 import { showFooter, hideFooter } from "./common/footer";
 import { isEnter, isEscape, isArrowUp, isArrowDown } from "./common/keyboard";
 import { createBaseLayout, clearLayout } from "./renderer";

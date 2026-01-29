@@ -4,12 +4,12 @@ import { writeAgentsMd } from "./agents-md";
 import { updateSessionSkills } from "./sessions";
 import { readProcessOutput } from "./utils/stream";
 
-export async function updateSkills(
+export function updateSkills(
   session: Session,
   onProgress?: (output: string) => void
 ): Promise<{ success: boolean; output: string[] }> {
   if (!session.skills || session.skills.length === 0) {
-    return { output: [], success: true };
+    return Promise.resolve({ output: [], success: true });
   }
 
   const proc = Bun.spawn(["bunx", "skills", "update", "-y"], {
@@ -21,7 +21,7 @@ export async function updateSkills(
   return readProcessOutput(proc, onProgress);
 }
 
-export async function addSkillToSession(
+export function addSkillToSession(
   session: Session,
   skillString: string,
   onProgress?: (output: string) => void

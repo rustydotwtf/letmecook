@@ -32,7 +32,7 @@ export function showNewSessionPrompt(
     });
     content.add(reposLabel);
 
-    repos.forEach((repo, i) => {
+    for (const [i, repo] of repos.entries()) {
       const branch = repo.branch ? ` (${repo.branch})` : " (default)";
       const roMarker = repo.readOnly ? " [Read-only]" : "";
       const repoText = new TextRenderable(renderer, {
@@ -41,7 +41,7 @@ export function showNewSessionPrompt(
         id: `repo-${i}`,
       });
       content.add(repoText);
-    });
+    }
 
     // Goal prompt
     const goalLabel = new TextRenderable(renderer, {

@@ -134,15 +134,15 @@ export async function addReposFlow(
         console.error(
           `\n⚠️  ${errors.length} repository(ies) failed to clone:`
         );
-        errors.forEach((err) => {
+        for (const err of errors) {
           console.error(`  ✗ ${err.task.label}`);
           if (err.error) {
             console.error(`    ${err.error}`);
           }
-        });
+        }
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await Bun.sleep(700);
       hideCommandRunner(renderer);
 
       if (successfulRepos.length > 0) {

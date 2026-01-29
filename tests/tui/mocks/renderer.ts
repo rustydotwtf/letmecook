@@ -29,7 +29,7 @@ export function createMockRenderer(): MockCliRenderer {
         type: element.constructor?.name || "unknown",
       });
     },
-    remove: () => {},
+    remove: () => { /* noop */ },
   };
 
   const mock = {
@@ -44,8 +44,8 @@ export function createMockRenderer(): MockCliRenderer {
     },
     terminalWidth: 80,
     terminalHeight: 24,
-    setBackgroundColor: () => {},
-    destroy: () => {},
+    setBackgroundColor: () => { /* noop */ },
+    destroy: () => { /* noop */ },
 
     // Test helpers
     simulateKey: (key: Partial<KeyEvent>) => {

@@ -1,6 +1,4 @@
-import type { CliRenderer } from "@opentui/core";
-
-import { TextRenderable } from "@opentui/core";
+import { type CliRenderer, TextRenderable } from "@opentui/core";
 
 import type { RepoSpec } from "../types";
 
@@ -62,7 +60,7 @@ export function showAgentProposal(
   });
   content.add(planLabel);
 
-  proposal.repos.forEach((repo) => {
+  for (const repo of proposal.repos) {
     const repoText = new TextRenderable(renderer, {
       content: `  📦 ${repo.owner}/${repo.name}`,
       fg: "#10b981",
@@ -70,7 +68,7 @@ export function showAgentProposal(
       marginBottom: 0,
     });
     content.add(repoText);
-  });
+  }
 
   // Summary
   const summaryText = new TextRenderable(renderer, {

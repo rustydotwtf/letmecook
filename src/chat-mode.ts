@@ -1,14 +1,16 @@
-import type { ChatConfig } from "./flows/chat-to-config";
-import type { ToolCallResult } from "./flows/chat-to-config";
+import type { CliRenderer } from "@opentui/core";
+
 import type { Session } from "./types";
 
 import { ChatLogger } from "./chat-logger";
 import { ConfigBuilder } from "./config-builder";
 import { createNewSession } from "./flows";
 import {
+  type ChatConfig,
+  type ChatMessage,
+  type ToolCallResult,
   chatToConfigIncremental,
   configToRepoSpecs,
-  type ChatMessage,
 } from "./flows/chat-to-config";
 import {
   INCREMENTAL_WELCOME_MESSAGE,
@@ -57,6 +59,8 @@ function formatToolResultForMessage(tr: ToolCallResult): string | null {
       }
       break;
     }
+    default:
+      break;
   }
   return null;
 }
@@ -84,7 +88,7 @@ function isReadySignal(message: string): boolean {
     "go",
   ];
   return readySignals.some(
-    (signal) => normalized === signal || normalized.startsWith(signal + " ")
+    (signal) => normalized === signal || normalized.startsWith(`${signal} `)
   );
 }
 
@@ -288,28 +292,33 @@ export async function handleChatMode(): Promise<ChatModeResult> {
  * Continue chat after user goes back from confirmation
  */
 async function continueChatAfterBack(
-  renderer: any,
+  initialRenderer: CliRenderer,
   messages: ChatMessage[],
   configBuilder: ConfigBuilder,
   logger: ChatLogger
 ): Promise<ChatModeResult> {
   let elements: ChatWithSidebarElements;
+  let activeRenderer: CliRenderer = initialRenderer;
 
   // Subscribe to config changes
   configBuilder.on("config-changed", (config) => {
     if (elements) {
-      updateSidebar(renderer, elements, config);
+      updateSidebar(activeRenderer, elements, config);
     }
   });
 
   while (true) {
     elements = createChatWithSidebarLayout(
-      renderer,
+      activeRenderer,
       messages,
       configBuilder.config
     );
 
-    const inputResult = await waitForChatInput(renderer, elements, messages);
+    const inputResult = await waitForChatInput(
+      activeRenderer,
+      elements,
+      messages
+    );
 
     if (inputResult.cancelled) {
       destroyRenderer();
@@ -346,9 +355,9 @@ async function continueChatAfterBack(
     logger.addMessage("user", userMessage);
 
     destroyRenderer();
-    renderer = await createRenderer();
+    activeRenderer = await createRenderer();
     elements = createChatWithSidebarLayout(
-      renderer,
+      activeRenderer,
       messages,
       configBuilder.config
     );
@@ -356,7 +365,7 @@ async function continueChatAfterBack(
     // Show cooking indicator while waiting for LLM
     elements.showCooking();
 
-    const streaming = createStreamingMessage(renderer, elements);
+    const streaming = createStreamingMessage(activeRenderer, elements);
 
     const chatResult = await chatToConfigIncremental(
       messages,
@@ -395,17 +404,17 @@ async function continueChatAfterBack(
     }
 
     destroyRenderer();
-    renderer = await createRenderer();
+    activeRenderer = await createRenderer();
   }
 
   // Show confirmation again
   destroyRenderer();
-  renderer = await createRenderer();
+  activeRenderer = await createRenderer();
 
   const config = configBuilder.toFinalConfig();
   logger.addConfigAttempt(config, true);
 
-  const confirmResult = await showChatConfirmation(renderer, config);
+  const confirmResult = await showChatConfirmation(activeRenderer, config);
 
   if (confirmResult.action === "cancel") {
     destroyRenderer();
@@ -420,10 +429,10 @@ async function continueChatAfterBack(
     logger.addMessage("user", reviseMessage);
 
     destroyRenderer();
-    renderer = await createRenderer();
+    activeRenderer = await createRenderer();
 
     return await continueChatAfterBack(
-      renderer,
+      activeRenderer,
       messages,
       configBuilder,
       logger
@@ -497,7 +506,7 @@ async function createSessionFromConfig(
   }
 }
 
-async function waitForEnter(): Promise<void> {
+function waitForEnter(): Promise<void> {
   return new Promise((resolve) => {
     process.stdin.setRawMode(true);
     process.stdin.resume();

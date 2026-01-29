@@ -63,7 +63,7 @@ function renderRow(pattern: string): string {
 function generateFireRow(width: number, intensity: number): string {
   let row = "";
 
-  for (let i = 0; i < width; i++) {
+  for (let i = 0; i < width; i += 1) {
     // Base rows (high intensity) are always filled
     // Tip rows (low intensity) are sparse/wispy
     const shouldFill = Math.random() < intensity;
@@ -95,11 +95,11 @@ export function buildLogoRows(): string[] {
   // Build combined rows for LETMECOOK
   const letterRows: string[] = ["", "", "", "", "", "", ""];
 
-  for (let i = 0; i < text.length; i++) {
+  for (let i = 0; i < text.length; i += 1) {
     const char = text[i];
     if (char && pixelLetters[char]) {
       const letter = pixelLetters[char];
-      for (let row = 0; row < 7; row++) {
+      for (let row = 0; row < 7; row += 1) {
         const letterRow = letter[row] ?? "";
         const targetRow = letterRows[row] ?? "";
         letterRows[row] = targetRow + letterRow;
@@ -117,15 +117,24 @@ export function buildLogoRows(): string[] {
     rightFoodIndex = (leftFoodIndex + 1) % foods.length;
   }
 
-  const leftFood = foods[leftFoodIndex]!;
-  const rightFood = foods[rightFoodIndex]!;
+  const defaultFood = foods[0] ?? [
+    ".......",
+    ".......",
+    ".......",
+    ".......",
+    ".......",
+    ".......",
+    ".......",
+  ];
+  const leftFood = foods[leftFoodIndex] ?? defaultFood;
+  const rightFood = foods[rightFoodIndex] ?? defaultFood;
 
   // Spacing between food and text (in pattern chars, each becomes 2 terminal chars)
   const foodTextSpacing = ".."; // 2 pixels = 4 terminal chars
 
   // Build combined rows: leftFood + spacing + LETMECOOK + spacing + rightFood
   const logoRows: string[] = [];
-  for (let row = 0; row < 7; row++) {
+  for (let row = 0; row < 7; row += 1) {
     const combined =
       leftFood[row] +
       foodTextSpacing +
@@ -179,7 +188,7 @@ export async function showSplash(): Promise<void> {
 
   console.clear();
 
-  for (let frame = 0; frame < frameCount; frame++) {
+  for (let frame = 0; frame < frameCount; frame += 1) {
     const art = renderLogo(logoRows);
     const artLines = art.split("\n");
 

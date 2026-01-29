@@ -1,6 +1,4 @@
-import type { CliRenderer, KeyEvent } from "@opentui/core";
-
-import { TextRenderable } from "@opentui/core";
+import { type CliRenderer, type KeyEvent, TextRenderable } from "@opentui/core";
 
 import type { ChatConfig } from "../flows/chat-to-config";
 
@@ -42,14 +40,14 @@ export function showChatConfirmation(
     content.add(reposLabel);
 
     if (config.repos.length > 0) {
-      config.repos.forEach((repo, i) => {
+      for (const [i, repo] of config.repos.entries()) {
         const repoText = new TextRenderable(renderer, {
           content: `  • ${repo}`,
           fg: "#94a3b8",
           id: `repo-${i}`,
         });
         content.add(repoText);
-      });
+      }
     } else {
       const noRepos = new TextRenderable(renderer, {
         content: "  (none)",
@@ -69,14 +67,14 @@ export function showChatConfirmation(
     content.add(skillsLabel);
 
     if (config.skills && config.skills.length > 0) {
-      config.skills.forEach((skill, i) => {
+      for (const [i, skill] of config.skills.entries()) {
         const skillText = new TextRenderable(renderer, {
           content: `  • ${skill}`,
           fg: "#94a3b8",
           id: `skill-${i}`,
         });
         content.add(skillText);
-      });
+      }
     } else {
       const noSkills = new TextRenderable(renderer, {
         content: "  (none)",

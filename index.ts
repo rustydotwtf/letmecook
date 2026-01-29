@@ -86,7 +86,8 @@ function printWhy(): void {
       "..www..",
     ],
   ];
-  const artRows = arts[Math.floor(Math.random() * arts.length)]!;
+  const defaultArt = arts[0] ?? [".", ".", ".", ".", ".", ".", "."];
+  const artRows = arts[Math.floor(Math.random() * arts.length)] ?? defaultArt;
   const art = artRows
     .map((row) => [...row].map((cell) => palette[cell] ?? "  ").join(""))
     .join("\n");
@@ -104,7 +105,7 @@ Agents are good at problem-solving when you give them what they need and let the
 
 console.clear();
 const args = process.argv.slice(2);
-const firstArg = args[0];
+const [firstArg] = args;
 
 // Version flag
 if (firstArg === "--version" || firstArg === "-v") {

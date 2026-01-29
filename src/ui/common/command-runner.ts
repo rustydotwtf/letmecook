@@ -116,7 +116,7 @@ export function showCommandRunner(
     task,
   }));
 
-  tasks.forEach((task, i) => {
+  for (const [i, task] of tasks.entries()) {
     const statusIcon = getStatusIcon("pending");
     const taskText = new TextRenderable(renderer, {
       content: `${statusIcon.icon} ${task.label}`,
@@ -125,7 +125,7 @@ export function showCommandRunner(
     });
     content.add(taskText);
     taskTexts.push(taskText);
-  });
+  }
 
   if (showOutput) {
     currentCommandText = new TextRenderable(renderer, {
@@ -162,14 +162,14 @@ export function updateCommandRunner(
   currentTaskIndex?: number,
   outputLines?: string[]
 ): void {
-  taskStatuses.forEach((item, i) => {
+  for (const [i, item] of taskStatuses.entries()) {
     const text = taskTexts[i];
     if (text) {
       const statusIcon = getStatusIcon(item.status);
       text.content = `${statusIcon.icon} ${item.task.label}`;
       text.fg = statusIcon.color;
     }
-  });
+  }
 
   if (
     currentCommandText &&
@@ -279,7 +279,7 @@ export async function runCommands(
   }
 
   try {
-    for (let i = 0; i < tasks.length; i++) {
+    for (let i = 0; i < tasks.length; i += 1) {
       const task = tasks[i];
       const taskState = taskStatuses[i];
 

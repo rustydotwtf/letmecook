@@ -64,9 +64,9 @@ export function showFooter(
 
   // Create separator line
   const separator = new TextRenderable(renderer, {
-    id: "footer-separator",
     content: "─".repeat(66), // Approximate width for separator line
     fg: "#475569",
+    id: "footer-separator",
     marginTop: 1,
   });
   parent.add(separator);

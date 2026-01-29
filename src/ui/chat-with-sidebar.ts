@@ -1,14 +1,14 @@
 import {
+  ASCIIFontRenderable,
+  BoxRenderable,
   type CliRenderer,
-  TextRenderable,
   InputRenderable,
   type KeyEvent,
-  ScrollBoxRenderable,
-  BoxRenderable,
-  ASCIIFontRenderable,
+  measureText,
   RGBA,
+  ScrollBoxRenderable,
+  TextRenderable,
 } from "@opentui/core";
-import { measureText } from "@opentui/core";
 
 import type { PartialConfig } from "../config-builder";
 import type { ChatMessage } from "../flows/chat-to-config";
@@ -144,7 +144,7 @@ export function createChatWithSidebarLayout(
   chatBox.add(chatScrollBox);
 
   // Add existing messages
-  messages.forEach((msg, index) => {
+  for (const [index, msg] of messages.entries()) {
     const prefix = msg.role === "user" ? "\u{1F464}" : "\u{1F916}";
     const fg = msg.role === "user" ? "#e2e8f0" : "#94a3b8";
 
@@ -156,7 +156,7 @@ export function createChatWithSidebarLayout(
       maxWidth: chatWidth - 8,
     });
     chatScrollBox.add(messageText);
-  });
+  }
 
   // Input container
   const inputContainer = new BoxRenderable(renderer, {
@@ -321,7 +321,7 @@ function clearBox(box: BoxRenderable, _renderer: CliRenderer): void {
   // Remove children by attempting to remove known IDs
   // This is a workaround since BoxRenderable doesn't have a clear method
   const idsToTry = [];
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 50; i += 1) {
     idsToTry.push(`sidebar-repo-${i}`, `sidebar-skill-${i}`);
   }
   idsToTry.push("sidebar-no-repos", "sidebar-no-skills");
@@ -348,14 +348,14 @@ export function updateSidebar(
   // Clear and rebuild repos
   clearBox(reposContainer, renderer);
   if (config.repos.length > 0) {
-    config.repos.forEach((repo, i) => {
+    for (const [i, repo] of config.repos.entries()) {
       const repoText = new TextRenderable(renderer, {
         content: `\u2022 ${repo}`,
         fg: "#94a3b8",
         id: `sidebar-repo-${i}`,
       });
       reposContainer.add(repoText);
-    });
+    }
   } else {
     const noRepos = new TextRenderable(renderer, {
       content: "(none)",
@@ -368,14 +368,14 @@ export function updateSidebar(
   // Clear and rebuild skills
   clearBox(skillsContainer, renderer);
   if (config.skills.length > 0) {
-    config.skills.forEach((skill, i) => {
+    for (const [i, skill] of config.skills.entries()) {
       const skillText = new TextRenderable(renderer, {
         content: `\u2022 ${skill}`,
         fg: "#94a3b8",
         id: `sidebar-skill-${i}`,
       });
       skillsContainer.add(skillText);
-    });
+    }
   } else {
     const noSkills = new TextRenderable(renderer, {
       content: "(none)",
@@ -509,7 +509,9 @@ export function waitForChatInput(
           (m) => m.role === "assistant"
         );
         if (lastAssistantMessage) {
-          void copyToClipboard(lastAssistantMessage.content);
+          copyToClipboard(lastAssistantMessage.content).catch(() => {
+            /* ignore clipboard errors */
+          });
         }
         return;
       }

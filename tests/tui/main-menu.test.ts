@@ -9,17 +9,17 @@ const mockTextRenderable = mock(() => ({
 }));
 
 const mockSelectRenderable = mock(() => ({
-  blur: mock(() => {}),
-  focus: mock(() => {}),
+  blur: mock(() => { /* noop */ }),
+  focus: mock(() => { /* noop */ }),
   id: "mock-select",
-  off: mock(() => {}),
-  on: mock(() => {}),
+  off: mock(() => { /* noop */ }),
+  on: mock(() => { /* noop */ }),
 }));
 
 const mockBoxRenderable = mock(() => ({
-  add: mock(() => {}),
+  add: mock(() => { /* noop */ }),
   id: "mock-box",
-  remove: mock(() => {}),
+  remove: mock(() => { /* noop */ }),
 }));
 
 const mockASCIIFontRenderable = mock(() => ({
@@ -33,12 +33,12 @@ let mockRoot: { add: ReturnType<typeof mock>; remove: ReturnType<typeof mock> };
 function createMockRenderer() {
   keyEmitter = new EventEmitter();
   mockRoot = {
-    add: mock(() => {}),
-    remove: mock(() => {}),
+    add: mock(() => { /* noop */ }),
+    remove: mock(() => { /* noop */ }),
   };
 
   return {
-    destroy: mock(() => {}),
+    destroy: mock(() => { /* noop */ }),
     keyInput: {
       off: (event: string, handler: (...args: unknown[]) => void) => {
         keyEmitter.off(event, handler);
@@ -48,7 +48,7 @@ function createMockRenderer() {
       },
     },
     root: mockRoot,
-    setBackgroundColor: mock(() => {}),
+    setBackgroundColor: mock(() => { /* noop */ }),
     terminalHeight: 24,
     terminalWidth: 80,
   };
@@ -102,7 +102,7 @@ describe("showMainMenu", () => {
     const resultPromise = showMainMenu(renderer as any, []);
 
     // Give the promise time to set up listeners
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     // Simulate pressing 'q'
     keyEmitter.emit("keypress", {
@@ -119,7 +119,7 @@ describe("showMainMenu", () => {
   test("escape key resolves with quit action", async () => {
     const resultPromise = showMainMenu(renderer as any, []);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     keyEmitter.emit("keypress", {
       ctrl: false,
@@ -135,7 +135,7 @@ describe("showMainMenu", () => {
   test("'n' key resolves with new-session action", async () => {
     const resultPromise = showMainMenu(renderer as any, []);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     keyEmitter.emit("keypress", {
       ctrl: false,
@@ -152,7 +152,7 @@ describe("showMainMenu", () => {
     const sessions = [createTestSession("test-session")];
     const resultPromise = showMainMenu(renderer as any, sessions);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     keyEmitter.emit("keypress", {
       ctrl: false,
@@ -172,7 +172,7 @@ describe("showMainMenu", () => {
     const sessions = [createTestSession("test-session")];
     const resultPromise = showMainMenu(renderer as any, sessions);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     keyEmitter.emit("keypress", {
       ctrl: false,
@@ -188,7 +188,7 @@ describe("showMainMenu", () => {
   test("'a' key does nothing when no sessions", async () => {
     const resultPromise = showMainMenu(renderer as any, []);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     // Press 'a' - should be ignored
     keyEmitter.emit("keypress", {
@@ -213,7 +213,7 @@ describe("showMainMenu", () => {
   test("'d' key does nothing when no sessions", async () => {
     const resultPromise = showMainMenu(renderer as any, []);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     // Press 'd' - should be ignored
     keyEmitter.emit("keypress", {

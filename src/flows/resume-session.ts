@@ -3,11 +3,9 @@ import type { CliRenderer } from "@opentui/core";
 import type { Session } from "../types";
 
 import { writeAgentsMd } from "../agents-md";
-import { refreshLatestRepos } from "../git";
-import { recloneRepo } from "../git";
+import { recloneRepo, refreshLatestRepos } from "../git";
 import { getProcessesForSession } from "../process-registry";
-import { updateSessionSettings } from "../sessions";
-import { deleteSession } from "../sessions";
+import { deleteSession, updateSessionSettings } from "../sessions";
 import { updateSkills } from "../skills";
 import { showSessionStartWarning } from "../ui/background-warning";
 import { showDeleteConfirm } from "../ui/confirm-delete";
@@ -26,20 +24,24 @@ export interface ResumeSessionParams {
 export type ResumeResult = "resume" | "home";
 
 export async function resumeSession(
-  renderer: CliRenderer,
+  _renderer: CliRenderer,
   params: ResumeSessionParams
 ): Promise<ResumeResult> {
   const { session, mode, initialRefresh = true } = params;
 
   let currentSession = session;
   let shouldRefresh = initialRefresh;
+  let activeRenderer: CliRenderer = _renderer;
 
   // Check for background processes running for this session
   if (mode === "tui") {
     const runningProcesses = await getProcessesForSession(session.name);
     if (runningProcesses.length > 0) {
-      renderer = await createRenderer();
-      const choice = await showSessionStartWarning(renderer, runningProcesses);
+      activeRenderer = await createRenderer();
+      const choice = await showSessionStartWarning(
+        activeRenderer,
+        runningProcesses
+      );
       destroyRenderer();
       if (choice === "cancel") {
         return "home";
@@ -50,8 +52,8 @@ export async function resumeSession(
 
   while (true) {
     if (mode === "tui" && shouldRefresh) {
-      renderer = await createRenderer();
-      await refreshLatestBeforeResume(renderer, currentSession);
+      activeRenderer = await createRenderer();
+      await refreshLatestBeforeResume(activeRenderer, currentSession);
       destroyRenderer();
     } else if (shouldRefresh) {
       await refreshLatestBeforeResumeSimple(currentSession);
@@ -61,11 +63,11 @@ export async function resumeSession(
     shouldRefresh = true;
 
     if (mode === "tui") {
-      renderer = await createRenderer();
+      activeRenderer = await createRenderer();
     }
 
     while (true) {
-      const exitResult = await handleSmartExit(renderer, currentSession);
+      const exitResult = await handleSmartExit(activeRenderer, currentSession);
 
       if (exitResult.action === "resume") {
         break;
@@ -77,7 +79,7 @@ export async function resumeSession(
       }
 
       if (exitResult.action === "delete") {
-        const choice = await showDeleteConfirm(renderer, currentSession);
+        const choice = await showDeleteConfirm(activeRenderer, currentSession);
         if (choice === "confirm") {
           await deleteSession(currentSession.name);
         }
@@ -86,7 +88,10 @@ export async function resumeSession(
       }
 
       if (exitResult.action === "edit") {
-        const editResult = await showSessionSettings(renderer, currentSession);
+        const editResult = await showSessionSettings(
+          activeRenderer,
+          currentSession
+        );
 
         if (
           editResult.action === "saved" ||
@@ -154,7 +159,7 @@ async function refreshLatestBeforeResume(
   refreshProgressState.phase = "done";
   updateProgress(renderer, refreshProgressState);
 
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await Bun.sleep(700);
   hideProgress(renderer);
 
   const recloneTargets = refreshResults.filter(
@@ -175,7 +180,7 @@ async function refreshLatestBeforeResume(
 
       try {
         await recloneRepo(result.repo, session.path, (status, outputLines) => {
-          const repoState = recloneProgressState.repos[0];
+          const [repoState] = recloneProgressState.repos;
           if (repoState) {
             repoState.status = status;
             if (outputLines) {
@@ -185,7 +190,7 @@ async function refreshLatestBeforeResume(
           }
         });
       } catch (error) {
-        const repoState = recloneProgressState.repos[0];
+        const [repoState] = recloneProgressState.repos;
         if (repoState) {
           repoState.status = "error";
         }
@@ -197,10 +202,23 @@ async function refreshLatestBeforeResume(
 
       recloneProgressState.phase = "done";
       updateProgress(renderer, recloneProgressState);
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await Bun.sleep(700);
       hideProgress(renderer);
     }
   }
+}
+
+function getRefreshStatusIcon(status: string): string {
+  if (status === "updated") {
+    return "✓";
+  }
+  if (status === "up-to-date") {
+    return "•";
+  }
+  if (status === "skipped") {
+    return "↷";
+  }
+  return "✗";
 }
 
 async function refreshLatestBeforeResumeSimple(
@@ -219,18 +237,11 @@ async function refreshLatestBeforeResumeSimple(
     return;
   }
 
-  results.forEach((result) => {
-    const icon =
-      result.status === "updated"
-        ? "✓"
-        : result.status === "up-to-date"
-          ? "•"
-          : result.status === "skipped"
-            ? "↷"
-            : "✗";
+  for (const result of results) {
+    const icon = getRefreshStatusIcon(result.status);
     const reason = result.reason ? ` (${result.reason})` : "";
     console.log(`  ${icon} ${result.repo.owner}/${result.repo.name}${reason}`);
-  });
+  }
 
   await updateSkillsSimple(session);
 }

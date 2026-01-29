@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 
-export async function runInteractiveOpencode(
+export function runInteractiveOpencode(
   sessionPath: string
 ): Promise<void> {
   return new Promise((resolve) => {

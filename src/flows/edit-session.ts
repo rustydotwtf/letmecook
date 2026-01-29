@@ -155,15 +155,15 @@ export async function editSession(
           console.error(
             `\n⚠️  ${errors.length} repository(ies) failed to clone:`
           );
-          errors.forEach((err) => {
+          for (const err of errors) {
             console.error(`  ✗ ${err.task.label}`);
             if (err.error) {
               console.error(`    ${err.error}`);
             }
-          });
+          }
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 700));
+        await Bun.sleep(700);
         hideCommandRunner(renderer);
 
         if (successfulRepos.length > 0) {
@@ -223,18 +223,18 @@ export async function editSession(
         });
 
         // Check for errors (not skipped/aborted)
-        const errors = results.filter((r) => r.outcome === "error");
-        if (errors.length > 0) {
-          console.error(`\n⚠️  ${errors.length} skill(s) failed to install:`);
-          errors.forEach((err) => {
+        const skillErrors = results.filter((r) => r.outcome === "error");
+        if (skillErrors.length > 0) {
+          console.error(`\n⚠️  ${skillErrors.length} skill(s) failed to install:`);
+          for (const err of skillErrors) {
             console.error(`  ✗ ${err.task.label}`);
             if (err.error) {
               console.error(`    ${err.error}`);
             }
-          });
+          }
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 700));
+        await Bun.sleep(700);
         hideCommandRunner(renderer);
 
         if (successfulSkills.length > 0) {

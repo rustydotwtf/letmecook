@@ -1,15 +1,13 @@
-import type { RepoSpec } from "./types";
-
 import { ChatLogger } from "./chat-logger";
 import { createNewSession, resumeSession } from "./flows";
 import {
-  listSessions,
-  getSession,
-  updateLastAccessed,
   deleteAllSessions,
   deleteSession,
+  getSession,
+  listSessions,
+  updateLastAccessed,
 } from "./sessions";
-import { parseRepoSpec } from "./types";
+import { type RepoSpec, parseRepoSpec } from "./types";
 import { showNukeConfirm } from "./ui/confirm-nuke";
 import { showSessionList } from "./ui/list";
 import { showNewSessionPrompt } from "./ui/new-session";
@@ -133,6 +131,9 @@ export async function handleList(): Promise<void> {
           destroyRenderer();
           return;
         }
+
+        default:
+          break;
       }
     }
   } catch (error) {
@@ -152,7 +153,9 @@ export async function handleResume(sessionName: string): Promise<void> {
     if (sessions.length === 0) {
       console.log("  (none)");
     } else {
-      sessions.forEach((s) => console.log(`  - ${s.name}`));
+      for (const s of sessions) {
+        console.log(`  - ${s.name}`);
+      }
     }
     process.exit(1);
   }
@@ -176,7 +179,9 @@ export async function handleDelete(sessionName: string): Promise<void> {
     const sessions = await listSessions();
     if (sessions.length > 0) {
       console.log("\nAvailable sessions:");
-      sessions.forEach((s) => console.log(`  - ${s.name}`));
+      for (const s of sessions) {
+        console.log(`  - ${s.name}`);
+      }
     }
     process.exit(1);
   }
@@ -307,51 +312,46 @@ export function parseRepos(args: string[]): RepoSpec[] {
 }
 
 export async function handleCLIMode(args: string[]): Promise<void> {
-  const firstArg = args[0];
+  const [firstArg, secondArg, thirdArg] = args;
 
   if (firstArg === "--list" || firstArg === "-l") {
     await handleList();
   } else if (firstArg === "--resume" || firstArg === "-r") {
-    const sessionName = args[1];
-    if (!sessionName) {
+    if (!secondArg) {
       console.error(
         "Missing session name. Usage: letmecook --cli --resume <session-name>"
       );
       process.exit(1);
     }
-    await handleResume(sessionName);
+    await handleResume(secondArg);
   } else if (firstArg === "--delete" || firstArg === "-d") {
-    const sessionName = args[1];
-    if (!sessionName) {
+    if (!secondArg) {
       console.error(
         "Missing session name. Usage: letmecook --cli --delete <session-name>"
       );
       process.exit(1);
     }
-    await handleDelete(sessionName);
+    await handleDelete(secondArg);
   } else if (firstArg === "--nuke") {
     const hasYes = args.includes("--yes") || args.includes("-y");
     await handleNuke(hasYes);
   } else if (firstArg === "--logs") {
-    const secondArg = args[1];
     if (secondArg === "--view") {
-      const logId = args[2];
-      if (!logId) {
+      if (!thirdArg) {
         console.error(
           "Missing log ID. Usage: letmecook --cli --logs --view <log-id>"
         );
         process.exit(1);
       }
-      await handleChatLogView(logId);
+      await handleChatLogView(thirdArg);
     } else if (secondArg === "--delete") {
-      const logId = args[2];
-      if (!logId) {
+      if (!thirdArg) {
         console.error(
           "Missing log ID. Usage: letmecook --cli --logs --delete <log-id>"
         );
         process.exit(1);
       }
-      await handleChatLogDelete(logId);
+      await handleChatLogDelete(thirdArg);
     } else if (secondArg === "--nuke") {
       const hasYes = args.includes("--yes") || args.includes("-y");
       await handleChatLogsNuke(hasYes);

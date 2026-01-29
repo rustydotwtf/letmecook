@@ -1,8 +1,6 @@
-import { test, expect, describe } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
-import type { RepoSpec } from "../../src/types";
-
-import { parseRepoSpec, repoSpecsMatch } from "../../src/types";
+import { parseRepoSpec, type RepoSpec, repoSpecsMatch } from "../../src/types";
 
 describe("parseRepoSpec", () => {
   test("parses owner/repo format", () => {

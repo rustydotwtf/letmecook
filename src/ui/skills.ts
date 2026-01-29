@@ -14,7 +14,7 @@ export interface SkillsPromptResult {
   cancelled: boolean;
 }
 
-export async function showSkillsPrompt(
+export function showSkillsPrompt(
   renderer: CliRenderer,
   _existingSkills: string[] = []
 ): Promise<SkillsPromptResult> {

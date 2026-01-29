@@ -123,6 +123,9 @@ export async function handleTUIMode(): Promise<void> {
           console.log("\nGoodbye!");
           return;
         }
+
+        default:
+          break;
       }
     }
   } catch (error) {

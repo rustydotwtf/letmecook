@@ -154,7 +154,7 @@ export async function killProcess(pid: number): Promise<boolean> {
     // Wait up to 3 seconds for process to exit
     const startTime = Date.now();
     while (Date.now() - startTime < 3000) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await Bun.sleep(100);
       if (!isProcessAlive(pid)) {
         await removeProcessFromRegistry(pid);
         return true;
@@ -163,7 +163,7 @@ export async function killProcess(pid: number): Promise<boolean> {
 
     // Process didn't exit, send SIGKILL
     process.kill(pid, "SIGKILL");
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await Bun.sleep(100);
 
     await removeProcessFromRegistry(pid);
     return true;

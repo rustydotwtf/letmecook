@@ -110,6 +110,9 @@ export async function createNewSession(
           case "cancel": {
             return null;
           }
+
+          default:
+            break;
         }
       }
     }
@@ -130,7 +133,7 @@ export async function createNewSession(
     }
 
     if (mode === "tui") {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await Bun.sleep(3000);
 
       const session = await createSession(
         sessionName,
@@ -200,12 +203,12 @@ export async function createNewSession(
       const errors = results.filter((r) => r.outcome === "error");
       if (errors.length > 0) {
         console.error(`\n⚠️  ${errors.length} task(s) failed:`);
-        errors.forEach((err) => {
+        for (const err of errors) {
           console.error(`  ✗ ${err.task.label}`);
           if (err.error) {
             console.error(`    ${err.error}`);
           }
-        });
+        }
       }
 
       // Record only successful repos
@@ -213,7 +216,7 @@ export async function createNewSession(
         await recordRepoHistory(successfulRepoSpecs);
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await Bun.sleep(700);
       hideCommandRunner(renderer);
 
       await writeAgentsMd(session);
@@ -245,7 +248,7 @@ export async function createNewSession(
     });
 
     // Print results
-    results.forEach((result) => {
+    for (const result of results) {
       if (result.success) {
         console.log(`  ✓ ${result.task.label}`);
       } else {
@@ -254,7 +257,7 @@ export async function createNewSession(
           console.log(`    ${result.error}`);
         }
       }
-    });
+    }
 
     await writeAgentsMd(session);
     await createClaudeMdSymlink(session.path);

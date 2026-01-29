@@ -1,12 +1,12 @@
 import {
-  createCliRenderer,
-  type CliRenderer,
-  BoxRenderable,
-  TextRenderable,
   ASCIIFontRenderable,
+  BoxRenderable,
+  type CliRenderer,
+  createCliRenderer,
+  measureText,
   RGBA,
+  TextRenderable,
 } from "@opentui/core";
-import { measureText } from "@opentui/core";
 
 let renderer: CliRenderer | null = null;
 
