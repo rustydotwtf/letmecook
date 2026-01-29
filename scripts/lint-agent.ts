@@ -48,9 +48,9 @@ function groupByFile(diagnostics: Diagnostic[]): Map<string, Diagnostic[]> {
     groups.set(diag.filename, list);
   }
 
-  // Sort files alphabetically
+  // Sort by issue count (ascending) - fix easiest files first
   return new Map(
-    [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+    [...groups.entries()].sort((a, b) => a[1].length - b[1].length)
   );
 }
 
@@ -166,7 +166,7 @@ async function runLint(): Promise<void> {
 
   if (totalFiles > 1) {
     console.log(
-      `Total: ${totalSummary} across ${totalFiles} files (showing first file only)`
+      `Total: ${totalSummary} across ${totalFiles} files (showing file with fewest issues)`
     );
   } else {
     console.log(`Total: ${totalSummary}`);
