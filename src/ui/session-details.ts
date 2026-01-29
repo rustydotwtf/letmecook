@@ -15,61 +15,84 @@ import { createBaseLayout, clearLayout } from "./renderer";
 
 export type SessionDetailsAction = "resume" | "edit" | "add-repos" | "back";
 
+function createTextRenderables(
+  renderer: CliRenderer,
+  session: Session,
+  content: unknown
+) {
+  const contentContainer = content as { add: (element: unknown) => void };
+  const sessionInfo = new TextRenderable(renderer, {
+    content: `Session: ${session.name}`,
+    fg: "#38bdf8",
+    id: "session-info",
+    marginBottom: 1,
+  });
+  contentContainer.add(sessionInfo);
+
+  const goalText = session.goal ?? "(none)";
+  const goalInfo = new TextRenderable(renderer, {
+    content: `Goal: ${goalText}`,
+    fg: "#94a3b8",
+    id: "goal-info",
+    marginBottom: 1,
+  });
+  contentContainer.add(goalInfo);
+
+  const reposText = formatRepoList(session.repos, { prefix: "  " });
+  const reposInfo = new TextRenderable(renderer, {
+    content: `Repositories:\n${reposText || "  (none)"}`,
+    fg: "#94a3b8",
+    id: "repos-info",
+    marginBottom: 1,
+  });
+  contentContainer.add(reposInfo);
+}
+
+function createSelectRenderable(
+  renderer: CliRenderer,
+  content: unknown
+): SelectRenderable {
+  const contentContainer = content as { add: (element: unknown) => void };
+  const select = new SelectRenderable(renderer, {
+    backgroundColor: "transparent",
+    focusedBackgroundColor: "transparent",
+    height: 3,
+    id: "session-details-select",
+    marginTop: 1,
+    options: [
+      { description: "", name: "Resume session", value: "resume" },
+      { description: "", name: "Edit settings", value: "edit" },
+      { description: "", name: "Back", value: "back" },
+    ],
+    selectedBackgroundColor: "#334155",
+    selectedTextColor: "#38bdf8",
+    showDescription: false,
+    textColor: "#e2e8f0",
+    width: 40,
+  });
+  contentContainer.add(select);
+  return select;
+}
+
+function createSessionDetailsUI(renderer: CliRenderer, session: Session) {
+  clearLayout(renderer);
+  const { content } = createBaseLayout(renderer, "Session details");
+
+  createTextRenderables(renderer, session, content);
+  const select = createSelectRenderable(renderer, content);
+
+  showFooter(renderer, content, { back: true, navigate: true, select: true });
+
+  return select;
+}
+
 export function showSessionDetails(
   renderer: CliRenderer,
   session: Session
 ): Promise<SessionDetailsAction> {
+  // eslint-disable-next-line promise/avoid-new
   return new Promise((resolve) => {
-    clearLayout(renderer);
-
-    const { content } = createBaseLayout(renderer, "Session details");
-
-    const sessionInfo = new TextRenderable(renderer, {
-      content: `Session: ${session.name}`,
-      fg: "#38bdf8",
-      id: "session-info",
-      marginBottom: 1,
-    });
-    content.add(sessionInfo);
-
-    const goalText = session.goal ? session.goal : "(none)";
-    const goalInfo = new TextRenderable(renderer, {
-      content: `Goal: ${goalText}`,
-      fg: "#94a3b8",
-      id: "goal-info",
-      marginBottom: 1,
-    });
-    content.add(goalInfo);
-
-    const reposText = formatRepoList(session.repos, { prefix: "  " });
-
-    const reposInfo = new TextRenderable(renderer, {
-      content: `Repositories:\n${reposText || "  (none)"}`,
-      fg: "#94a3b8",
-      id: "repos-info",
-      marginBottom: 1,
-    });
-    content.add(reposInfo);
-
-    const select = new SelectRenderable(renderer, {
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
-      height: 3,
-      id: "session-details-select",
-      marginTop: 1,
-      options: [
-        { description: "", name: "Resume session", value: "resume" },
-        { description: "", name: "Edit settings", value: "edit" },
-        { description: "", name: "Back", value: "back" },
-      ],
-      selectedBackgroundColor: "#334155",
-      selectedTextColor: "#38bdf8",
-      showDescription: false,
-      textColor: "#e2e8f0",
-      width: 40,
-    });
-    content.add(select);
-
+    const select = createSessionDetailsUI(renderer, session);
     select.focus();
 
     const handleSelect = (_index: number, option: { value: string }) => {
@@ -91,12 +114,6 @@ export function showSessionDetails(
       hideFooter(renderer);
       clearLayout(renderer);
     };
-
-    showFooter(renderer, content, {
-      back: true,
-      navigate: true,
-      select: true,
-    });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);
     renderer.keyInput.on("keypress", handleKeypress);
