@@ -69,7 +69,7 @@ export class ChatLogger {
       cancelled: false,
       configAttempts: [],
       errors: [],
-      id: this.generateId(),
+      id: ChatLogger.generateId(),
       messages: [],
       metadata: {
         apiKeyPresent: !!process.env.AI_GATEWAY_API_KEY,
@@ -83,7 +83,7 @@ export class ChatLogger {
     };
   }
 
-  private generateId(): string {
+  private static generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   }
 
@@ -126,7 +126,7 @@ export class ChatLogger {
     this.log.metadata.errorCount += 1;
   }
 
-  addConfigAttempt(config?: unknown, success: boolean = false): void {
+  addConfigAttempt(config?: unknown, success = false): void {
     this.attemptCounter += 1;
     this.log.configAttempts.push({
       attempt: this.attemptCounter,
