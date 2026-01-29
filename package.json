@@ -24,6 +24,8 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "lint:ci": "oxlint --deny-warnings",
+    "lint:agent": "bun scripts/lint-agent.ts",
+    "lint:agent:all": "bun scripts/lint-agent.ts --all",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "check": "ultracite check",
