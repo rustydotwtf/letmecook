@@ -2,6 +2,7 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "extends": ["./node_modules/ultracite/config/oxlint/core/.oxlintrc.json"],
   "rules": {
-    "func-style": "off"
+    "func-style": "off",
+    "import/consistent-type-specifier-style": "off"
   }
 }
