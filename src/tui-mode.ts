@@ -1,18 +1,13 @@
-import { createInterface } from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
 import type { CliRenderer } from "@opentui/core";
-import { createRenderer, destroyRenderer } from "./ui/renderer";
-import { showAddReposPrompt } from "./ui/add-repos";
-import { showNewSessionPrompt } from "./ui/new-session";
-import { showSkillsPrompt } from "./ui/skills";
-import { showMainMenu } from "./ui/main-menu";
-import { showSessionDetails } from "./ui/session-details";
-import { showSessionSettings } from "./ui/session-settings";
-import { showDeleteConfirm } from "./ui/confirm-delete";
-import { showNukeConfirm } from "./ui/confirm-nuke";
-import { showQuitWarning } from "./ui/background-warning";
+
+import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
+
 import type { Session } from "./types";
+
+import { handleChatMode } from "./chat-mode";
 import { createNewSession, resumeSession } from "./flows";
+import { getRunningProcesses, killAllProcesses } from "./process-registry";
 import {
   listSessions,
   deleteSession,
@@ -20,9 +15,17 @@ import {
   updateLastAccessed,
   updateSessionSettings,
 } from "./sessions";
-import { getRunningProcesses, killAllProcesses } from "./process-registry";
 import { showSplash } from "./splash";
-import { handleChatMode } from "./chat-mode";
+import { showAddReposPrompt } from "./ui/add-repos";
+import { showQuitWarning } from "./ui/background-warning";
+import { showDeleteConfirm } from "./ui/confirm-delete";
+import { showNukeConfirm } from "./ui/confirm-nuke";
+import { showMainMenu } from "./ui/main-menu";
+import { showNewSessionPrompt } from "./ui/new-session";
+import { createRenderer, destroyRenderer } from "./ui/renderer";
+import { showSessionDetails } from "./ui/session-details";
+import { showSessionSettings } from "./ui/session-settings";
+import { showSkillsPrompt } from "./ui/skills";
 
 export async function handleTUIMode(): Promise<void> {
   await showSplash();
@@ -64,7 +67,10 @@ export async function handleTUIMode(): Promise<void> {
           if (chatResult.session) {
             // Re-create renderer for session details
             renderer = await createRenderer();
-            await handleSessionDetailsFlow(renderer, chatResult.session as Session);
+            await handleSessionDetailsFlow(
+              renderer,
+              chatResult.session as Session
+            );
           } else if (chatResult.useManualMode) {
             // Fall back to manual mode
             renderer = await createRenderer();
@@ -133,7 +139,8 @@ async function handleNewSessionFlow(renderer: CliRenderer): Promise<void> {
 
   const repos = addReposResult.repos;
 
-  const { skills, cancelled: skillsCancelled } = await showSkillsPrompt(renderer);
+  const { skills, cancelled: skillsCancelled } =
+    await showSkillsPrompt(renderer);
 
   if (skillsCancelled) {
     return;
@@ -177,7 +184,9 @@ async function handleNewSessionFlow(renderer: CliRenderer): Promise<void> {
 async function runManualSetup(session: Session): Promise<void> {
   const rl = createInterface({ input, output });
 
-  console.log("\n⚡️ Would you like to run any setup commands before launching claude?");
+  console.log(
+    "\n⚡️ Would you like to run any setup commands before launching claude?"
+  );
   console.log("   Examples: npm install, bun install, make build");
   console.log("   Press Enter to skip and launch claude immediately.\n");
 
@@ -210,7 +219,10 @@ async function runManualSetup(session: Session): Promise<void> {
   rl.close();
 }
 
-async function handleSessionDetailsFlow(renderer: CliRenderer, session: Session): Promise<void> {
+async function handleSessionDetailsFlow(
+  renderer: CliRenderer,
+  session: Session
+): Promise<void> {
   let currentSession = session;
 
   while (true) {

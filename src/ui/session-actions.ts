@@ -5,15 +5,17 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { Session } from "../types";
+
 import { formatRepoList } from "./common/repo-formatter";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export type SessionAction = "continue" | "add-repos" | "exit";
 
 export function showSessionActions(
   renderer: CliRenderer,
-  session: Session,
+  session: Session
 ): Promise<SessionAction> {
   return new Promise((resolve) => {
     clearLayout(renderer);
@@ -30,7 +32,10 @@ export function showSessionActions(
     content.add(sessionInfo);
 
     // Show repos
-    const reposText = formatRepoList(session.repos, { showMarkers: true, prefix: "  " });
+    const reposText = formatRepoList(session.repos, {
+      showMarkers: true,
+      prefix: "  ",
+    });
     const reposInfo = new TextRenderable(renderer, {
       id: "repos-info",
       content: `Repositories:\n${reposText}`,
@@ -53,13 +58,21 @@ export function showSessionActions(
       width: 40,
       height: 3,
       options: [
-        { name: "Continue session", description: "Re-launch claude", value: "continue" },
+        {
+          name: "Continue session",
+          description: "Re-launch claude",
+          value: "continue",
+        },
         {
           name: "Add repositories",
           description: "Clone more repos to this session",
           value: "add-repos",
         },
-        { name: "Exit session", description: "Choose to keep or delete session", value: "exit" },
+        {
+          name: "Exit session",
+          description: "Choose to keep or delete session",
+          value: "exit",
+        },
       ],
       showDescription: true,
       backgroundColor: "transparent",

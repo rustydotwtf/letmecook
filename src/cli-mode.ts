@@ -1,4 +1,5 @@
-import { parseRepoSpec, type RepoSpec } from "./types";
+import { ChatLogger } from "./chat-logger";
+import { createNewSession, resumeSession } from "./flows";
 import {
   listSessions,
   getSession,
@@ -6,12 +7,11 @@ import {
   deleteAllSessions,
   deleteSession,
 } from "./sessions";
-import { createRenderer, destroyRenderer } from "./ui/renderer";
-import { showNewSessionPrompt } from "./ui/new-session";
-import { showSessionList } from "./ui/list";
+import { parseRepoSpec, type RepoSpec } from "./types";
 import { showNukeConfirm } from "./ui/confirm-nuke";
-import { createNewSession, resumeSession } from "./flows";
-import { ChatLogger } from "./chat-logger";
+import { showSessionList } from "./ui/list";
+import { showNewSessionPrompt } from "./ui/new-session";
+import { createRenderer, destroyRenderer } from "./ui/renderer";
 
 export function printCLIUsage(): void {
   console.log(`
@@ -307,14 +307,18 @@ export async function handleCLIMode(args: string[]): Promise<void> {
   } else if (firstArg === "--resume" || firstArg === "-r") {
     const sessionName = args[1];
     if (!sessionName) {
-      console.error("Missing session name. Usage: letmecook --cli --resume <session-name>");
+      console.error(
+        "Missing session name. Usage: letmecook --cli --resume <session-name>"
+      );
       process.exit(1);
     }
     await handleResume(sessionName);
   } else if (firstArg === "--delete" || firstArg === "-d") {
     const sessionName = args[1];
     if (!sessionName) {
-      console.error("Missing session name. Usage: letmecook --cli --delete <session-name>");
+      console.error(
+        "Missing session name. Usage: letmecook --cli --delete <session-name>"
+      );
       process.exit(1);
     }
     await handleDelete(sessionName);
@@ -326,14 +330,18 @@ export async function handleCLIMode(args: string[]): Promise<void> {
     if (secondArg === "--view") {
       const logId = args[2];
       if (!logId) {
-        console.error("Missing log ID. Usage: letmecook --cli --logs --view <log-id>");
+        console.error(
+          "Missing log ID. Usage: letmecook --cli --logs --view <log-id>"
+        );
         process.exit(1);
       }
       await handleChatLogView(logId);
     } else if (secondArg === "--delete") {
       const logId = args[2];
       if (!logId) {
-        console.error("Missing log ID. Usage: letmecook --cli --logs --delete <log-id>");
+        console.error(
+          "Missing log ID. Usage: letmecook --cli --logs --delete <log-id>"
+        );
         process.exit(1);
       }
       await handleChatLogDelete(logId);

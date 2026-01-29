@@ -1,6 +1,13 @@
-import { type CliRenderer, TextRenderable, InputRenderable, type KeyEvent } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+import {
+  type CliRenderer,
+  TextRenderable,
+  InputRenderable,
+  type KeyEvent,
+} from "@opentui/core";
+
 import type { RepoSpec } from "../types";
+
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export interface NewSessionResult {
   goal?: string;
@@ -9,7 +16,7 @@ export interface NewSessionResult {
 
 export function showNewSessionPrompt(
   renderer: CliRenderer,
-  repos: RepoSpec[],
+  repos: RepoSpec[]
 ): Promise<NewSessionResult> {
   return new Promise((resolve) => {
     clearLayout(renderer);

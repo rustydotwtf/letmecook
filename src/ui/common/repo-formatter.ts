@@ -5,7 +5,10 @@ export interface RepoFormatterOptions {
   prefix?: string;
 }
 
-export function formatRepoList(repos: RepoSpec[], options: RepoFormatterOptions = {}): string {
+export function formatRepoList(
+  repos: RepoSpec[],
+  options: RepoFormatterOptions = {}
+): string {
   const { showMarkers = true, prefix = "" } = options;
 
   if (repos.length === 0) return "(none)";

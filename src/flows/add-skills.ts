@@ -1,7 +1,9 @@
 import type { CliRenderer } from "@opentui/core";
+
 import type { Session } from "../types";
-import { updateSessionSkills } from "../sessions";
+
 import { writeAgentsMd } from "../agents-md";
+import { updateSessionSkills } from "../sessions";
 import { addSkillToSession } from "../skills";
 import { showSkillsPrompt } from "../ui/skills";
 
@@ -15,10 +17,15 @@ export interface AddSkillsResult {
   cancelled: boolean;
 }
 
-export async function addSkillsFlow(params: AddSkillsParams): Promise<AddSkillsResult> {
+export async function addSkillsFlow(
+  params: AddSkillsParams
+): Promise<AddSkillsResult> {
   const { renderer, session } = params;
 
-  const { skills, cancelled } = await showSkillsPrompt(renderer, session.skills || []);
+  const { skills, cancelled } = await showSkillsPrompt(
+    renderer,
+    session.skills || []
+  );
 
   if (!cancelled && skills.length > 0) {
     const existingSkills = new Set(session.skills || []);
@@ -29,9 +36,13 @@ export async function addSkillsFlow(params: AddSkillsParams): Promise<AddSkillsR
 
       for (const skill of newSkills) {
         console.log(`  Adding ${skill}...`);
-        const { success } = await addSkillToSession(session, skill, (output) => {
-          console.log(`    ${output}`);
-        });
+        const { success } = await addSkillToSession(
+          session,
+          skill,
+          (output) => {
+            console.log(`    ${output}`);
+          }
+        );
 
         if (success) {
           console.log(`  ✓ ${skill}`);

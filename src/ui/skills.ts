@@ -1,7 +1,13 @@
-import { type CliRenderer, TextRenderable, InputRenderable, type KeyEvent } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+import {
+  type CliRenderer,
+  TextRenderable,
+  InputRenderable,
+  type KeyEvent,
+} from "@opentui/core";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEnter, isEscape } from "./common/keyboard";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export interface SkillsPromptResult {
   skills: string[];
@@ -10,7 +16,7 @@ export interface SkillsPromptResult {
 
 export async function showSkillsPrompt(
   renderer: CliRenderer,
-  _existingSkills: string[] = [],
+  _existingSkills: string[] = []
 ): Promise<SkillsPromptResult> {
   return new Promise((resolve) => {
     clearLayout(renderer);

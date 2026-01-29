@@ -9,13 +9,18 @@ import {
   RGBA,
 } from "@opentui/core";
 import { measureText } from "@opentui/core";
-import { clearLayout } from "./renderer";
-import { showFooter, hideFooter } from "./common/footer";
-import { createCookingIndicator, type CookingIndicator } from "./cooking-indicator";
-import { isEnter, isEscape, isKey, isCtrlC } from "./common/keyboard";
-import { copyToClipboard } from "./common/clipboard";
+
 import type { PartialConfig } from "../config-builder";
 import type { ChatMessage } from "../flows/chat-to-config";
+
+import { copyToClipboard } from "./common/clipboard";
+import { showFooter, hideFooter } from "./common/footer";
+import { isEnter, isEscape, isKey, isCtrlC } from "./common/keyboard";
+import {
+  createCookingIndicator,
+  type CookingIndicator,
+} from "./cooking-indicator";
+import { clearLayout } from "./renderer";
 
 export interface ChatWithSidebarElements {
   container: BoxRenderable;
@@ -49,7 +54,7 @@ export interface ChatInputResult {
 export function createChatWithSidebarLayout(
   renderer: CliRenderer,
   messages: ChatMessage[],
-  config: PartialConfig,
+  config: PartialConfig
 ): ChatWithSidebarElements {
   clearLayout(renderer);
 
@@ -70,7 +75,10 @@ export function createChatWithSidebarLayout(
   // Title
   const titleText = "letmecook";
   const titleFont = "tiny";
-  const { width: titleWidth } = measureText({ text: titleText, font: titleFont });
+  const { width: titleWidth } = measureText({
+    text: titleText,
+    font: titleFont,
+  });
   const centerX = Math.floor(width / 2) - Math.floor(titleWidth / 2);
 
   const title = new ASCIIFontRenderable(renderer, {
@@ -331,7 +339,7 @@ function clearBox(box: BoxRenderable, _renderer: CliRenderer): void {
 export function updateSidebar(
   renderer: CliRenderer,
   elements: ChatWithSidebarElements,
-  config: PartialConfig,
+  config: PartialConfig
 ): void {
   const { reposContainer, skillsContainer, goalText, statusText } = elements;
 
@@ -401,7 +409,7 @@ export function addMessageToChat(
   renderer: CliRenderer,
   elements: ChatWithSidebarElements,
   message: ChatMessage,
-  index: number,
+  index: number
 ): void {
   const prefix = message.role === "user" ? "\u{1F464}" : "\u{1F916}";
   const fg = message.role === "user" ? "#e2e8f0" : "#94a3b8";
@@ -421,7 +429,7 @@ export function addMessageToChat(
  */
 export function createStreamingMessage(
   renderer: CliRenderer,
-  elements: ChatWithSidebarElements,
+  elements: ChatWithSidebarElements
 ): { update: (chunk: string) => void; finish: () => void } {
   let streamingText = "";
 
@@ -467,7 +475,7 @@ export function createStreamingMessage(
 export function waitForChatInput(
   renderer: CliRenderer,
   elements: ChatWithSidebarElements,
-  messages: ChatMessage[],
+  messages: ChatMessage[]
 ): Promise<ChatInputResult> {
   return new Promise((resolve) => {
     const { input, chatScrollBox, container } = elements;
@@ -495,7 +503,9 @@ export function waitForChatInput(
 
       // Handle copy when not focused in input (copy last assistant message)
       if (!input.focused && isCtrlC(key)) {
-        const lastAssistantMessage = messages.findLast((m) => m.role === "assistant");
+        const lastAssistantMessage = messages.findLast(
+          (m) => m.role === "assistant"
+        );
         if (lastAssistantMessage) {
           void copyToClipboard(lastAssistantMessage.content);
         }

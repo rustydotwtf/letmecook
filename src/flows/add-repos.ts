@@ -1,12 +1,19 @@
-import { join } from "node:path";
 import type { CliRenderer } from "@opentui/core";
+
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
+
 import type { Session, RepoSpec } from "../types";
-import { updateSessionRepos } from "../sessions";
+
 import { writeAgentsMd } from "../agents-md";
 import { recordRepoHistory } from "../repo-history";
+import { updateSessionRepos } from "../sessions";
 import { showAddReposPrompt } from "../ui/add-repos";
-import { runCommands, hideCommandRunner, type CommandTask } from "../ui/common/command-runner";
-import { rm } from "node:fs/promises";
+import {
+  runCommands,
+  hideCommandRunner,
+  type CommandTask,
+} from "../ui/common/command-runner";
 
 export interface AddReposParams {
   renderer: CliRenderer;
@@ -18,7 +25,10 @@ export interface AddReposResult {
   cancelled: boolean;
 }
 
-function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTask[] {
+function reposToCommandTasks(
+  repos: RepoSpec[],
+  sessionPath: string
+): CommandTask[] {
   return repos.map((repo) => {
     const url = `https://github.com/${repo.owner}/${repo.name}.git`;
     const targetDir = join(sessionPath, repo.dir);
@@ -35,7 +45,16 @@ function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTas
           url,
           targetDir,
         ]
-      : ["git", "clone", "--depth", "1", "--single-branch", "--progress", url, targetDir];
+      : [
+          "git",
+          "clone",
+          "--depth",
+          "1",
+          "--single-branch",
+          "--progress",
+          url,
+          targetDir,
+        ];
 
     return {
       label: `Cloning ${repo.owner}/${repo.name}`,
@@ -45,7 +64,9 @@ function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTas
   });
 }
 
-export async function addReposFlow(params: AddReposParams): Promise<AddReposResult> {
+export async function addReposFlow(
+  params: AddReposParams
+): Promise<AddReposResult> {
   const { renderer, session } = params;
 
   const addResult = await showAddReposPrompt(renderer);
@@ -101,14 +122,18 @@ export async function addReposFlow(params: AddReposParams): Promise<AddReposResu
 
       // Filter to only successfully cloned repos
       const successfulRepos = newRepos.filter((repo) => {
-        const result = results.find((r) => r.task.label === `Cloning ${repo.owner}/${repo.name}`);
+        const result = results.find(
+          (r) => r.task.label === `Cloning ${repo.owner}/${repo.name}`
+        );
         return result?.outcome === "completed";
       });
 
       // Check for errors (not skipped/aborted)
       const errors = results.filter((r) => r.outcome === "error");
       if (errors.length > 0) {
-        console.error(`\n⚠️  ${errors.length} repository(ies) failed to clone:`);
+        console.error(
+          `\n⚠️  ${errors.length} repository(ies) failed to clone:`
+        );
         errors.forEach((err) => {
           console.error(`  ✗ ${err.task.label}`);
           if (err.error) {

@@ -1,5 +1,7 @@
-import { test, expect, describe } from "bun:test";
 import type { KeyEvent } from "@opentui/core";
+
+import { test, expect, describe } from "bun:test";
+
 import {
   KEYBOARD,
   isKey,

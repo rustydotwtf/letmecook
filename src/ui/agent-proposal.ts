@@ -1,6 +1,8 @@
 import { type CliRenderer, TextRenderable } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { RepoSpec } from "../types";
+
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export interface AgentProposal {
   sessionName: string;
@@ -15,7 +17,7 @@ export interface AgentProposalResult {
 
 export function showAgentProposal(
   renderer: CliRenderer,
-  proposal: AgentProposal,
+  proposal: AgentProposal
 ): AgentProposalResult {
   clearLayout(renderer);
 

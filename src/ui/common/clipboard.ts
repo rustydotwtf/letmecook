@@ -27,7 +27,9 @@ const getCopyMethod = (() => {
     if (os === "darwin" && Bun.which("osascript")) {
       method = async (text: string) => {
         const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-        await $`osascript -e 'set the clipboard to "${escaped}"'`.nothrow().quiet();
+        await $`osascript -e 'set the clipboard to "${escaped}"'`
+          .nothrow()
+          .quiet();
       };
       return method;
     }
@@ -84,7 +86,7 @@ const getCopyMethod = (() => {
             "-Command",
             "[Console]::InputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value ([Console]::In.ReadToEnd())",
           ],
-          { stdin: "pipe", stdout: "ignore", stderr: "ignore" },
+          { stdin: "pipe", stdout: "ignore", stderr: "ignore" }
         );
         proc.stdin.write(text);
         proc.stdin.end();

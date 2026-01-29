@@ -1,14 +1,21 @@
-import { join } from "node:path";
 import type { CliRenderer } from "@opentui/core";
-import type { Session, RepoSpec } from "../types";
-import { findMatchingSession, createSession, deleteSession } from "../sessions";
-import { generateSessionName } from "../naming";
-import { writeAgentsMd, createClaudeMdSymlink } from "../agents-md";
-import { recordRepoHistory } from "../repo-history";
-import { showAgentProposal } from "../ui/agent-proposal";
-import { showConflictPrompt } from "../ui/conflict";
-import { runCommands, hideCommandRunner, type CommandTask } from "../ui/common/command-runner";
+
 import { rm } from "node:fs/promises";
+import { join } from "node:path";
+
+import type { Session, RepoSpec } from "../types";
+
+import { writeAgentsMd, createClaudeMdSymlink } from "../agents-md";
+import { generateSessionName } from "../naming";
+import { recordRepoHistory } from "../repo-history";
+import { findMatchingSession, createSession, deleteSession } from "../sessions";
+import { showAgentProposal } from "../ui/agent-proposal";
+import {
+  runCommands,
+  hideCommandRunner,
+  type CommandTask,
+} from "../ui/common/command-runner";
+import { showConflictPrompt } from "../ui/conflict";
 
 export interface NewSessionParams {
   repos: RepoSpec[];
@@ -23,7 +30,10 @@ export interface NewSessionResult {
   skipped?: boolean;
 }
 
-function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTask[] {
+function reposToCommandTasks(
+  repos: RepoSpec[],
+  sessionPath: string
+): CommandTask[] {
   return repos.map((repo) => {
     const url = `https://github.com/${repo.owner}/${repo.name}.git`;
     const targetDir = join(sessionPath, repo.dir);
@@ -40,7 +50,16 @@ function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTas
           url,
           targetDir,
         ]
-      : ["git", "clone", "--depth", "1", "--single-branch", "--progress", url, targetDir];
+      : [
+          "git",
+          "clone",
+          "--depth",
+          "1",
+          "--single-branch",
+          "--progress",
+          url,
+          targetDir,
+        ];
 
     return {
       label: `Cloning ${repo.owner}/${repo.name}`,
@@ -50,7 +69,10 @@ function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTas
   });
 }
 
-function skillsToCommandTasks(skills: string[], sessionPath: string): CommandTask[] {
+function skillsToCommandTasks(
+  skills: string[],
+  sessionPath: string
+): CommandTask[] {
   return skills.map((skill) => ({
     label: `Installing ${skill}`,
     command: ["bunx", "skills", "add", skill, "-y"],
@@ -60,7 +82,7 @@ function skillsToCommandTasks(skills: string[], sessionPath: string): CommandTas
 
 export async function createNewSession(
   renderer: CliRenderer,
-  params: NewSessionParams,
+  params: NewSessionParams
 ): Promise<NewSessionResult | null> {
   const { repos, goal, skills, mode, skipConflictCheck = false } = params;
 
@@ -110,13 +132,15 @@ export async function createNewSession(
         sessionName,
         repos,
         goal,
-        skills?.length ? skills : undefined,
+        skills?.length ? skills : undefined
       );
 
       // Build all tasks (repos + skills)
       const tasks: CommandTask[] = [
         ...reposToCommandTasks(repos, session.path),
-        ...(skills && skills.length > 0 ? skillsToCommandTasks(skills, session.path) : []),
+        ...(skills && skills.length > 0
+          ? skillsToCommandTasks(skills, session.path)
+          : []),
       ];
 
       const results = await runCommands(renderer, {
@@ -142,7 +166,9 @@ export async function createNewSession(
       // Clean up skipped repo directories
       const skippedResults = results.filter((r) => r.outcome === "skipped");
       for (const skipped of skippedResults) {
-        const repoName = skipped.task.label.replace("Cloning ", "").split("/")[1];
+        const repoName = skipped.task.label
+          .replace("Cloning ", "")
+          .split("/")[1];
         if (repoName) {
           const repoPath = join(session.path, repoName);
           try {
@@ -155,12 +181,14 @@ export async function createNewSession(
 
       // Filter out skipped repos from the session
       const successfulRepoResults = results.filter(
-        (r) => r.outcome === "completed" && r.task.label.startsWith("Cloning "),
+        (r) => r.outcome === "completed" && r.task.label.startsWith("Cloning ")
       );
       const successfulRepoSpecs = successfulRepoResults
         .map((r) => {
           const repoSpec = r.task.label.replace("Cloning ", "");
-          return repos.find((repo) => `${repo.owner}/${repo.name}` === repoSpec);
+          return repos.find(
+            (repo) => `${repo.owner}/${repo.name}` === repoSpec
+          );
         })
         .filter((r): r is RepoSpec => r !== undefined);
 
@@ -194,14 +222,16 @@ export async function createNewSession(
         sessionName,
         repos,
         goal,
-        skills?.length ? skills : undefined,
+        skills?.length ? skills : undefined
       );
 
       console.log(`\nCloning ${repos.length} repository(ies)...`);
 
       const tasks: CommandTask[] = [
         ...reposToCommandTasks(repos, session.path),
-        ...(skills && skills.length > 0 ? skillsToCommandTasks(skills, session.path) : []),
+        ...(skills && skills.length > 0
+          ? skillsToCommandTasks(skills, session.path)
+          : []),
       ];
 
       const results = await runCommands(renderer, {

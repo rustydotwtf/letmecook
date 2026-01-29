@@ -1,8 +1,13 @@
 import { generateText } from "ai";
+
 import type { RepoSpec } from "./types";
+
 import { generateUniqueName } from "./sessions";
 
-export async function generateSessionName(repos: RepoSpec[], goal?: string): Promise<string> {
+export async function generateSessionName(
+  repos: RepoSpec[],
+  goal?: string
+): Promise<string> {
   const repoList = repos.map((r) => `${r.owner}/${r.name}`).join(", ");
 
   try {

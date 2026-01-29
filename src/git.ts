@@ -1,6 +1,8 @@
-import { join } from "node:path";
 import { rm } from "node:fs/promises";
+import { join } from "node:path";
+
 import type { RepoSpec } from "./types";
+
 import { readProcessOutputWithBuffer } from "./utils/stream";
 
 export interface CloneProgress {
@@ -16,12 +18,17 @@ export interface RefreshResult {
   reason?: string;
 }
 
-export type RefreshProgressStatus = "refreshing" | "updated" | "up-to-date" | "skipped" | "error";
+export type RefreshProgressStatus =
+  | "refreshing"
+  | "updated"
+  | "up-to-date"
+  | "skipped"
+  | "error";
 
 export async function cloneRepo(
   repo: RepoSpec,
   sessionPath: string,
-  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void,
+  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void
 ): Promise<void> {
   const url = `https://github.com/${repo.owner}/${repo.name}.git`;
   const targetDir = join(sessionPath, repo.dir);
@@ -41,7 +48,16 @@ export async function cloneRepo(
           url,
           targetDir,
         ]
-      : ["git", "clone", "--depth", "1", "--single-branch", "--progress", url, targetDir];
+      : [
+          "git",
+          "clone",
+          "--depth",
+          "1",
+          "--single-branch",
+          "--progress",
+          url,
+          targetDir,
+        ];
 
     const proc = Bun.spawn(args, {
       stdout: "pipe",
@@ -127,7 +143,7 @@ export async function cloneRepo(
       `Failed to clone ${repo.owner}/${repo.name}: ${
         error instanceof Error ? error.message : String(error)
       }`,
-      { cause: error },
+      { cause: error }
     );
   }
 }
@@ -135,7 +151,7 @@ export async function cloneRepo(
 export async function recloneRepo(
   repo: RepoSpec,
   sessionPath: string,
-  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void,
+  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void
 ): Promise<void> {
   const repoPath = join(sessionPath, repo.dir);
 
@@ -148,7 +164,7 @@ export async function recloneRepo(
       `Failed to reclone ${repo.owner}/${repo.name}: ${
         error instanceof Error ? error.message : String(error)
       }`,
-      { cause: error },
+      { cause: error }
     );
   }
 }
@@ -156,7 +172,11 @@ export async function recloneRepo(
 export async function cloneAllRepos(
   repos: RepoSpec[],
   sessionPath: string,
-  onProgress?: (repoIndex: number, status: CloneProgress["status"], outputLines?: string[]) => void,
+  onProgress?: (
+    repoIndex: number,
+    status: CloneProgress["status"],
+    outputLines?: string[]
+  ) => void
 ): Promise<void> {
   // Clone repos in parallel
   await Promise.all(
@@ -164,11 +184,13 @@ export async function cloneAllRepos(
       await cloneRepo(repo, sessionPath, (status, outputLines) => {
         onProgress?.(index, status, outputLines);
       });
-    }),
+    })
   );
 }
 
-export async function hasUncommittedChanges(repoPath: string): Promise<boolean> {
+export async function hasUncommittedChanges(
+  repoPath: string
+): Promise<boolean> {
   const proc = Bun.spawn(["git", "status", "--porcelain"], {
     cwd: repoPath,
     stdout: "pipe",
@@ -181,22 +203,28 @@ export async function hasUncommittedChanges(repoPath: string): Promise<boolean> 
 
 export async function sessionHasUncommittedChanges(
   repos: RepoSpec[],
-  sessionPath: string,
+  sessionPath: string
 ): Promise<{ hasChanges: boolean; reposWithChanges: RepoSpec[] }> {
   const results = await Promise.all(
     repos.map(async (repo) => ({
       repo,
       hasChanges: await hasUncommittedChanges(join(sessionPath, repo.dir)),
-    })),
+    }))
   );
-  const reposWithChanges = results.filter((r) => r.hasChanges).map((r) => r.repo);
+  const reposWithChanges = results
+    .filter((r) => r.hasChanges)
+    .map((r) => r.repo);
   return { hasChanges: reposWithChanges.length > 0, reposWithChanges };
 }
 
 export async function refreshLatestRepos(
   repos: RepoSpec[],
   sessionPath: string,
-  onProgress?: (repoIndex: number, status: RefreshProgressStatus, outputLines?: string[]) => void,
+  onProgress?: (
+    repoIndex: number,
+    status: RefreshProgressStatus,
+    outputLines?: string[]
+  ) => void
 ): Promise<RefreshResult[]> {
   const readOnlyRepos = repos.filter((repo) => repo.readOnly);
   if (readOnlyRepos.length === 0) return [];
@@ -217,33 +245,48 @@ export async function refreshLatestRepos(
       continue;
     }
 
-    onProgress?.(repoIndex, "refreshing", [`Pulling ${repo.owner}/${repo.name}...`]);
+    onProgress?.(repoIndex, "refreshing", [
+      `Pulling ${repo.owner}/${repo.name}...`,
+    ]);
 
-    const proc = Bun.spawn(["git", "-C", repoPath, "pull", "--ff-only", "--depth", "1"], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const proc = Bun.spawn(
+      ["git", "-C", repoPath, "pull", "--ff-only", "--depth", "1"],
+      {
+        stdout: "pipe",
+        stderr: "pipe",
+      }
+    );
 
-    const { success, output, fullOutput } = await readProcessOutputWithBuffer(proc, {
-      maxBufferLines: 5,
-      onBufferUpdate: (buffer) => onProgress?.(repoIndex, "refreshing", buffer),
-    });
+    const { success, output, fullOutput } = await readProcessOutputWithBuffer(
+      proc,
+      {
+        maxBufferLines: 5,
+        onBufferUpdate: (buffer) =>
+          onProgress?.(repoIndex, "refreshing", buffer),
+      }
+    );
     const exitCode = success ? 0 : 1;
 
     if (exitCode !== 0) {
-      const reason = fullOutput.trim() || `git pull exited with code ${exitCode}`;
+      const reason =
+        fullOutput.trim() || `git pull exited with code ${exitCode}`;
       results.push({
         repo,
         status: "error",
         reason,
       });
-      onProgress?.(repoIndex, "error", output.length > 0 ? [...output] : [reason]);
+      onProgress?.(
+        repoIndex,
+        "error",
+        output.length > 0 ? [...output] : [reason]
+      );
       continue;
     }
 
     const normalized = fullOutput.toLowerCase();
     const upToDate =
-      normalized.includes("already up to date") || normalized.includes("already up-to-date");
+      normalized.includes("already up to date") ||
+      normalized.includes("already up-to-date");
 
     results.push({
       repo,

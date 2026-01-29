@@ -1,6 +1,6 @@
 export async function readProcessOutput(
   proc: ReturnType<typeof Bun.spawn>,
-  onOutput?: (line: string) => void,
+  onOutput?: (line: string) => void
 ): Promise<{ success: boolean; output: string[] }> {
   const outputBuffer: string[] = [];
   const addLine = (line: string) => {
@@ -11,7 +11,9 @@ export async function readProcessOutput(
     }
   };
 
-  const readStream = async (stream: ReadableStream<Uint8Array> | number | undefined) => {
+  const readStream = async (
+    stream: ReadableStream<Uint8Array> | number | undefined
+  ) => {
     if (!stream || typeof stream === "number") return;
 
     const reader = stream.getReader();
@@ -59,7 +61,7 @@ export interface ReadWithControlOptions {
 
 export async function readProcessOutputWithBuffer(
   proc: ReturnType<typeof Bun.spawn>,
-  options?: ReadProcessOutputWithBufferOptions,
+  options?: ReadProcessOutputWithBufferOptions
 ): Promise<{ success: boolean; output: string[]; fullOutput: string }> {
   const { maxBufferLines, onBufferUpdate } = options || {};
   const outputBuffer: string[] = [];
@@ -76,7 +78,9 @@ export async function readProcessOutputWithBuffer(
 
   const fullOutputParts: string[] = [];
 
-  const readStream = async (stream: ReadableStream<Uint8Array> | number | undefined) => {
+  const readStream = async (
+    stream: ReadableStream<Uint8Array> | number | undefined
+  ) => {
     if (!stream || typeof stream === "number") return;
 
     const reader = stream.getReader();
@@ -115,8 +119,13 @@ export async function readProcessOutputWithBuffer(
 
 export async function readProcessOutputWithControl(
   proc: ReturnType<typeof Bun.spawn>,
-  options?: ReadWithControlOptions,
-): Promise<{ success: boolean; output: string[]; fullOutput: string; wasInterrupted: boolean }> {
+  options?: ReadWithControlOptions
+): Promise<{
+  success: boolean;
+  output: string[];
+  fullOutput: string;
+  wasInterrupted: boolean;
+}> {
   const { maxBufferLines, onBufferUpdate, shouldStop } = options || {};
   const outputBuffer: string[] = [];
   let wasInterrupted = false;
@@ -134,7 +143,9 @@ export async function readProcessOutputWithControl(
 
   const fullOutputParts: string[] = [];
 
-  const readStream = async (stream: ReadableStream<Uint8Array> | number | undefined) => {
+  const readStream = async (
+    stream: ReadableStream<Uint8Array> | number | undefined
+  ) => {
     if (!stream || typeof stream === "number") return;
 
     const reader = stream.getReader();

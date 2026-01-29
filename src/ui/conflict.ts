@@ -5,10 +5,12 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { Session, ConflictChoice } from "../types";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 function formatTimeAgo(date: string): string {
   const now = new Date();
@@ -19,15 +21,17 @@ function formatTimeAgo(date: string): string {
   const diffDays = Math.floor(diffHours / 24);
 
   if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  if (diffMins < 60)
+    return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
   if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
   return then.toLocaleDateString();
 }
 
 export function showConflictPrompt(
   renderer: CliRenderer,
-  existingSession: Session,
+  existingSession: Session
 ): Promise<ConflictChoice> {
   return new Promise((resolve) => {
     clearLayout(renderer);
@@ -83,7 +87,11 @@ export function showConflictPrompt(
       options: [
         { name: "Resume existing session", description: "", value: "resume" },
         { name: "Nuke it and start fresh", description: "", value: "nuke" },
-        { name: "Create new session (keep old)", description: "", value: "new" },
+        {
+          name: "Create new session (keep old)",
+          description: "",
+          value: "new",
+        },
         { name: "Cancel", description: "", value: "cancel" },
       ],
       showDescription: false,

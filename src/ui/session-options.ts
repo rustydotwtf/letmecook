@@ -28,7 +28,9 @@ export function buildSessionOptions(sessions: Session[]): SessionOption[] {
 
     if (session.goal) {
       const truncatedGoal =
-        session.goal.length > 60 ? `${session.goal.slice(0, 60)}...` : session.goal;
+        session.goal.length > 60
+          ? `${session.goal.slice(0, 60)}...`
+          : session.goal;
       description += `\n  "${truncatedGoal}"`;
     }
 

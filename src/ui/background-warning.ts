@@ -5,21 +5,26 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
+import type { BackgroundProcess } from "../process-registry";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
-import type { BackgroundProcess } from "../process-registry";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export type QuitWarningChoice = "continue" | "kill" | "cancel";
 
 export function showQuitWarning(
   renderer: CliRenderer,
-  processes: BackgroundProcess[],
+  processes: BackgroundProcess[]
 ): Promise<QuitWarningChoice> {
   return new Promise((resolve) => {
     clearLayout(renderer);
 
-    const { content } = createBaseLayout(renderer, "Background processes running");
+    const { content } = createBaseLayout(
+      renderer,
+      "Background processes running"
+    );
 
     const warning = new TextRenderable(renderer, {
       id: "warning",
@@ -103,12 +108,15 @@ export type SessionStartWarningChoice = "continue" | "cancel";
 
 export function showSessionStartWarning(
   renderer: CliRenderer,
-  processes: BackgroundProcess[],
+  processes: BackgroundProcess[]
 ): Promise<SessionStartWarningChoice> {
   return new Promise((resolve) => {
     clearLayout(renderer);
 
-    const { content } = createBaseLayout(renderer, "Background processes detected");
+    const { content } = createBaseLayout(
+      renderer,
+      "Background processes detected"
+    );
 
     const warning = new TextRenderable(renderer, {
       id: "warning",

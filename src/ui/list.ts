@@ -5,11 +5,13 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
-import { buildSessionOptions } from "./session-options";
+
 import type { Session } from "../types";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape, isArrowUp, isArrowDown } from "./common/keyboard";
+import { createBaseLayout, clearLayout } from "./renderer";
+import { buildSessionOptions } from "./session-options";
 
 export type ListAction =
   | { type: "resume"; session: Session }
@@ -17,11 +19,17 @@ export type ListAction =
   | { type: "nuke" }
   | { type: "quit" };
 
-export function showSessionList(renderer: CliRenderer, sessions: Session[]): Promise<ListAction> {
+export function showSessionList(
+  renderer: CliRenderer,
+  sessions: Session[]
+): Promise<ListAction> {
   return new Promise((resolve) => {
     clearLayout(renderer);
 
-    const { content } = createBaseLayout(renderer, `Sessions (${sessions.length})`);
+    const { content } = createBaseLayout(
+      renderer,
+      `Sessions (${sessions.length})`
+    );
 
     if (sessions.length === 0) {
       const emptyText = new TextRenderable(renderer, {

@@ -5,13 +5,18 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { Session, ExitChoice, RepoSpec } from "../types";
+
 import { sessionHasUncommittedChanges } from "../git";
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
+import { createBaseLayout, clearLayout } from "./renderer";
 
-export function showExitPrompt(renderer: CliRenderer, session: Session): Promise<ExitChoice> {
+export function showExitPrompt(
+  renderer: CliRenderer,
+  session: Session
+): Promise<ExitChoice> {
   return new Promise((resolve) => {
     clearLayout(renderer);
 
@@ -91,7 +96,7 @@ export function showExitPrompt(renderer: CliRenderer, session: Session): Promise
 export function showExitPromptWithChanges(
   renderer: CliRenderer,
   session: Session,
-  reposWithChanges: RepoSpec[],
+  reposWithChanges: RepoSpec[]
 ): Promise<ExitChoice> {
   return new Promise((resolve) => {
     clearLayout(renderer);
@@ -188,16 +193,20 @@ export function showExitPromptWithChanges(
 
 export async function handleSmartExit(
   renderer: CliRenderer,
-  session: Session,
+  session: Session
 ): Promise<{ action: ExitChoice }> {
   const { hasChanges, reposWithChanges } = await sessionHasUncommittedChanges(
     session.repos,
-    session.path,
+    session.path
   );
 
   // Always prompt - if there are uncommitted changes, show warning
   if (hasChanges) {
-    const choice = await showExitPromptWithChanges(renderer, session, reposWithChanges);
+    const choice = await showExitPromptWithChanges(
+      renderer,
+      session,
+      reposWithChanges
+    );
     return { action: choice };
   }
 

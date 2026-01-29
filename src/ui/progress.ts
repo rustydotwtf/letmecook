@@ -1,6 +1,8 @@
 import { type CliRenderer, TextRenderable } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { RepoSpec } from "../types";
+
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export type ProgressPhase =
   | "naming"
@@ -41,7 +43,10 @@ let phaseText: TextRenderable | null = null;
 let sessionText: TextRenderable | null = null;
 let outputText: TextRenderable | null = null;
 
-function getPhasePresentation(phase: ProgressPhase): { content: string; fg: string } {
+function getPhasePresentation(phase: ProgressPhase): {
+  content: string;
+  fg: string;
+} {
   switch (phase) {
     case "naming":
       return { content: "Generating session name...", fg: "#fbbf24" };
@@ -63,7 +68,7 @@ function getPhasePresentation(phase: ProgressPhase): { content: string; fg: stri
 export function showProgress(
   renderer: CliRenderer,
   repos: RepoSpec[],
-  options: ProgressOptions = {},
+  options: ProgressOptions = {}
 ): ProgressState {
   clearLayout(renderer);
   statusTexts = [];
@@ -128,7 +133,10 @@ export function showProgress(
   return state;
 }
 
-export function updateProgress(renderer: CliRenderer, state: ProgressState): void {
+export function updateProgress(
+  renderer: CliRenderer,
+  state: ProgressState
+): void {
   if (phaseText) {
     const phasePresentation = getPhasePresentation(state.phase);
     phaseText.content = phasePresentation.content;
@@ -174,7 +182,9 @@ export function updateProgress(renderer: CliRenderer, state: ProgressState): voi
 
   // Update git output display
   if (outputText && state.currentOutput && state.currentOutput.length > 0) {
-    outputText.content = state.currentOutput.map((line) => `  ${line}`).join("\n");
+    outputText.content = state.currentOutput
+      .map((line) => `  ${line}`)
+      .join("\n");
   } else if (outputText) {
     outputText.content = "";
   }

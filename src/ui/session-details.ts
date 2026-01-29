@@ -5,17 +5,19 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { Session } from "../types";
-import { formatRepoList } from "./common/repo-formatter";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
+import { formatRepoList } from "./common/repo-formatter";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export type SessionDetailsAction = "resume" | "edit" | "add-repos" | "back";
 
 export function showSessionDetails(
   renderer: CliRenderer,
-  session: Session,
+  session: Session
 ): Promise<SessionDetailsAction> {
   return new Promise((resolve) => {
     clearLayout(renderer);

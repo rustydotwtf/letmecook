@@ -1,5 +1,5 @@
-import { test, expect, describe, beforeAll, afterAll } from "bun:test";
 import { $ } from "bun";
+import { test, expect, describe, beforeAll, afterAll } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -78,13 +78,21 @@ describe("CLI commands", () => {
   });
 
   test("--cli --delete nonexistent errors with session not found", async () => {
-    const { stderr, exitCode } = await runCLI(["--cli", "--delete", "nonexistent-session"]);
+    const { stderr, exitCode } = await runCLI([
+      "--cli",
+      "--delete",
+      "nonexistent-session",
+    ]);
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Session not found: nonexistent-session");
   });
 
   test("--cli --resume nonexistent errors with session not found", async () => {
-    const { stderr, exitCode } = await runCLI(["--cli", "--resume", "nonexistent-session"]);
+    const { stderr, exitCode } = await runCLI([
+      "--cli",
+      "--resume",
+      "nonexistent-session",
+    ]);
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Session not found: nonexistent-session");
   });

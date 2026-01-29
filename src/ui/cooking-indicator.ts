@@ -21,9 +21,12 @@ export interface CookingIndicator {
 
 export function createCookingIndicator(
   renderer: CliRenderer,
-  parent: { add: (child: unknown) => void; remove: (id: string) => void },
+  parent: { add: (child: unknown) => void; remove: (id: string) => void }
 ): CookingIndicator {
-  const pair = FOOD_PAIRS[Math.floor(Math.random() * FOOD_PAIRS.length)] || ["🦐", "🍤"];
+  const pair = FOOD_PAIRS[Math.floor(Math.random() * FOOD_PAIRS.length)] || [
+    "🦐",
+    "🍤",
+  ];
   const raw = pair[0];
   const cooked = pair[1];
 

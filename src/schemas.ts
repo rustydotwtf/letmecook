@@ -49,14 +49,18 @@ export function parseRepoSpec(spec: string): RepoSpec {
 
   const slashIndex = repoPath.indexOf("/");
   if (slashIndex === -1) {
-    throw new Error(`Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`);
+    throw new Error(
+      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+    );
   }
 
   const owner = repoPath.slice(0, slashIndex);
   const name = repoPath.slice(slashIndex + 1);
 
   if (!owner || !name) {
-    throw new Error(`Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`);
+    throw new Error(
+      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+    );
   }
 
   return {

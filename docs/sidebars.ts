@@ -6,7 +6,11 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Concepts",
-      items: ["concepts/sessions", "concepts/agents-md", "concepts/multi-repo-workspaces"],
+      items: [
+        "concepts/sessions",
+        "concepts/agents-md",
+        "concepts/multi-repo-workspaces",
+      ],
     },
     {
       type: "category",
@@ -21,7 +25,11 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Reference",
-      items: ["reference/cli-commands", "reference/configuration", "reference/session-manifest"],
+      items: [
+        "reference/cli-commands",
+        "reference/configuration",
+        "reference/session-manifest",
+      ],
     },
     {
       type: "category",

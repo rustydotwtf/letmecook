@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+
 import type { ChatConfig } from "./flows/chat-to-config";
 
 export interface PartialConfig {

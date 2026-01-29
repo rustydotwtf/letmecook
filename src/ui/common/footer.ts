@@ -1,4 +1,8 @@
-import { type CliRenderer, TextRenderable, type Renderable } from "@opentui/core";
+import {
+  type CliRenderer,
+  TextRenderable,
+  type Renderable,
+} from "@opentui/core";
 
 export interface FooterActions {
   navigate?: boolean; // Show ↑↓ Navigate
@@ -17,7 +21,7 @@ let footerParent: Renderable | null = null;
 export function showFooter(
   renderer: CliRenderer,
   parent: Renderable,
-  actions: FooterActions = {},
+  actions: FooterActions = {}
 ): void {
   const {
     navigate = true,
@@ -82,7 +86,7 @@ export function showFooter(
 export function updateFooter(
   renderer: CliRenderer,
   parent: Renderable,
-  actions: FooterActions,
+  actions: FooterActions
 ): void {
   hideFooter(renderer);
   showFooter(renderer, parent, actions);

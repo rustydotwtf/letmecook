@@ -1,7 +1,9 @@
+import { mkdir, readdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdir, readdir, rm } from "node:fs/promises";
+
 import type { Session, SessionManifest, RepoSpec } from "./types";
+
 import { repoSpecsMatch } from "./types";
 
 const LETMECOOK_DIR = join(homedir(), ".letmecook");
@@ -42,7 +44,10 @@ export async function listSessions(): Promise<Session[]> {
   }
 
   // Sort by lastAccessed, most recent first
-  sessions.sort((a, b) => new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime());
+  sessions.sort(
+    (a, b) =>
+      new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime()
+  );
 
   return sessions;
 }
@@ -67,7 +72,9 @@ export async function getSession(name: string): Promise<Session | null> {
   return null;
 }
 
-export async function findMatchingSession(repos: RepoSpec[]): Promise<Session | null> {
+export async function findMatchingSession(
+  repos: RepoSpec[]
+): Promise<Session | null> {
   const sessions = await listSessions();
 
   for (const session of sessions) {
@@ -83,7 +90,7 @@ export async function createSession(
   name: string,
   repos: RepoSpec[],
   goal?: string,
-  skills?: string[],
+  skills?: string[]
 ): Promise<Session> {
   await ensureSessionsDir();
 
@@ -125,7 +132,10 @@ export async function updateLastAccessed(name: string): Promise<void> {
   await Bun.write(manifestPath, JSON.stringify(manifest, null, 2));
 }
 
-export async function updateSessionRepos(name: string, repos: RepoSpec[]): Promise<Session | null> {
+export async function updateSessionRepos(
+  name: string,
+  repos: RepoSpec[]
+): Promise<Session | null> {
   const session = await getSession(name);
   if (!session) return null;
 
@@ -148,7 +158,7 @@ export async function updateSessionRepos(name: string, repos: RepoSpec[]): Promi
 
 export async function updateSessionSettings(
   name: string,
-  settings: { repos?: RepoSpec[]; goal?: string; skills?: string[] },
+  settings: { repos?: RepoSpec[]; goal?: string; skills?: string[] }
 ): Promise<Session | null> {
   const session = await getSession(name);
   if (!session) return null;
@@ -171,7 +181,10 @@ export async function updateSessionSettings(
   };
 }
 
-export async function updateSessionSkills(name: string, skills: string[]): Promise<Session | null> {
+export async function updateSessionSkills(
+  name: string,
+  skills: string[]
+): Promise<Session | null> {
   return updateSessionSettings(name, { skills });
 }
 

@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 
-export async function runInteractiveOpencode(sessionPath: string): Promise<void> {
+export async function runInteractiveOpencode(
+  sessionPath: string
+): Promise<void> {
   return new Promise((resolve) => {
     const proc = spawn("claude", ["--dangerously-skip-permissions"], {
       cwd: sessionPath,

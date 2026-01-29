@@ -1,12 +1,22 @@
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { Session, RepoSpec } from "../types";
-import { updateSessionRepos, updateSessionSkills, deleteSession } from "../sessions";
+
 import { writeAgentsMd } from "../agents-md";
 import { recordRepoHistory } from "../repo-history";
+import {
+  updateSessionRepos,
+  updateSessionSkills,
+  deleteSession,
+} from "../sessions";
 import { removeSkillFromSession } from "../skills";
+import {
+  runCommands,
+  hideCommandRunner,
+  type CommandTask,
+} from "../ui/common/command-runner";
 import { createRenderer, destroyRenderer } from "../ui/renderer";
-import { runCommands, hideCommandRunner, type CommandTask } from "../ui/common/command-runner";
-import { rm } from "node:fs/promises";
 
 export interface EditSessionParams {
   session: Session;
@@ -17,7 +27,10 @@ export interface EditSessionParams {
   };
 }
 
-function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTask[] {
+function reposToCommandTasks(
+  repos: RepoSpec[],
+  sessionPath: string
+): CommandTask[] {
   return repos.map((repo) => {
     const url = `https://github.com/${repo.owner}/${repo.name}.git`;
     const targetDir = join(sessionPath, repo.dir);
@@ -34,7 +47,16 @@ function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTas
           url,
           targetDir,
         ]
-      : ["git", "clone", "--depth", "1", "--single-branch", "--progress", url, targetDir];
+      : [
+          "git",
+          "clone",
+          "--depth",
+          "1",
+          "--single-branch",
+          "--progress",
+          url,
+          targetDir,
+        ];
 
     return {
       label: `Cloning ${repo.owner}/${repo.name}`,
@@ -44,7 +66,10 @@ function reposToCommandTasks(repos: RepoSpec[], sessionPath: string): CommandTas
   });
 }
 
-function skillsToCommandTasks(skills: string[], sessionPath: string): CommandTask[] {
+function skillsToCommandTasks(
+  skills: string[],
+  sessionPath: string
+): CommandTask[] {
   return skills.map((skill) => ({
     label: `Installing ${skill}`,
     command: ["bunx", "skills", "add", skill, "-y"],
@@ -52,7 +77,9 @@ function skillsToCommandTasks(skills: string[], sessionPath: string): CommandTas
   }));
 }
 
-export async function editSession(params: EditSessionParams): Promise<Session | null> {
+export async function editSession(
+  params: EditSessionParams
+): Promise<Session | null> {
   const { session, updates } = params;
 
   if (!updates.repos && !updates.goal && !updates.skills) {
@@ -101,7 +128,9 @@ export async function editSession(params: EditSessionParams): Promise<Session | 
         const skippedResults = results.filter((r) => r.outcome === "skipped");
         for (const skipped of skippedResults) {
           const repoSpec = skipped.task.label.replace("Cloning ", "");
-          const repo = newRepos.find((r) => `${r.owner}/${r.name}` === repoSpec);
+          const repo = newRepos.find(
+            (r) => `${r.owner}/${r.name}` === repoSpec
+          );
           if (repo) {
             const repoPath = join(currentSession.path, repo.dir);
             try {
@@ -114,14 +143,18 @@ export async function editSession(params: EditSessionParams): Promise<Session | 
 
         // Filter to only successfully cloned repos
         const successfulRepos = newRepos.filter((repo) => {
-          const result = results.find((r) => r.task.label === `Cloning ${repo.owner}/${repo.name}`);
+          const result = results.find(
+            (r) => r.task.label === `Cloning ${repo.owner}/${repo.name}`
+          );
           return result?.outcome === "completed";
         });
 
         // Check for errors (not skipped/aborted)
         const errors = results.filter((r) => r.outcome === "error");
         if (errors.length > 0) {
-          console.error(`\n⚠️  ${errors.length} repository(ies) failed to clone:`);
+          console.error(
+            `\n⚠️  ${errors.length} repository(ies) failed to clone:`
+          );
           errors.forEach((err) => {
             console.error(`  ✗ ${err.task.label}`);
             if (err.error) {
@@ -146,7 +179,10 @@ export async function editSession(params: EditSessionParams): Promise<Session | 
         }
       } else {
         // No new repos, just update with the provided list
-        const updatedSession = await updateSessionRepos(session.name, updates.repos);
+        const updatedSession = await updateSessionRepos(
+          session.name,
+          updates.repos
+        );
         if (updatedSession) {
           currentSession = updatedSession;
         }
@@ -180,7 +216,9 @@ export async function editSession(params: EditSessionParams): Promise<Session | 
 
         // Filter to only successfully installed skills
         const successfulSkills = newSkills.filter((skill) => {
-          const result = results.find((r) => r.task.label === `Installing ${skill}`);
+          const result = results.find(
+            (r) => r.task.label === `Installing ${skill}`
+          );
           return result?.outcome === "completed";
         });
 
@@ -200,8 +238,14 @@ export async function editSession(params: EditSessionParams): Promise<Session | 
         hideCommandRunner(renderer);
 
         if (successfulSkills.length > 0) {
-          const allSkills = [...(currentSession.skills || []), ...successfulSkills];
-          const updatedSession = await updateSessionSkills(currentSession.name, allSkills);
+          const allSkills = [
+            ...(currentSession.skills || []),
+            ...successfulSkills,
+          ];
+          const updatedSession = await updateSessionSkills(
+            currentSession.name,
+            allSkills
+          );
 
           if (updatedSession) {
             currentSession = updatedSession;
@@ -230,7 +274,10 @@ export async function nukeSession(session: Session): Promise<boolean> {
   return success;
 }
 
-export async function removeSkill(session: Session, skillString: string): Promise<Session> {
+export async function removeSkill(
+  session: Session,
+  skillString: string
+): Promise<Session> {
   const updatedSession = await removeSkillFromSession(session, skillString);
   return updatedSession || session;
 }

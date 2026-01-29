@@ -1,5 +1,6 @@
 import { test, expect, describe, mock, beforeEach } from "bun:test";
 import { EventEmitter } from "events";
+
 import type { Session } from "../../src/types";
 
 // Mock @opentui/core before importing the module
@@ -104,7 +105,12 @@ describe("showMainMenu", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     // Simulate pressing 'q'
-    keyEmitter.emit("keypress", { name: "q", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "q",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("quit");
@@ -115,7 +121,12 @@ describe("showMainMenu", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    keyEmitter.emit("keypress", { name: "escape", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "escape",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("quit");
@@ -126,7 +137,12 @@ describe("showMainMenu", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    keyEmitter.emit("keypress", { name: "n", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "n",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("new-session");
@@ -138,7 +154,12 @@ describe("showMainMenu", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    keyEmitter.emit("keypress", { name: "d", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "d",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("delete");
@@ -153,7 +174,12 @@ describe("showMainMenu", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    keyEmitter.emit("keypress", { name: "a", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "a",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("nuke");
@@ -165,10 +191,20 @@ describe("showMainMenu", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     // Press 'a' - should be ignored
-    keyEmitter.emit("keypress", { name: "a", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "a",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     // Then press 'q' to resolve
-    keyEmitter.emit("keypress", { name: "q", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "q",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("quit"); // Not nuke
@@ -180,10 +216,20 @@ describe("showMainMenu", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     // Press 'd' - should be ignored
-    keyEmitter.emit("keypress", { name: "d", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "d",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     // Then press 'n' to resolve
-    keyEmitter.emit("keypress", { name: "n", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      name: "n",
+      ctrl: false,
+      meta: false,
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("new-session"); // Not delete

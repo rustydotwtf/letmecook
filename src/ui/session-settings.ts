@@ -1,9 +1,22 @@
-import { type CliRenderer, TextRenderable, InputRenderable, type KeyEvent } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+import {
+  type CliRenderer,
+  TextRenderable,
+  InputRenderable,
+  type KeyEvent,
+} from "@opentui/core";
+
 import type { Session, RepoSpec } from "../types";
-import { formatRepoString } from "./common/repo-formatter";
+
 import { showFooter, hideFooter } from "./common/footer";
-import { isEnter, isEscape, isTab, isArrowUp, isArrowDown } from "./common/keyboard";
+import {
+  isEnter,
+  isEscape,
+  isTab,
+  isArrowUp,
+  isArrowDown,
+} from "./common/keyboard";
+import { formatRepoString } from "./common/repo-formatter";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export interface SessionSettingsResult {
   action: "saved" | "add-repos" | "add-skills" | "cancel";
@@ -15,7 +28,7 @@ type SelectionTarget = "goal" | "repo" | "skill";
 
 export function showSessionSettings(
   renderer: CliRenderer,
-  session: Session,
+  session: Session
 ): Promise<SessionSettingsResult> {
   return new Promise((resolve) => {
     clearLayout(renderer);
@@ -119,7 +132,10 @@ export function showSessionSettings(
 
       reposList.content = updatedRepos
         .map((repo, index) => {
-          const marker = selectedTarget === "repo" && index === selectedRepoIndex ? "▶" : " ";
+          const marker =
+            selectedTarget === "repo" && index === selectedRepoIndex
+              ? "▶"
+              : " ";
           return `${marker} ${formatRepoString(repo)}`;
         })
         .join("\n");
@@ -135,7 +151,10 @@ export function showSessionSettings(
 
       skillsList.content = updatedSkills
         .map((skill, index) => {
-          const marker = selectedTarget === "skill" && index === selectedSkillIndex ? "▶" : " ";
+          const marker =
+            selectedTarget === "skill" && index === selectedSkillIndex
+              ? "▶"
+              : " ";
           return `${marker} ${skill}`;
         })
         .join("\n");
@@ -262,10 +281,22 @@ export function showSessionSettings(
       }
 
       if (isArrowDown(key)) {
-        if (selectedTarget === "repo" && selectedRepoIndex < updatedRepos.length - 1) {
-          selectedRepoIndex = Math.min(updatedRepos.length - 1, selectedRepoIndex + 1);
-        } else if (selectedTarget === "skill" && selectedSkillIndex < updatedSkills.length - 1) {
-          selectedSkillIndex = Math.min(updatedSkills.length - 1, selectedSkillIndex + 1);
+        if (
+          selectedTarget === "repo" &&
+          selectedRepoIndex < updatedRepos.length - 1
+        ) {
+          selectedRepoIndex = Math.min(
+            updatedRepos.length - 1,
+            selectedRepoIndex + 1
+          );
+        } else if (
+          selectedTarget === "skill" &&
+          selectedSkillIndex < updatedSkills.length - 1
+        ) {
+          selectedSkillIndex = Math.min(
+            updatedSkills.length - 1,
+            selectedSkillIndex + 1
+          );
         }
         updateReposList();
         updateSkillsList();

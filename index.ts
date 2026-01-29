@@ -6,10 +6,11 @@ import { loadEnv } from "./src/env";
 loadEnv();
 
 import pkg from "./package.json";
-import { handleTUIMode } from "./src/tui-mode";
 import { handleCLIMode } from "./src/cli-mode";
+import { handleTUIMode } from "./src/tui-mode";
 
-const block = (r: number, g: number, b: number): string => `\x1b[48;2;${r};${g};${b}m  \x1b[0m`;
+const block = (r: number, g: number, b: number): string =>
+  `\x1b[48;2;${r};${g};${b}m  \x1b[0m`;
 
 function printUsage(): void {
   console.log(`
@@ -55,11 +56,35 @@ function printWhy(): void {
   };
   const arts = [
     // Pizza slice (7x7)
-    ["..yy...", ".yyyy..", ".yryry.", "yyyyyyy", "yygyrry", "lllllll", "ddddddd"],
+    [
+      "..yy...",
+      ".yyyy..",
+      ".yryry.",
+      "yyyyyyy",
+      "yygyrry",
+      "lllllll",
+      "ddddddd",
+    ],
     // Burger (7x7)
-    [".yyyyy.", "ggggggg", "rrrrrrr", "ddddddd", "ggggggg", "ooooooo", ".yyyyy."],
+    [
+      ".yyyyy.",
+      "ggggggg",
+      "rrrrrrr",
+      "ddddddd",
+      "ggggggg",
+      "ooooooo",
+      ".yyyyy.",
+    ],
     // Fried egg (7x7)
-    ["..www..", ".wwwww.", "wwwyyww", "wwyyyyw", "wwwyyww", ".wwwww.", "..www.."],
+    [
+      "..www..",
+      ".wwwww.",
+      "wwwyyww",
+      "wwyyyyw",
+      "wwwyyww",
+      ".wwwww.",
+      "..www..",
+    ],
   ];
   const artRows = arts[Math.floor(Math.random() * arts.length)]!;
   const art = artRows
@@ -67,7 +92,7 @@ function printWhy(): void {
       row
         .split("")
         .map((cell) => palette[cell] ?? "  ")
-        .join(""),
+        .join("")
     )
     .join("\n");
   console.log(`

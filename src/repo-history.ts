@@ -1,7 +1,8 @@
 import { Database } from "bun:sqlite";
+import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
+
 import type { RepoSpec } from "./types";
 
 const DATA_DIR = join(homedir(), ".letmecook");
@@ -33,7 +34,9 @@ async function getDb(): Promise<Database> {
       times_used integer not null default 1
     );
   `);
-  db.exec("create index if not exists idx_repo_history_last_used on repo_history(last_used);");
+  db.exec(
+    "create index if not exists idx_repo_history_last_used on repo_history(last_used);"
+  );
 
   return db;
 }

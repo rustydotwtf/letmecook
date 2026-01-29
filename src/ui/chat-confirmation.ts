@@ -1,8 +1,10 @@
 import { type CliRenderer, TextRenderable, type KeyEvent } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
+import type { ChatConfig } from "../flows/chat-to-config";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEnter, isEscape, isKey } from "./common/keyboard";
-import type { ChatConfig } from "../flows/chat-to-config";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export type ConfirmationAction = "confirm" | "edit" | "cancel" | "back";
 
@@ -12,7 +14,7 @@ export interface ConfirmationResult {
 
 export function showChatConfirmation(
   renderer: CliRenderer,
-  config: ChatConfig,
+  config: ChatConfig
 ): Promise<ConfirmationResult> {
   return new Promise((resolve) => {
     clearLayout(renderer);
@@ -144,7 +146,12 @@ export function showChatConfirmation(
       navigate: false,
       select: false,
       back: true,
-      custom: ["Enter Confirm", "b Back to Chat", "e Manual Edit", "Esc Cancel"],
+      custom: [
+        "Enter Confirm",
+        "b Back to Chat",
+        "e Manual Edit",
+        "Esc Cancel",
+      ],
     });
     renderer.keyInput.on("keypress", handleKeypress);
   });

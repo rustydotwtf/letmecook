@@ -1,9 +1,14 @@
 import { streamText, type ToolSet } from "ai";
-import { parseRepoSpec, type RepoSpec } from "../schemas";
-import { INCREMENTAL_CHAT_PROMPT, generateRepoHistorySection } from "../prompts/chat-prompt";
 import { z } from "zod";
+
 import type { ConfigBuilder } from "../config-builder";
+
+import {
+  INCREMENTAL_CHAT_PROMPT,
+  generateRepoHistorySection,
+} from "../prompts/chat-prompt";
 import { listRepoHistory } from "../repo-history";
+import { parseRepoSpec, type RepoSpec } from "../schemas";
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
@@ -44,10 +49,11 @@ export interface IncrementalChatResult {
 export async function chatToConfigIncremental(
   messages: ChatMessage[],
   configBuilder: ConfigBuilder,
-  onChunk: (chunk: string) => void,
+  onChunk: (chunk: string) => void
 ): Promise<IncrementalChatResult> {
   const context = messages.map((m) => `${m.role}: ${m.content}`).join("\n");
-  const userMessage = messages.findLast((m) => m.role === "user")?.content ?? "";
+  const userMessage =
+    messages.findLast((m) => m.role === "user")?.content ?? "";
 
   const repoHistory = await generateRepoHistorySection();
 
@@ -64,7 +70,9 @@ export async function chatToConfigIncremental(
         title: "add_repo",
         description: "Add a repository to the workspace configuration",
         inputSchema: z.object({
-          repo: z.string().describe("Repository in format owner/repo or owner/repo:branch"),
+          repo: z
+            .string()
+            .describe("Repository in format owner/repo or owner/repo:branch"),
         }),
         execute: async ({ repo }) => {
           const startTime = Date.now();
@@ -78,11 +86,15 @@ export async function chatToConfigIncremental(
             {
               stdout: "pipe",
               stderr: "pipe",
-            },
+            }
           );
 
-          const validationOutput = await new Response(validationProc.stdout).text();
-          const validationStderr = await new Response(validationProc.stderr).text();
+          const validationOutput = await new Response(
+            validationProc.stdout
+          ).text();
+          const validationStderr = await new Response(
+            validationProc.stderr
+          ).text();
 
           if (validationStderr && !validationOutput) {
             const duration = Date.now() - startTime;
@@ -101,7 +113,7 @@ export async function chatToConfigIncremental(
               {
                 stdout: "pipe",
                 stderr: "pipe",
-              },
+              }
             );
 
             const branchOutput = await new Response(branchProc.stdout).text();
@@ -141,7 +153,9 @@ export async function chatToConfigIncremental(
           toolTimings.set("add_skill", duration);
           return {
             success: added,
-            message: added ? `Added skill ${skill}` : `${skill} already in config`,
+            message: added
+              ? `Added skill ${skill}`
+              : `${skill} already in config`,
             currentSkills: configBuilder.config.skills,
           };
         },
@@ -150,7 +164,9 @@ export async function chatToConfigIncremental(
         title: "set_goal",
         description: "Set the goal/purpose for this workspace session",
         inputSchema: z.object({
-          goal: z.string().describe("Brief description of what the user wants to accomplish"),
+          goal: z
+            .string()
+            .describe("Brief description of what the user wants to accomplish"),
         }),
         execute: async ({ goal }) => {
           const startTime = Date.now();
@@ -220,7 +236,9 @@ export async function chatToConfigIncremental(
 
           if (url) {
             // Parse URL like https://github.com/owner/repo/issues/123
-            const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
+            const match = url.match(
+              /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/
+            );
             if (!match) {
               return { error: "Invalid GitHub issue URL", markdown: "" };
             }
@@ -230,7 +248,10 @@ export async function chatToConfigIncremental(
             repoPath = `${owner}/${repo}`;
             issueNumber = issue;
           } else {
-            return { error: "Provide either a URL or owner/repo/issue", markdown: "" };
+            return {
+              error: "Provide either a URL or owner/repo/issue",
+              markdown: "",
+            };
           }
 
           const proc = Bun.spawn(
@@ -247,7 +268,7 @@ export async function chatToConfigIncremental(
             {
               stdout: "pipe",
               stderr: "pipe",
-            },
+            }
           );
 
           const output = await new Response(proc.stdout).text();
@@ -259,7 +280,9 @@ export async function chatToConfigIncremental(
 
           try {
             const data = JSON.parse(output);
-            const labels = data.labels?.map((l: { name: string }) => l.name).join(", ") || "None";
+            const labels =
+              data.labels?.map((l: { name: string }) => l.name).join(", ") ||
+              "None";
             const commentCount = data.comments?.length || 0;
 
             const markdown = `## ${data.title}
@@ -280,7 +303,13 @@ ${data.body || "*No description provided*"}`;
             const duration = Date.now() - startTime;
             toolTimings.set("view_issue", duration);
 
-            return { markdown, title: data.title, state: data.state, url: data.url, repoPath };
+            return {
+              markdown,
+              title: data.title,
+              state: data.state,
+              url: data.url,
+              repoPath,
+            };
           } catch {
             return { error: "Failed to parse issue data", markdown: "" };
           }
@@ -291,14 +320,22 @@ ${data.body || "*No description provided*"}`;
         description:
           "List previously used repositories from history. Useful when user mentions 'my repos' or wants to reuse repos.",
         inputSchema: z.object({
-          owner: z.string().optional().describe("Filter by repository owner/organization"),
-          limit: z.number().optional().describe("Maximum number of results to return"),
+          owner: z
+            .string()
+            .optional()
+            .describe("Filter by repository owner/organization"),
+          limit: z
+            .number()
+            .optional()
+            .describe("Maximum number of results to return"),
         }),
         execute: async ({ owner, limit }) => {
           const startTime = Date.now();
           const items = await listRepoHistory(limit ?? 50);
           const filtered = owner
-            ? items.filter((item) => item.owner.toLowerCase() === owner.toLowerCase())
+            ? items.filter(
+                (item) => item.owner.toLowerCase() === owner.toLowerCase()
+              )
             : items;
           const duration = Date.now() - startTime;
           toolTimings.set("list_repo_history", duration);

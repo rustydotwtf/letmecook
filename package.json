@@ -26,8 +26,8 @@
     "lint:ci": "oxlint --deny-warnings",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "check": "bun run typecheck && bun run lint && bun run format:check",
-    "fix": "bun run lint:fix && bun run format",
+    "check": "ultracite check",
+    "fix": "ultracite fix",
     "test": "bun test",
     "test:unit": "bun test tests/unit",
     "test:integration": "bun test tests/integration",
@@ -44,8 +44,9 @@
   "devDependencies": {
     "@types/bun": "latest",
     "husky": "^9.1.7",
-    "oxfmt": "^0.26.0",
-    "oxlint": "^1.41.0"
+    "oxfmt": "^0.27.0",
+    "oxlint": "^1.42.0",
+    "ultracite": "7.1.1"
   },
   "peerDependencies": {
     "typescript": "^5"

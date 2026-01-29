@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
+import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
 
 const DATA_DIR = join(homedir(), ".letmecook");
 const DB_PATH = join(DATA_DIR, "history.sqlite");
@@ -65,7 +65,7 @@ export async function registerBackgroundProcess(
   pid: number,
   command: string,
   description: string,
-  sessionName: string,
+  sessionName: string
 ): Promise<void> {
   const database = await getDb();
   const stmt = database.prepare(`
@@ -94,7 +94,9 @@ export async function getRunningProcesses(): Promise<BackgroundProcess[]> {
 
   // Clean up dead processes from the database
   if (deadPids.length > 0) {
-    const deleteStmt = database.prepare(`DELETE FROM background_processes WHERE pid = ?`);
+    const deleteStmt = database.prepare(
+      `DELETE FROM background_processes WHERE pid = ?`
+    );
     const deleteMany = database.transaction((pids: number[]) => {
       for (const pid of pids) {
         deleteStmt.run(pid);
@@ -106,9 +108,13 @@ export async function getRunningProcesses(): Promise<BackgroundProcess[]> {
   return aliveProcesses;
 }
 
-export async function getProcessesForSession(sessionName: string): Promise<BackgroundProcess[]> {
+export async function getProcessesForSession(
+  sessionName: string
+): Promise<BackgroundProcess[]> {
   const database = await getDb();
-  const stmt = database.prepare(`SELECT * FROM background_processes WHERE session_name = ?`);
+  const stmt = database.prepare(
+    `SELECT * FROM background_processes WHERE session_name = ?`
+  );
   const rows = stmt.all(sessionName) as DbRow[];
 
   const aliveProcesses: BackgroundProcess[] = [];
@@ -124,7 +130,9 @@ export async function getProcessesForSession(sessionName: string): Promise<Backg
 
   // Clean up dead processes from the database
   if (deadPids.length > 0) {
-    const deleteStmt = database.prepare(`DELETE FROM background_processes WHERE pid = ?`);
+    const deleteStmt = database.prepare(
+      `DELETE FROM background_processes WHERE pid = ?`
+    );
     const deleteMany = database.transaction((pids: number[]) => {
       for (const pid of pids) {
         deleteStmt.run(pid);
@@ -174,6 +182,8 @@ export async function killAllProcesses(): Promise<void> {
 
 async function removeProcessFromRegistry(pid: number): Promise<void> {
   const database = await getDb();
-  const stmt = database.prepare(`DELETE FROM background_processes WHERE pid = ?`);
+  const stmt = database.prepare(
+    `DELETE FROM background_processes WHERE pid = ?`
+  );
   stmt.run(pid);
 }

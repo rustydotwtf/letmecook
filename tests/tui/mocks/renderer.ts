@@ -1,4 +1,5 @@
 import type { CliRenderer, KeyEvent } from "@opentui/core";
+
 import { EventEmitter } from "events";
 
 interface MockElement {

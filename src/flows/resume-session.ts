@@ -1,19 +1,21 @@
 import type { CliRenderer } from "@opentui/core";
+
 import type { Session } from "../types";
-import { updateSessionSettings } from "../sessions";
+
+import { writeAgentsMd } from "../agents-md";
 import { refreshLatestRepos } from "../git";
+import { recloneRepo } from "../git";
+import { getProcessesForSession } from "../process-registry";
+import { updateSessionSettings } from "../sessions";
+import { deleteSession } from "../sessions";
 import { updateSkills } from "../skills";
-import { handleSmartExit } from "../ui/exit";
-import { showSessionSettings } from "../ui/session-settings";
-import { showDeleteConfirm } from "../ui/confirm-delete";
 import { showSessionStartWarning } from "../ui/background-warning";
+import { showDeleteConfirm } from "../ui/confirm-delete";
+import { handleSmartExit } from "../ui/exit";
 import { showProgress, updateProgress, hideProgress } from "../ui/progress";
 import { showReclonePrompt } from "../ui/reclone-prompt";
-import { deleteSession } from "../sessions";
-import { recloneRepo } from "../git";
-import { writeAgentsMd } from "../agents-md";
 import { createRenderer, destroyRenderer } from "../ui/renderer";
-import { getProcessesForSession } from "../process-registry";
+import { showSessionSettings } from "../ui/session-settings";
 
 export interface ResumeSessionParams {
   session: Session;
@@ -25,7 +27,7 @@ export type ResumeResult = "resume" | "home";
 
 export async function resumeSession(
   renderer: CliRenderer,
-  params: ResumeSessionParams,
+  params: ResumeSessionParams
 ): Promise<ResumeResult> {
   const { session, mode, initialRefresh = true } = params;
 
@@ -117,7 +119,10 @@ export async function resumeSession(
   }
 }
 
-async function refreshLatestBeforeResume(renderer: CliRenderer, session: Session): Promise<void> {
+async function refreshLatestBeforeResume(
+  renderer: CliRenderer,
+  session: Session
+): Promise<void> {
   const readOnlyRepos = session.repos.filter((repo) => repo.readOnly);
   if (readOnlyRepos.length === 0) return;
 
@@ -141,7 +146,7 @@ async function refreshLatestBeforeResume(renderer: CliRenderer, session: Session
         }
         updateProgress(renderer, refreshProgressState);
       }
-    },
+    }
   );
 
   refreshProgressState.phase = "done";
@@ -151,7 +156,7 @@ async function refreshLatestBeforeResume(renderer: CliRenderer, session: Session
   hideProgress(renderer);
 
   const recloneTargets = refreshResults.filter(
-    (result) => result.status === "error" && result.repo.readOnly,
+    (result) => result.status === "error" && result.repo.readOnly
   );
 
   for (const result of recloneTargets) {
@@ -196,7 +201,9 @@ async function refreshLatestBeforeResume(renderer: CliRenderer, session: Session
   }
 }
 
-async function refreshLatestBeforeResumeSimple(session: Session): Promise<void> {
+async function refreshLatestBeforeResumeSimple(
+  session: Session
+): Promise<void> {
   const readOnlyRepos = session.repos.filter((repo) => repo.readOnly);
   if (readOnlyRepos.length === 0) return;
 
@@ -235,7 +242,10 @@ async function updateSkillsSimple(session: Session): Promise<void> {
   }
 }
 
-async function runOpencodeMode(mode: "cli" | "tui", sessionPath: string): Promise<void> {
+async function runOpencodeMode(
+  mode: "cli" | "tui",
+  sessionPath: string
+): Promise<void> {
   const proc = Bun.spawn(["claude", "--dangerously-skip-permissions"], {
     cwd: sessionPath,
     stdin: "inherit",

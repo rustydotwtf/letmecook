@@ -5,16 +5,18 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { Session } from "../types";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export type DeleteConfirmChoice = "confirm" | "cancel";
 
 export function showDeleteConfirm(
   renderer: CliRenderer,
-  session: Session,
+  session: Session
 ): Promise<DeleteConfirmChoice> {
   return new Promise((resolve) => {
     clearLayout(renderer);

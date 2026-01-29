@@ -1,16 +1,24 @@
-import { type CliRenderer, TextRenderable, InputRenderable, type KeyEvent } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
-import { parseRepoSpec, type RepoSpec } from "../types";
+import {
+  type CliRenderer,
+  TextRenderable,
+  InputRenderable,
+  type KeyEvent,
+} from "@opentui/core";
+
 import { listRepoHistory } from "../repo-history";
+import { parseRepoSpec, type RepoSpec } from "../types";
 import { showFooter, hideFooter } from "./common/footer";
 import { isEnter, isEscape, isArrowUp, isArrowDown } from "./common/keyboard";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export interface AddReposResult {
   repos: RepoSpec[];
   cancelled: boolean;
 }
 
-export async function showAddReposPrompt(renderer: CliRenderer): Promise<AddReposResult> {
+export async function showAddReposPrompt(
+  renderer: CliRenderer
+): Promise<AddReposResult> {
   const history = await listRepoHistory();
   const historySpecs = history.map((item) => item.spec);
   const maxMatches = 6;
@@ -170,7 +178,11 @@ export async function showAddReposPrompt(renderer: CliRenderer): Promise<AddRepo
         const latestCheckbox = currentLatest ? "[✓]" : "[ ]";
         const latestSelected = confirmOptionIndex === 0;
         detailsLatest.content = `  ${latestSelected ? "▶" : " "} ${latestCheckbox} Read-only [l]`;
-        detailsLatest.fg = latestSelected ? "#f8fafc" : currentLatest ? "#22d3ee" : "#94a3b8";
+        detailsLatest.fg = latestSelected
+          ? "#f8fafc"
+          : currentLatest
+            ? "#22d3ee"
+            : "#94a3b8";
 
         const confirmSelected = confirmOptionIndex === 1;
         confirmButton.content = `  ${confirmSelected ? "▶" : " "} [Add repository]`;
@@ -430,7 +442,10 @@ export async function showAddReposPrompt(renderer: CliRenderer): Promise<AddRepo
           selectedMatchIndex = 0;
         } else {
           // Move down
-          selectedMatchIndex = Math.min(matches.length - 1, selectedMatchIndex + 1);
+          selectedMatchIndex = Math.min(
+            matches.length - 1,
+            selectedMatchIndex + 1
+          );
         }
         selectMatch(selectedMatchIndex);
         return;

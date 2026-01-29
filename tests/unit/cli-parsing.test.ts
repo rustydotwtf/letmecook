@@ -1,4 +1,5 @@
 import { test, expect, describe } from "bun:test";
+
 import { parseRepos } from "../../src/cli-mode";
 
 describe("parseRepos", () => {
@@ -55,7 +56,7 @@ describe("parseRepos", () => {
 
   test("throws on invalid repo format", () => {
     expect(() => parseRepos(["invalid"])).toThrow(
-      "Invalid repo format: invalid (expected owner/repo)",
+      "Invalid repo format: invalid (expected owner/repo)"
     );
   });
 

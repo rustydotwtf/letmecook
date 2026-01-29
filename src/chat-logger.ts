@@ -1,6 +1,6 @@
+import { mkdir, readdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdir, readdir, rm } from "node:fs/promises";
 
 const LETMECOOK_DIR = join(homedir(), ".letmecook");
 const CHAT_LOGS_DIR = join(LETMECOOK_DIR, "chat-logs");
@@ -96,7 +96,12 @@ export class ChatLogger {
     this.log.metadata.messageCount++;
   }
 
-  addToolCall(toolName: string, input: unknown, output: unknown, durationMs: number): void {
+  addToolCall(
+    toolName: string,
+    input: unknown,
+    output: unknown,
+    durationMs: number
+  ): void {
     this.log.toolCalls.push({
       toolName,
       input,
@@ -107,7 +112,11 @@ export class ChatLogger {
     this.log.metadata.toolCallCount++;
   }
 
-  addError(type: ErrorRecord["type"], message: string, details?: unknown): void {
+  addError(
+    type: ErrorRecord["type"],
+    message: string,
+    details?: unknown
+  ): void {
     this.log.errors.push({
       type,
       message,
@@ -127,7 +136,10 @@ export class ChatLogger {
     });
   }
 
-  markSessionCreated(sessionName: string, finalConfig: ChatLog["finalConfig"]): void {
+  markSessionCreated(
+    sessionName: string,
+    finalConfig: ChatLog["finalConfig"]
+  ): void {
     this.log.sessionCreated = true;
     this.log.sessionName = sessionName;
     this.log.finalConfig = finalConfig;
@@ -155,7 +167,9 @@ export class ChatLogger {
     return this.log;
   }
 
-  static async listLogs(): Promise<{ id: string; filename: string; createdAt: string }[]> {
+  static async listLogs(): Promise<
+    { id: string; filename: string; createdAt: string }[]
+  > {
     try {
       const entries = await readdir(CHAT_LOGS_DIR);
       const logs: { id: string; filename: string; createdAt: string }[] = [];
@@ -173,7 +187,8 @@ export class ChatLogger {
       }
 
       return logs.toSorted(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     } catch {
       return [];

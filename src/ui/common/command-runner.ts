@@ -1,9 +1,15 @@
-import { type CliRenderer, TextRenderable, type Renderable, type KeyEvent } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "../renderer";
+import {
+  type CliRenderer,
+  TextRenderable,
+  type Renderable,
+  type KeyEvent,
+} from "@opentui/core";
+
+import { registerBackgroundProcess } from "../../process-registry";
 import { readProcessOutputWithControl } from "../../utils/stream";
+import { createBaseLayout, clearLayout } from "../renderer";
 import { showFooter, hideFooter } from "./footer";
 import { isAbort, isSkip, isBackground } from "./keyboard";
-import { registerBackgroundProcess } from "../../process-registry";
 
 export interface CommandTask {
   label: string; // "Cloning microsoft/playwright"
@@ -22,7 +28,12 @@ export interface CommandRunnerOptions {
   sessionName?: string; // Session name for tracking backgrounded processes
 }
 
-export type TaskOutcome = "completed" | "error" | "aborted" | "skipped" | "backgrounded";
+export type TaskOutcome =
+  | "completed"
+  | "error"
+  | "aborted"
+  | "skipped"
+  | "backgrounded";
 
 export interface CommandResult {
   task: CommandTask;
@@ -72,7 +83,7 @@ function getStatusIcon(status: TaskStatus): {
 
 export function showCommandRunner(
   renderer: CliRenderer,
-  options: CommandRunnerOptions,
+  options: CommandRunnerOptions
 ): {
   taskStatuses: Array<{ task: CommandTask; status: TaskStatus }>;
   content: Renderable;
@@ -93,7 +104,10 @@ export function showCommandRunner(
   });
   content.add(tasksLabel);
 
-  const taskStatuses = tasks.map((task) => ({ task, status: "pending" as const }));
+  const taskStatuses = tasks.map((task) => ({
+    task,
+    status: "pending" as const,
+  }));
 
   tasks.forEach((task, i) => {
     const statusIcon = getStatusIcon("pending");
@@ -139,7 +153,7 @@ export function updateCommandRunner(
   renderer: CliRenderer,
   taskStatuses: Array<{ task: CommandTask; status: TaskStatus }>,
   currentTaskIndex?: number,
-  outputLines?: string[],
+  outputLines?: string[]
 ): void {
   taskStatuses.forEach((item, i) => {
     const text = taskTexts[i];
@@ -150,7 +164,11 @@ export function updateCommandRunner(
     }
   });
 
-  if (currentCommandText && currentTaskIndex !== undefined && currentTaskIndex >= 0) {
+  if (
+    currentCommandText &&
+    currentTaskIndex !== undefined &&
+    currentTaskIndex >= 0
+  ) {
     const currentTask = taskStatuses[currentTaskIndex];
     if (currentTask) {
       const commandStr = currentTask.task.command.join(" ");
@@ -181,7 +199,7 @@ type ControlAction = "abort" | "skip" | "background" | null;
 
 export async function runCommands(
   renderer: CliRenderer,
-  options: CommandRunnerOptions,
+  options: CommandRunnerOptions
 ): Promise<CommandResult[]> {
   const {
     tasks,
@@ -305,7 +323,8 @@ export async function runCommands(
               updateCommandRunner(renderer, taskStatuses, i, buffer);
             }
           },
-          shouldStop: () => controlAction !== null && controlAction !== "background",
+          shouldStop: () =>
+            controlAction !== null && controlAction !== "background",
         });
 
         const raceResult = await Promise.race([
@@ -320,7 +339,12 @@ export async function runCommands(
         const { success, output, fullOutput, wasInterrupted } =
           raceResult.type === "stream"
             ? raceResult
-            : { success: true, output: outputBuffer, fullOutput: "", wasInterrupted: false };
+            : {
+                success: true,
+                output: outputBuffer,
+                fullOutput: "",
+                wasInterrupted: false,
+              };
 
         // Handle control actions
         if (controlAction === "abort" || abortAll) {
@@ -351,7 +375,7 @@ export async function runCommands(
               proc.pid,
               task.command.join(" "),
               task.label,
-              sessionName,
+              sessionName
             );
           }
 
@@ -388,7 +412,8 @@ export async function runCommands(
             });
           } else {
             taskState.status = "error";
-            const errorMsg = fullOutput.trim() || `Command exited with code ${exitCode}`;
+            const errorMsg =
+              fullOutput.trim() || `Command exited with code ${exitCode}`;
             results.push({
               task,
               success: false,
@@ -406,7 +431,7 @@ export async function runCommands(
             renderer,
             taskStatuses,
             i,
-            outputBuffer.length > 0 ? outputBuffer : output,
+            outputBuffer.length > 0 ? outputBuffer : output
           );
         } else {
           updateCommandRunner(renderer, taskStatuses, i);

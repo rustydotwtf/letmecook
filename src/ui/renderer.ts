@@ -42,7 +42,10 @@ export interface LayoutElements {
   content: BoxRenderable;
 }
 
-export function createBaseLayout(r: CliRenderer, subtitle?: string): LayoutElements {
+export function createBaseLayout(
+  r: CliRenderer,
+  subtitle?: string
+): LayoutElements {
   const width = r.terminalWidth;
 
   // Main container
@@ -59,7 +62,10 @@ export function createBaseLayout(r: CliRenderer, subtitle?: string): LayoutEleme
   // Title
   const titleText = "letmecook";
   const titleFont = "tiny";
-  const { width: titleWidth } = measureText({ text: titleText, font: titleFont });
+  const { width: titleWidth } = measureText({
+    text: titleText,
+    font: titleFont,
+  });
   const centerX = Math.floor(width / 2) - Math.floor(titleWidth / 2);
 
   const title = new ASCIIFontRenderable(r, {

@@ -34,7 +34,15 @@ const pixelLetters: Record<string, string[]> = {
   L: ["WW...", "WW...", "WW...", "WW...", "WW...", "WW...", "WWWWW"],
   E: ["WWWWW", "WW...", "WW...", "WWWW.", "WW...", "WW...", "WWWWW"],
   T: ["WWWWWW", "..WW..", "..WW..", "..WW..", "..WW..", "..WW..", "..WW.."],
-  M: ["WW...WW", "WWW.WWW", "WWWWWWW", "WW.W.WW", "WW...WW", "WW...WW", "WW...WW"],
+  M: [
+    "WW...WW",
+    "WWW.WWW",
+    "WWWWWWW",
+    "WW.W.WW",
+    "WW...WW",
+    "WW...WW",
+    "WW...WW",
+  ],
   C: [".WWWW", "WWWWW", "WW...", "WW...", "WW...", "WWWWW", ".WWWW"],
   O: [".WWWW.", "WWWWWW", "WW..WW", "WW..WW", "WW..WW", "WWWWWW", ".WWWW."],
   K: ["WW..WW", "WW.WW.", "WWWW..", "WWW...", "WWWW..", "WW.WW.", "WW..WW"],
@@ -46,7 +54,7 @@ export function renderFood(food: string[]): string {
       row
         .split("")
         .map((cell) => palette[cell] ?? "  ")
-        .join(""),
+        .join("")
     )
     .join("\n");
 }
@@ -127,7 +135,11 @@ export function buildLogoRows(): string[] {
   const logoRows: string[] = [];
   for (let row = 0; row < 7; row++) {
     const combined =
-      leftFood[row] + foodTextSpacing + letterRows[row] + foodTextSpacing + rightFood[row];
+      leftFood[row] +
+      foodTextSpacing +
+      letterRows[row] +
+      foodTextSpacing +
+      rightFood[row];
     logoRows.push(renderRow(combined));
   }
 
@@ -181,9 +193,14 @@ export async function showSplash(): Promise<void> {
 
     // Calculate centering
     // eslint-disable-next-line no-control-regex -- ANSI escape codes require control chars
-    const firstRowWidth = (artLines[0] ?? "").replace(/\x1b\[[0-9;]*m/g, "").length;
+    const firstRowWidth = (artLines[0] ?? "").replace(
+      /\x1b\[[0-9;]*m/g,
+      ""
+    ).length;
     const hPadding = Math.max(0, Math.floor((termWidth - firstRowWidth) / 2));
-    const paddedArt = artLines.map((row) => " ".repeat(hPadding) + row).join("\n");
+    const paddedArt = artLines
+      .map((row) => " ".repeat(hPadding) + row)
+      .join("\n");
 
     const artHeight = artLines.length;
     const vPadding = Math.max(0, Math.floor((termHeight - artHeight) / 2));

@@ -20,7 +20,9 @@ export function formatZodError(error: unknown): string[] {
     "issues" in error &&
     Array.isArray((error as { issues: unknown[] }).issues)
   ) {
-    const issues = (error as { issues: { path: PropertyKey[]; message: string }[] }).issues;
+    const issues = (
+      error as { issues: { path: PropertyKey[]; message: string }[] }
+    ).issues;
     return issues.map((e) => {
       const path = e.path.length > 0 ? String(e.path.join(".")) : "root";
       return `${path}: ${e.message}`;
@@ -76,7 +78,9 @@ export function validateSessionManifest(manifest: unknown): SessionManifest {
   return result.data;
 }
 
-export function validateSessionManifestSafe(manifest: unknown): ValidationResult<SessionManifest> {
+export function validateSessionManifestSafe(
+  manifest: unknown
+): ValidationResult<SessionManifest> {
   const result = SessionManifestSchema.safeParse(manifest);
 
   if (!result.success) {
@@ -103,7 +107,9 @@ export function validateNewSessionParams(params: unknown): NewSessionParams {
   return result.data;
 }
 
-export function validateNewSessionParamsSafe(params: unknown): ValidationResult<NewSessionParams> {
+export function validateNewSessionParamsSafe(
+  params: unknown
+): ValidationResult<NewSessionParams> {
   const result = NewSessionParamsSchema.safeParse(params);
 
   if (!result.success) {
@@ -132,14 +138,18 @@ function parseRepoSpec(spec: string): {
 
   const slashIndex = repoPath.indexOf("/");
   if (slashIndex === -1) {
-    throw new Error(`Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`);
+    throw new Error(
+      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+    );
   }
 
   const owner = repoPath.slice(0, slashIndex);
   const name = repoPath.slice(slashIndex + 1);
 
   if (!owner || !name) {
-    throw new Error(`Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`);
+    throw new Error(
+      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+    );
   }
 
   return {

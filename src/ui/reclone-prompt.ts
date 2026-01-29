@@ -5,14 +5,19 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { RepoSpec } from "../types";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export type RecloneChoice = "reclone" | "skip";
 
-export function showReclonePrompt(renderer: CliRenderer, repo: RepoSpec): Promise<RecloneChoice> {
+export function showReclonePrompt(
+  renderer: CliRenderer,
+  repo: RepoSpec
+): Promise<RecloneChoice> {
   return new Promise((resolve) => {
     clearLayout(renderer);
 

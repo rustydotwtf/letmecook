@@ -5,11 +5,13 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
-import { buildSessionOptions } from "./session-options";
+
 import type { Session } from "../types";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape, isArrowUp, isArrowDown } from "./common/keyboard";
+import { createBaseLayout, clearLayout } from "./renderer";
+import { buildSessionOptions } from "./session-options";
 
 export type MainMenuAction =
   | { type: "chat" }
@@ -19,7 +21,10 @@ export type MainMenuAction =
   | { type: "nuke" }
   | { type: "quit" };
 
-export function showMainMenu(renderer: CliRenderer, sessions: Session[]): Promise<MainMenuAction> {
+export function showMainMenu(
+  renderer: CliRenderer,
+  sessions: Session[]
+): Promise<MainMenuAction> {
   return new Promise((resolve) => {
     clearLayout(renderer);
 

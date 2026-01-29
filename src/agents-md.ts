@@ -1,5 +1,6 @@
-import { join } from "node:path";
 import { symlink } from "node:fs/promises";
+import { join } from "node:path";
+
 import type { Session } from "./types";
 
 export function generateAgentsMd(session: Session): string {
@@ -89,7 +90,9 @@ export async function writeAgentsMd(session: Session): Promise<void> {
   await Bun.write(path, content);
 }
 
-export async function createClaudeMdSymlink(sessionPath: string): Promise<void> {
+export async function createClaudeMdSymlink(
+  sessionPath: string
+): Promise<void> {
   const symlinkPath = join(sessionPath, "CLAUDE.md");
   try {
     await symlink("AGENTS.md", symlinkPath);

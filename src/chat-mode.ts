@@ -1,4 +1,19 @@
-import { createRenderer, destroyRenderer } from "./ui/renderer";
+import type { ChatConfig } from "./flows/chat-to-config";
+import type { ToolCallResult } from "./flows/chat-to-config";
+import type { Session } from "./types";
+
+import { ChatLogger } from "./chat-logger";
+import { ConfigBuilder } from "./config-builder";
+import { createNewSession } from "./flows";
+import {
+  chatToConfigIncremental,
+  configToRepoSpecs,
+  type ChatMessage,
+} from "./flows/chat-to-config";
+import {
+  INCREMENTAL_WELCOME_MESSAGE,
+  API_KEY_MISSING_MESSAGE,
+} from "./prompts/chat-prompt";
 import { showChatConfirmation } from "./ui/chat-confirmation";
 import {
   createChatWithSidebarLayout,
@@ -7,18 +22,7 @@ import {
   waitForChatInput,
   type ChatWithSidebarElements,
 } from "./ui/chat-with-sidebar";
-import {
-  chatToConfigIncremental,
-  configToRepoSpecs,
-  type ChatMessage,
-} from "./flows/chat-to-config";
-import { createNewSession } from "./flows";
-import type { ChatConfig } from "./flows/chat-to-config";
-import type { Session } from "./types";
-import { INCREMENTAL_WELCOME_MESSAGE, API_KEY_MISSING_MESSAGE } from "./prompts/chat-prompt";
-import { ChatLogger } from "./chat-logger";
-import { ConfigBuilder } from "./config-builder";
-import type { ToolCallResult } from "./flows/chat-to-config";
+import { createRenderer, destroyRenderer } from "./ui/renderer";
 
 /**
  * Format a tool result for inclusion in the conversation history
@@ -26,7 +30,11 @@ import type { ToolCallResult } from "./flows/chat-to-config";
 function formatToolResultForMessage(tr: ToolCallResult): string | null {
   switch (tr.toolName) {
     case "view_issue": {
-      const output = tr.output as { markdown?: string; error?: string; title?: string };
+      const output = tr.output as {
+        markdown?: string;
+        error?: string;
+        title?: string;
+      };
       if (output.error) {
         return `Failed to fetch issue: ${output.error}`;
       }
@@ -76,7 +84,7 @@ function isReadySignal(message: string): boolean {
     "go",
   ];
   return readySignals.some(
-    (signal) => normalized === signal || normalized.startsWith(signal + " "),
+    (signal) => normalized === signal || normalized.startsWith(signal + " ")
   );
 }
 
@@ -113,7 +121,11 @@ export async function handleChatMode(): Promise<ChatModeResult> {
 
     while (!confirmed) {
       // Create/refresh the layout
-      elements = createChatWithSidebarLayout(renderer, messages, configBuilder.config);
+      elements = createChatWithSidebarLayout(
+        renderer,
+        messages,
+        configBuilder.config
+      );
 
       // Wait for user input
       const inputResult = await waitForChatInput(renderer, elements, messages);
@@ -158,7 +170,11 @@ export async function handleChatMode(): Promise<ChatModeResult> {
       // Refresh layout to show user message
       destroyRenderer();
       renderer = await createRenderer();
-      elements = createChatWithSidebarLayout(renderer, messages, configBuilder.config);
+      elements = createChatWithSidebarLayout(
+        renderer,
+        messages,
+        configBuilder.config
+      );
 
       // Show cooking indicator while waiting for LLM
       elements.showCooking();
@@ -167,11 +183,15 @@ export async function handleChatMode(): Promise<ChatModeResult> {
       const streaming = createStreamingMessage(renderer, elements);
 
       // Process with LLM
-      const chatResult = await chatToConfigIncremental(messages, configBuilder, (chunk) => {
-        // Hide cooking indicator on first chunk
-        elements.hideCooking();
-        streaming.update(chunk);
-      });
+      const chatResult = await chatToConfigIncremental(
+        messages,
+        configBuilder,
+        (chunk) => {
+          // Hide cooking indicator on first chunk
+          elements.hideCooking();
+          streaming.update(chunk);
+        }
+      );
 
       // Hide cooking indicator if it wasn't hidden yet (e.g., empty response)
       elements.hideCooking();
@@ -236,7 +256,12 @@ export async function handleChatMode(): Promise<ChatModeResult> {
 
       // Recursive call to continue the chat loop
       // Reset confirmed state and continue in a new loop
-      return await continueChatAfterBack(renderer, messages, configBuilder, logger);
+      return await continueChatAfterBack(
+        renderer,
+        messages,
+        configBuilder,
+        logger
+      );
     }
 
     if (confirmResult.action === "edit") {
@@ -266,7 +291,7 @@ async function continueChatAfterBack(
   renderer: any,
   messages: ChatMessage[],
   configBuilder: ConfigBuilder,
-  logger: ChatLogger,
+  logger: ChatLogger
 ): Promise<ChatModeResult> {
   let elements: ChatWithSidebarElements;
 
@@ -278,7 +303,11 @@ async function continueChatAfterBack(
   });
 
   while (true) {
-    elements = createChatWithSidebarLayout(renderer, messages, configBuilder.config);
+    elements = createChatWithSidebarLayout(
+      renderer,
+      messages,
+      configBuilder.config
+    );
 
     const inputResult = await waitForChatInput(renderer, elements, messages);
 
@@ -318,18 +347,26 @@ async function continueChatAfterBack(
 
     destroyRenderer();
     renderer = await createRenderer();
-    elements = createChatWithSidebarLayout(renderer, messages, configBuilder.config);
+    elements = createChatWithSidebarLayout(
+      renderer,
+      messages,
+      configBuilder.config
+    );
 
     // Show cooking indicator while waiting for LLM
     elements.showCooking();
 
     const streaming = createStreamingMessage(renderer, elements);
 
-    const chatResult = await chatToConfigIncremental(messages, configBuilder, (chunk) => {
-      // Hide cooking indicator on first chunk
-      elements.hideCooking();
-      streaming.update(chunk);
-    });
+    const chatResult = await chatToConfigIncremental(
+      messages,
+      configBuilder,
+      (chunk) => {
+        // Hide cooking indicator on first chunk
+        elements.hideCooking();
+        streaming.update(chunk);
+      }
+    );
 
     // Hide cooking indicator if it wasn't hidden yet
     elements.hideCooking();
@@ -385,7 +422,12 @@ async function continueChatAfterBack(
     destroyRenderer();
     renderer = await createRenderer();
 
-    return await continueChatAfterBack(renderer, messages, configBuilder, logger);
+    return await continueChatAfterBack(
+      renderer,
+      messages,
+      configBuilder,
+      logger
+    );
   }
 
   if (confirmResult.action === "edit") {
@@ -401,13 +443,16 @@ async function continueChatAfterBack(
 
 async function createSessionFromConfig(
   config: ChatConfig,
-  logger: ChatLogger,
+  logger: ChatLogger
 ): Promise<ChatModeResult> {
   try {
     const repos = configToRepoSpecs(config);
 
     if (repos.length === 0) {
-      logger.addError("validation", "No valid repositories found in configuration");
+      logger.addError(
+        "validation",
+        "No valid repositories found in configuration"
+      );
       const logPath = await logger.save();
       console.error("No valid repositories found in configuration.");
       return { cancelled: true, useManualMode: false, logPath };
