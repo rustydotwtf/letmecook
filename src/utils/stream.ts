@@ -1,3 +1,108 @@
+function processTextChunk(
+  chunk: Uint8Array,
+  decoder: TextDecoder,
+  buffer: { value: string },
+  addLine: (line: string) => void
+) {
+  const text = decoder.decode(chunk, { stream: true });
+  buffer.value += text;
+
+  const lines = buffer.value.split(/[\r\n]+/);
+  buffer.value = lines.pop() || "";
+
+  for (const line of lines) {
+    addLine(line);
+  }
+}
+
+function checkAndStop(reader: unknown, shouldStop?: () => boolean): boolean {
+  if (shouldStop?.()) {
+    (reader as { releaseLock: () => void }).releaseLock();
+    return true;
+  }
+  return false;
+}
+
+async function readStreamIteration(
+  reader: unknown,
+  decoder: TextDecoder,
+  buffer: { value: string },
+  addLine: (line: string) => void
+): Promise<boolean> {
+  const { done, value } = await (
+    reader as {
+      read: () => Promise<{
+        done: boolean;
+        value: Uint8Array;
+      }>;
+    }
+  ).read();
+
+  if (done) {
+    return true;
+  }
+
+  processTextChunk(value, decoder, buffer, addLine);
+  return false;
+}
+
+async function readStreamLoop(
+  reader: unknown,
+  decoder: TextDecoder,
+  buffer: { value: string },
+  addLine: (line: string) => void,
+  onChunk?: (chunk: string) => void,
+  shouldStop?: () => boolean
+): Promise<boolean> {
+  while (true) {
+    if (checkAndStop(reader, shouldStop)) {
+      return true;
+    }
+
+    const shouldBreak = await readStreamIteration(
+      reader,
+      decoder,
+      buffer,
+      addLine
+    );
+
+    if (shouldBreak || checkAndStop(reader, shouldStop)) {
+      return shouldBreak || true;
+    }
+  }
+}
+
+async function readStreamLines(
+  stream: ReadableStream<Uint8Array> | number | undefined,
+  addLine: (line: string) => void,
+  onChunk?: (chunk: string) => void,
+  shouldStop?: () => boolean
+): Promise<boolean> {
+  if (!stream || typeof stream === "number") {
+    return false;
+  }
+
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  const buffer = { value: "" };
+
+  try {
+    const wasInterrupted = await readStreamLoop(
+      reader,
+      decoder,
+      buffer,
+      addLine,
+      onChunk,
+      shouldStop
+    );
+    return wasInterrupted;
+  } catch {
+    // Stream may have been cancelled
+  }
+
+  return false;
+}
+
 export async function readProcessOutput(
   proc: ReturnType<typeof Bun.spawn>,
   onOutput?: (line: string) => void
@@ -11,39 +116,10 @@ export async function readProcessOutput(
     }
   };
 
-  const readStream = async (
-    stream: ReadableStream<Uint8Array> | number | undefined
-  ) => {
-    if (!stream || typeof stream === "number") {
-      return;
-    }
-
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      const chunk = decoder.decode(value, { stream: true });
-      buffer += chunk;
-
-      const lines = buffer.split(/[\r\n]+/);
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        addLine(line);
-      }
-    }
-
-    if (buffer.trim()) {
-      addLine(buffer);
-    }
-  };
-
-  await Promise.all([readStream(proc.stdout), readStream(proc.stderr)]);
+  await Promise.all([
+    readStreamLines(proc.stdout, addLine),
+    readStreamLines(proc.stderr, addLine),
+  ]);
   const exitCode = await proc.exited;
 
   return {
@@ -69,6 +145,8 @@ export async function readProcessOutputWithBuffer(
 ): Promise<{ success: boolean; output: string[]; fullOutput: string }> {
   const { maxBufferLines, onBufferUpdate } = options || {};
   const outputBuffer: string[] = [];
+  const fullOutputParts: string[] = [];
+
   const addLine = (line: string) => {
     const trimmed = line.trim();
     if (trimmed) {
@@ -80,42 +158,14 @@ export async function readProcessOutputWithBuffer(
     }
   };
 
-  const fullOutputParts: string[] = [];
-
-  const readStream = async (
-    stream: ReadableStream<Uint8Array> | number | undefined
-  ) => {
-    if (!stream || typeof stream === "number") {
-      return;
-    }
-
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      const chunk = decoder.decode(value, { stream: true });
-      fullOutputParts.push(chunk);
-      buffer += chunk;
-
-      const lines = buffer.split(/[\r\n]+/);
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        addLine(line);
-      }
-    }
-
-    if (buffer.trim()) {
-      addLine(buffer);
-    }
+  const onChunk = (chunk: string) => {
+    fullOutputParts.push(chunk);
   };
 
-  await Promise.all([readStream(proc.stdout), readStream(proc.stderr)]);
+  await Promise.all([
+    readStreamLines(proc.stdout, addLine, onChunk),
+    readStreamLines(proc.stderr, addLine, onChunk),
+  ]);
   const exitCode = await proc.exited;
 
   return {
@@ -123,6 +173,16 @@ export async function readProcessOutputWithBuffer(
     output: outputBuffer,
     success: exitCode === 0,
   };
+}
+
+async function waitForExitCode(
+  proc: ReturnType<typeof Bun.spawn>,
+  wasInterrupted: boolean
+): Promise<number> {
+  if (!wasInterrupted) {
+    return await proc.exited;
+  }
+  return 1;
 }
 
 export async function readProcessOutputWithControl(
@@ -136,7 +196,7 @@ export async function readProcessOutputWithControl(
 }> {
   const { maxBufferLines, onBufferUpdate, shouldStop } = options || {};
   const outputBuffer: string[] = [];
-  let wasInterrupted = false;
+  const fullOutputParts: string[] = [];
 
   const addLine = (line: string) => {
     const trimmed = line.trim();
@@ -149,67 +209,17 @@ export async function readProcessOutputWithControl(
     }
   };
 
-  const fullOutputParts: string[] = [];
-
-  const readStream = async (
-    stream: ReadableStream<Uint8Array> | number | undefined
-  ) => {
-    if (!stream || typeof stream === "number") {
-      return;
-    }
-
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    try {
-      while (true) {
-        // Check if we should stop before each read
-        if (shouldStop?.()) {
-          wasInterrupted = true;
-          reader.releaseLock();
-          return;
-        }
-
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-
-        const chunk = decoder.decode(value, { stream: true });
-        fullOutputParts.push(chunk);
-        buffer += chunk;
-
-        const lines = buffer.split(/[\r\n]+/);
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          addLine(line);
-        }
-
-        // Check again after processing
-        if (shouldStop?.()) {
-          wasInterrupted = true;
-          reader.releaseLock();
-          return;
-        }
-      }
-
-      if (buffer.trim()) {
-        addLine(buffer);
-      }
-    } catch {
-      // Stream may have been cancelled, that's ok
-    }
+  const onChunk = (chunk: string) => {
+    fullOutputParts.push(chunk);
   };
 
-  await Promise.all([readStream(proc.stdout), readStream(proc.stderr)]);
+  const [stdoutInterrupted, stderrInterrupted] = await Promise.all([
+    readStreamLines(proc.stdout, addLine, onChunk, shouldStop),
+    readStreamLines(proc.stderr, addLine, onChunk, shouldStop),
+  ]);
 
-  // Only wait for exit if not interrupted
-  let exitCode = 1;
-  if (!wasInterrupted) {
-    exitCode = await proc.exited;
-  }
+  const wasInterrupted = stdoutInterrupted || stderrInterrupted;
+  const exitCode = await waitForExitCode(proc, wasInterrupted);
 
   return {
     fullOutput: fullOutputParts.join(""),
