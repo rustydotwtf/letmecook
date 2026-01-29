@@ -20,17 +20,9 @@ export const palette: Record<string, string> = {
 };
 
 export const foods = [
-  ["..tt...", ".tttt..", ".tntnt.", "ttttttt", "ttgtntt", "lllllll", "ddddddd"],
-  [".ttttt.", "ggggggg", "nnnnnnn", "ddddddd", "ggggggg", "eeeeeee", ".ttttt."],
-  [
-    "..iii..",
-    ".iiiii.",
-    "ii ttii",
-    "ii tt ii",
-    "ii ttii",
-    ".iiiii.",
-    "..iii..",
-  ],
+  ["..TT...", ".TTTT..", ".TNTNT.", "TTTTTTT", "TTGTNTT", "LLLLLLL", "DDDDDDD"],
+  [".TTTTT.", "GGGGGGG", "NNNNNNN", "DDDDDDD", "GGGGGGG", "OOOOOOO", ".TTTTT."],
+  ["..WWW..", ".WWWWW.", "WWWYYWW", "WWYYYYW", "WWWYYWW", ".WWWWW.", "..WWW.."],
 ];
 
 const pixelLetters: Record<string, string[]> = {
@@ -229,7 +221,7 @@ function getAnimationSettings(): [number, number, number] {
 
 export async function showSplash(): Promise<void> {
   const [termWidth, termHeight] = getTermDimensions();
-  const [frameDelay, frameCount] = getAnimationSettings();
+  const [, frameDelay, frameCount] = getAnimationSettings();
   const logoRows = buildLogoRows();
   const cursorHome = "\u001B[H";
 
