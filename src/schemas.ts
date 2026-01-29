@@ -42,15 +42,24 @@ export type ConflictChoice = z.infer<typeof ConflictChoiceSchema>;
 export const ExitChoiceSchema = z.enum(["resume", "edit", "home", "delete"]);
 export type ExitChoice = z.infer<typeof ExitChoiceSchema>;
 
-export function parseRepoSpec(spec: string): RepoSpec {
+function extractBranchParts(spec: string): {
+  branch: string | undefined;
+  repoPath: string;
+} {
   const colonIndex = spec.indexOf(":");
   const repoPath = colonIndex === -1 ? spec : spec.slice(0, colonIndex);
   const branch = colonIndex === -1 ? undefined : spec.slice(colonIndex + 1);
+  return { branch, repoPath };
+}
 
+function extractOwnerName(
+  repoPath: string,
+  originalSpec: string
+): { name: string; owner: string } {
   const slashIndex = repoPath.indexOf("/");
   if (slashIndex === -1) {
     throw new Error(
-      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+      `Invalid repo format: ${originalSpec} (expected owner/repo or owner/repo:branch)`
     );
   }
 
@@ -59,9 +68,16 @@ export function parseRepoSpec(spec: string): RepoSpec {
 
   if (!owner || !name) {
     throw new Error(
-      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+      `Invalid repo format: ${originalSpec} (expected owner/repo or owner/repo:branch)`
     );
   }
+
+  return { name, owner };
+}
+
+export function parseRepoSpec(spec: string): RepoSpec {
+  const { repoPath, branch } = extractBranchParts(spec);
+  const { owner, name } = extractOwnerName(repoPath, spec);
 
   return {
     branch,

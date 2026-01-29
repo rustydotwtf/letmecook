@@ -42,24 +42,7 @@ export interface LayoutElements {
   content: BoxRenderable;
 }
 
-export function createBaseLayout(
-  r: CliRenderer,
-  subtitle?: string
-): LayoutElements {
-  const width = r.terminalWidth;
-
-  // Main container
-  const container = new BoxRenderable(r, {
-    alignItems: "center",
-    flexDirection: "column",
-    height: "100%",
-    id: "main-container",
-    padding: 1,
-    width: "100%",
-  });
-  r.root.add(container);
-
-  // Title
+function createTitle(r: CliRenderer, width: number): ASCIIFontRenderable {
   const titleText = "letmecook";
   const titleFont = "tiny";
   const { width: titleWidth } = measureText({
@@ -78,9 +61,11 @@ export function createBaseLayout(
     top: 11,
   });
   r.root.add(title);
+  return title;
+}
 
-  // Content box below title
-  const content = new BoxRenderable(r, {
+function createContent(r: CliRenderer, width: number): BoxRenderable {
+  return new BoxRenderable(r, {
     backgroundColor: "#1e293b",
     borderColor: "#475569",
     borderStyle: "single",
@@ -90,17 +75,48 @@ export function createBaseLayout(
     padding: 1,
     width: Math.min(70, width - 4),
   });
-  container.add(content);
+}
 
-  // Add subtitle if provided
-  if (subtitle) {
-    const subtitleText = new TextRenderable(r, {
+function createMainContainer(r: CliRenderer): BoxRenderable {
+  const container = new BoxRenderable(r, {
+    alignItems: "center",
+    flexDirection: "column",
+    height: "100%",
+    id: "main-container",
+    padding: 1,
+    width: "100%",
+  });
+  r.root.add(container);
+  return container;
+}
+
+function addSubtitle(
+  r: CliRenderer,
+  content: BoxRenderable,
+  subtitle: string
+): void {
+  content.add(
+    new TextRenderable(r, {
       content: subtitle,
       fg: "#94a3b8",
       id: "subtitle",
       marginBottom: 1,
-    });
-    content.add(subtitleText);
+    })
+  );
+}
+
+export function createBaseLayout(
+  r: CliRenderer,
+  subtitle?: string
+): LayoutElements {
+  const width = r.terminalWidth;
+  const container = createMainContainer(r);
+  const title = createTitle(r, width);
+  const content = createContent(r, width);
+  container.add(content);
+
+  if (subtitle) {
+    addSubtitle(r, content, subtitle);
   }
 
   return { container, content, title };

@@ -18,11 +18,17 @@ let footerSeparator: TextRenderable | null = null;
 let footerText: TextRenderable | null = null;
 let footerParent: Renderable | null = null;
 
-export function showFooter(
-  renderer: CliRenderer,
-  parent: Renderable,
-  actions: FooterActions = {}
+function addActionHint(
+  parts: string[],
+  condition: boolean,
+  hint: string
 ): void {
+  if (condition) {
+    parts.push(hint);
+  }
+}
+
+function buildFooterParts(actions: FooterActions): string[] {
   const {
     navigate = true,
     select = true,
@@ -35,43 +41,30 @@ export function showFooter(
 
   const parts: string[] = [];
 
-  if (navigate) {
-    parts.push("↑↓ Navigate");
-  }
-  if (select) {
-    parts.push("Enter Select");
-  }
-  if (back) {
-    parts.push("Esc Back");
-  }
-  if (showNew) {
-    parts.push("n New");
-  }
-  if (showDelete) {
-    parts.push("d Delete");
-  }
-  if (quit) {
-    parts.push("q Quit");
-  }
-  if (custom.length > 0) {
-    parts.push(...custom);
-  }
+  addActionHint(parts, navigate, "↑↓ Navigate");
+  addActionHint(parts, select, "Enter Select");
+  addActionHint(parts, back, "Esc Back");
+  addActionHint(parts, showNew, "n New");
+  addActionHint(parts, showDelete, "d Delete");
+  addActionHint(parts, quit, "q Quit");
+  parts.push(...custom);
 
-  const footerContent = parts.join("  ");
+  return parts;
+}
 
-  // Hide any existing footer first
-  hideFooter(renderer);
-
-  // Create separator line
+function createFooterRenderables(
+  renderer: CliRenderer,
+  parent: Renderable,
+  footerContent: string
+): void {
   const separator = new TextRenderable(renderer, {
-    content: "─".repeat(66), // Approximate width for separator line
+    content: "─".repeat(66),
     fg: "#475569",
     id: "footer-separator",
     marginTop: 1,
   });
   parent.add(separator);
 
-  // Create footer text
   footerText = new TextRenderable(renderer, {
     content: footerContent,
     fg: "#64748b",
@@ -81,6 +74,18 @@ export function showFooter(
 
   footerSeparator = separator;
   footerParent = parent;
+}
+
+export function showFooter(
+  renderer: CliRenderer,
+  parent: Renderable,
+  actions: FooterActions = {}
+): void {
+  const parts = buildFooterParts(actions);
+  const footerContent = parts.join("  ");
+
+  hideFooter(renderer);
+  createFooterRenderables(renderer, parent, footerContent);
 }
 
 export function updateFooter(

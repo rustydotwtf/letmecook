@@ -7,12 +7,14 @@ export interface SessionOption {
 }
 
 function formatTimeAgo(date: string): string {
-  const now = new Date();
-  const then = new Date(date);
-  const diffMs = now.getTime() - then.getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+  const [diffMins, diffHours, diffDays] = (() => {
+    const diffMs = Date.now() - new Date(date).getTime();
+    return [
+      Math.floor(diffMs / 60_000),
+      Math.floor(diffMs / 3_600_000),
+      Math.floor(diffMs / 86_400_000),
+    ];
+  })();
 
   if (diffMins < 1) {
     return "just now";
@@ -26,7 +28,7 @@ function formatTimeAgo(date: string): string {
   if (diffDays < 7) {
     return `${diffDays}d ago`;
   }
-  return then.toLocaleDateString();
+  return new Date(date).toLocaleDateString();
 }
 
 export function buildSessionOptions(sessions: Session[]): SessionOption[] {

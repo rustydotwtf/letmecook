@@ -49,7 +49,7 @@ async function showLastCommit(): Promise<void> {
 }
 
 async function runOpenCodeFix(lintOutput: string): Promise<number> {
-  const prompt = `Fix the following lint error(s). After fixing, run \`bun run lint:agent\` to verify the fix worked and didn't introduce new issues.
+  const prompt = `Fix the following lint error(s). After fixing, run \`bun run lint:agent\` to verify the fix worked and didn't introduce new issues. Commit the changes when complete.
 
 Lint output:
 ${lintOutput}`;

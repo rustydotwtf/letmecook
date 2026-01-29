@@ -13,7 +13,6 @@ export async function generateSessionName(
   try {
     const { text } = await generateText({
       model: "xai/grok-3-mini-fast",
-      temperature: 1.2, // Higher temperature for more creative/varied names
       prompt: `Generate a creative, memorable session name for a coding workspace.
 
 Repos: ${repoList}
@@ -28,6 +27,7 @@ Requirements:
 - No numbers unless they add meaning
 
 Reply with ONLY the name, nothing else. No quotes, no explanation.`,
+      temperature: 1.2, // Higher temperature for more creative/varied names
     });
 
     // Clean up the response

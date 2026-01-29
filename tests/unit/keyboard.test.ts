@@ -19,11 +19,11 @@ import {
 
 function createKeyEvent(overrides: Partial<KeyEvent>): KeyEvent {
   return {
-    name: "",
     ctrl: false,
     meta: false,
-    shift: false,
+    name: "",
     sequence: "",
+    shift: false,
     ...overrides,
   } as KeyEvent;
 }

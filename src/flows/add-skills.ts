@@ -17,6 +17,71 @@ export interface AddSkillsResult {
   cancelled: boolean;
 }
 
+function filterNewSkills(
+  selectedSkills: string[],
+  existingSkills: Set<string>
+): string[] {
+  return selectedSkills.filter((s) => !existingSkills.has(s));
+}
+
+async function addSkillsToSession(
+  session: Session,
+  newSkills: string[]
+): Promise<boolean> {
+  console.log(`\nAdding ${newSkills.length} skill package(s)...`);
+
+  for (const skill of newSkills) {
+    console.log(`  Adding ${skill}...`);
+    const { success } = await addSkillToSession(session, skill, (output) => {
+      console.log(`    ${output}`);
+    });
+
+    if (success) {
+      console.log(`  ✓ ${skill}`);
+    } else {
+      console.log(`  ✗ ${skill} (addition failed)`);
+    }
+  }
+
+  return true;
+}
+
+async function finalizeSkillAddition(
+  session: Session,
+  newSkills: string[]
+): Promise<Session | null> {
+  const allSkills = [...(session.skills || []), ...newSkills];
+  const updatedSession = await updateSessionSkills(session.name, allSkills);
+
+  if (!updatedSession) {
+    return null;
+  }
+
+  await writeAgentsMd(updatedSession);
+  console.log("\n✅ Skills added.\n");
+  return updatedSession;
+}
+
+async function processSelectedSkills(
+  session: Session,
+  selectedSkills: string[]
+): Promise<AddSkillsResult> {
+  const existingSkills = new Set(session.skills || []);
+  const newSkills = filterNewSkills(selectedSkills, existingSkills);
+
+  if (newSkills.length > 0) {
+    await addSkillsToSession(session, newSkills);
+    const updatedSession = await finalizeSkillAddition(session, newSkills);
+
+    if (updatedSession) {
+      return { cancelled: false, session: updatedSession };
+    }
+  }
+
+  console.log("\nNo new skills to add (all already in session).\n");
+  return { cancelled: false, session };
+}
+
 export async function addSkillsFlow(
   params: AddSkillsParams
 ): Promise<AddSkillsResult> {
@@ -27,41 +92,12 @@ export async function addSkillsFlow(
     session.skills || []
   );
 
-  if (!cancelled && skills.length > 0) {
-    const existingSkills = new Set(session.skills || []);
-    const newSkills = skills.filter((s) => !existingSkills.has(s));
+  if (cancelled) {
+    return { cancelled, session };
+  }
 
-    if (newSkills.length > 0) {
-      console.log(`\nAdding ${newSkills.length} skill package(s)...`);
-
-      for (const skill of newSkills) {
-        console.log(`  Adding ${skill}...`);
-        const { success } = await addSkillToSession(
-          session,
-          skill,
-          (output) => {
-            console.log(`    ${output}`);
-          }
-        );
-
-        if (success) {
-          console.log(`  ✓ ${skill}`);
-        } else {
-          console.log(`  ✗ ${skill} (addition failed)`);
-        }
-      }
-
-      const allSkills = [...(session.skills || []), ...newSkills];
-      const updatedSession = await updateSessionSkills(session.name, allSkills);
-
-      if (updatedSession) {
-        await writeAgentsMd(updatedSession);
-        console.log("\n✅ Skills added.\n");
-        return { cancelled: false, session: updatedSession };
-      }
-    }
-
-    console.log("\nNo new skills to add (all already in session).\n");
+  if (skills.length > 0) {
+    return processSelectedSkills(session, skills);
   }
 
   return { cancelled, session };

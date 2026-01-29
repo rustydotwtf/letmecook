@@ -2,7 +2,12 @@ import { mkdir, readdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { type RepoSpec, type Session, type SessionManifest, repoSpecsMatch } from "./types";
+import {
+  type RepoSpec,
+  type Session,
+  type SessionManifest,
+  repoSpecsMatch,
+} from "./types";
 
 const LETMECOOK_DIR = join(homedir(), ".letmecook");
 const SESSIONS_DIR = join(LETMECOOK_DIR, "sessions");
@@ -15,35 +20,41 @@ export function getSessionPath(name: string): string {
   return join(SESSIONS_DIR, name);
 }
 
+async function loadSessionFromEntry(
+  entryName: string
+): Promise<Session | null> {
+  const sessionPath = join(SESSIONS_DIR, entryName);
+  const manifestPath = join(sessionPath, "manifest.json");
+
+  try {
+    const manifestFile = Bun.file(manifestPath);
+    if (await manifestFile.exists()) {
+      const manifest: SessionManifest = await manifestFile.json();
+      return {
+        ...manifest,
+        path: sessionPath,
+      };
+    }
+  } catch {
+    // Skip invalid sessions
+  }
+
+  return null;
+}
+
 export async function listSessions(): Promise<Session[]> {
   await ensureSessionsDir();
 
   const entries = await readdir(SESSIONS_DIR, { withFileTypes: true });
-  const sessions: Session[] = [];
+  const sessionPromises = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => loadSessionFromEntry(entry.name));
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
+  const loadedSessions = await Promise.all(sessionPromises);
+  const sessions = loadedSessions.filter(
+    (session): session is Session => session !== null
+  );
 
-    const sessionPath = join(SESSIONS_DIR, entry.name);
-    const manifestPath = join(sessionPath, "manifest.json");
-
-    try {
-      const manifestFile = Bun.file(manifestPath);
-      if (await manifestFile.exists()) {
-        const manifest: SessionManifest = await manifestFile.json();
-        sessions.push({
-          ...manifest,
-          path: sessionPath,
-        });
-      }
-    } catch {
-      // Skip invalid sessions
-    }
-  }
-
-  // Sort by lastAccessed, most recent first
   sessions.sort(
     (a, b) =>
       new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime()
