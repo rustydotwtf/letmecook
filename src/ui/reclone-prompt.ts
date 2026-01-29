@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type RepoSpec } from "../types";
+import type { RepoSpec } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -54,8 +54,8 @@ export function showReclonePrompt(
       id: "reclone-select",
       marginTop: 1,
       options: [
-        { name: "Reclone", description: "", value: "reclone" },
-        { name: "Skip", description: "", value: "skip" },
+        { description: "", name: "Reclone", value: "reclone" },
+        { description: "", name: "Skip", value: "skip" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",

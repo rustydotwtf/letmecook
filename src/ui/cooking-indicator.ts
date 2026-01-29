@@ -1,4 +1,6 @@
-import { type CliRenderer, TextRenderable } from "@opentui/core";
+import type { CliRenderer } from "@opentui/core";
+
+import { TextRenderable } from "@opentui/core";
 
 // [uncooked, cooked] emoji pairs
 const FOOD_PAIRS: [string, string][] = [
@@ -66,7 +68,9 @@ export function createCookingIndicator(
   };
 
   const start = () => {
-    if (interval) {return;}
+    if (interval) {
+      return;
+    }
     frame = 1;
     direction = 1;
     render();

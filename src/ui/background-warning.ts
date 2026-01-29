@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type BackgroundProcess } from "../process-registry";
+import type { BackgroundProcess } from "../process-registry";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -59,9 +59,9 @@ export function showQuitWarning(
       id: "quit-warning-select",
       marginTop: 1,
       options: [
-        { name: "Keep running & quit", description: "", value: "continue" },
-        { name: "Kill all & quit", description: "", value: "kill" },
-        { name: "Cancel", description: "", value: "cancel" },
+        { description: "", name: "Keep running & quit", value: "continue" },
+        { description: "", name: "Kill all & quit", value: "kill" },
+        { description: "", name: "Cancel", value: "cancel" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",
@@ -159,8 +159,8 @@ export function showSessionStartWarning(
       id: "session-warning-select",
       marginTop: 1,
       options: [
-        { name: "Continue anyway", description: "", value: "continue" },
-        { name: "Cancel", description: "", value: "cancel" },
+        { description: "", name: "Continue anyway", value: "continue" },
+        { description: "", name: "Cancel", value: "cancel" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",

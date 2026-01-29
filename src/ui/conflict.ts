@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type Session, type ConflictChoice } from "../types";
+import type { Session, ConflictChoice } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -20,12 +20,18 @@ function formatTimeAgo(date: string): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) {return "just now";}
-  if (diffMins < 60)
-    {return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;}
-  if (diffHours < 24)
-    {return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;}
-  if (diffDays < 7) {return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;}
+  if (diffMins < 1) {
+    return "just now";
+  }
+  if (diffMins < 60) {
+    return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  }
+  if (diffDays < 7) {
+    return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+  }
   return then.toLocaleDateString();
 }
 
@@ -87,14 +93,14 @@ export function showConflictPrompt(
       id: "conflict-select",
       marginTop: 1,
       options: [
-        { name: "Resume existing session", description: "", value: "resume" },
-        { name: "Nuke it and start fresh", description: "", value: "nuke" },
+        { description: "", name: "Resume existing session", value: "resume" },
+        { description: "", name: "Nuke it and start fresh", value: "nuke" },
         {
-          name: "Create new session (keep old)",
           description: "",
+          name: "Create new session (keep old)",
           value: "new",
         },
-        { name: "Cancel", description: "", value: "cancel" },
+        { description: "", name: "Cancel", value: "cancel" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",

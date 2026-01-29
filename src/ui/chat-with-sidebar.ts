@@ -10,8 +10,8 @@ import {
 } from "@opentui/core";
 import { measureText } from "@opentui/core";
 
-import  { type PartialConfig } from "../config-builder";
-import  { type ChatMessage } from "../flows/chat-to-config";
+import type { PartialConfig } from "../config-builder";
+import type { ChatMessage } from "../flows/chat-to-config";
 
 import { copyToClipboard } from "./common/clipboard";
 import { showFooter, hideFooter } from "./common/footer";
@@ -183,7 +183,9 @@ export function createChatWithSidebarLayout(
   // Enable pasting
   input.onPaste = (event) => {
     const text = event.text.replaceAll(/[\r\n]+/g, "");
-    if (!text) {return;}
+    if (!text) {
+      return;
+    }
     input.insertText(text);
     event.preventDefault();
   };

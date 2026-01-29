@@ -1,14 +1,17 @@
-import { streamText, type ToolSet } from "ai";
+import type { ToolSet } from "ai";
+
+import { streamText } from "ai";
 import { z } from "zod";
 
-import  { type ConfigBuilder } from "../config-builder";
+import type { ConfigBuilder } from "../config-builder";
+import type { RepoSpec } from "../schemas";
 
 import {
   INCREMENTAL_CHAT_PROMPT,
   generateRepoHistorySection,
 } from "../prompts/chat-prompt";
 import { listRepoHistory } from "../repo-history";
-import { parseRepoSpec, type RepoSpec } from "../schemas";
+import { parseRepoSpec } from "../schemas";
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
@@ -78,8 +81,8 @@ export async function chatToConfigIncremental(
           const validationProc = Bun.spawn(
             ["gh", "repo", "view", repoPath, "--json", "nameWithOwner"],
             {
-              stdout: "pipe",
               stderr: "pipe",
+              stdout: "pipe",
             }
           );
 
@@ -94,9 +97,9 @@ export async function chatToConfigIncremental(
             const duration = Date.now() - startTime;
             toolTimings.set("add_repo", duration);
             return {
-              success: false,
-              error: `Repository '${repoPath}' not found on GitHub. Please check the owner and repository name.`,
               currentRepos: configBuilder.config.repos,
+              error: `Repository '${repoPath}' not found on GitHub. Please check the owner and repository name.`,
+              success: false,
             };
           }
 
@@ -105,8 +108,8 @@ export async function chatToConfigIncremental(
             const branchProc = Bun.spawn(
               ["gh", "api", `repos/${repoPath}/git/refs/heads/${branch}`],
               {
-                stdout: "pipe",
                 stderr: "pipe",
+                stdout: "pipe",
               }
             );
 
@@ -117,9 +120,9 @@ export async function chatToConfigIncremental(
               const duration = Date.now() - startTime;
               toolTimings.set("add_repo", duration);
               return {
-                success: false,
-                error: `Branch '${branch}' not found in repository '${repoPath}'.`,
                 currentRepos: configBuilder.config.repos,
+                error: `Branch '${branch}' not found in repository '${repoPath}'.`,
+                success: false,
               };
             }
           }
@@ -128,9 +131,9 @@ export async function chatToConfigIncremental(
           const duration = Date.now() - startTime;
           toolTimings.set("add_repo", duration);
           return {
-            success: added,
-            message: added ? `Added ${repo}` : `${repo} already in config`,
             currentRepos: configBuilder.config.repos,
+            message: added ? `Added ${repo}` : `${repo} already in config`,
+            success: added,
           };
         },
         inputSchema: z.object({
@@ -148,11 +151,11 @@ export async function chatToConfigIncremental(
           const duration = Date.now() - startTime;
           toolTimings.set("add_skill", duration);
           return {
-            success: added,
+            currentSkills: configBuilder.config.skills,
             message: added
               ? `Added skill ${skill}`
               : `${skill} already in config`,
-            currentSkills: configBuilder.config.skills,
+            success: added,
           };
         },
         inputSchema: z.object({
@@ -168,8 +171,8 @@ export async function chatToConfigIncremental(
           const duration = Date.now() - startTime;
           toolTimings.set("set_goal", duration);
           return {
-            success: true,
             message: `Goal set to: ${goal}`,
+            success: true,
           };
         },
         inputSchema: z.object({
@@ -200,8 +203,8 @@ export async function chatToConfigIncremental(
             args.push("--topic", topic);
           }
           const proc = Bun.spawn(["gh", ...args], {
-            stdout: "pipe",
             stderr: "pipe",
+            stdout: "pipe",
           });
           const output = await new Response(proc.stdout).text();
           const result = {
@@ -212,8 +215,8 @@ export async function chatToConfigIncremental(
           return result;
         },
         inputSchema: z.object({
-          owner: z.string(),
           limit: z.number().optional(),
+          owner: z.string(),
           topic: z.string().optional(),
         }),
         title: "list_repos",
@@ -236,7 +239,7 @@ export async function chatToConfigIncremental(
               return { error: "Invalid GitHub issue URL", markdown: "" };
             }
             repoPath = `${match[1]}/${match[2]}`;
-            issueNumber = parseInt(match[3], 10);
+            issueNumber = Number.parseInt(match[3], 10);
           } else if (owner && repo && issue) {
             repoPath = `${owner}/${repo}`;
             issueNumber = issue;
@@ -259,8 +262,8 @@ export async function chatToConfigIncremental(
               "title,body,state,author,labels,createdAt,comments,url",
             ],
             {
-              stdout: "pipe",
               stderr: "pipe",
+              stdout: "pipe",
             }
           );
 
@@ -298,20 +301,20 @@ ${data.body || "*No description provided*"}`;
 
             return {
               markdown,
-              title: data.title,
-              state: data.state,
-              url: data.url,
               repoPath,
+              state: data.state,
+              title: data.title,
+              url: data.url,
             };
           } catch {
             return { error: "Failed to parse issue data", markdown: "" };
           }
         },
         inputSchema: z.object({
-          url: z.string().optional().describe("Full GitHub issue URL"),
+          issue: z.number().optional().describe("Issue number"),
           owner: z.string().optional().describe("Repository owner"),
           repo: z.string().optional().describe("Repository name"),
-          issue: z.number().optional().describe("Issue number"),
+          url: z.string().optional().describe("Full GitHub issue URL"),
         }),
         title: "view_issue",
       },
@@ -330,24 +333,24 @@ ${data.body || "*No description provided*"}`;
           toolTimings.set("list_repo_history", duration);
           return {
             repos: filtered.map((item) => ({
-              spec: item.spec,
-              owner: item.owner,
-              name: item.name,
               branch: item.branch,
-              timesUsed: item.timesUsed,
               lastUsed: item.lastUsed,
+              name: item.name,
+              owner: item.owner,
+              spec: item.spec,
+              timesUsed: item.timesUsed,
             })),
           };
         },
         inputSchema: z.object({
-          owner: z
-            .string()
-            .optional()
-            .describe("Filter by repository owner/organization"),
           limit: z
             .number()
             .optional()
             .describe("Maximum number of results to return"),
+          owner: z
+            .string()
+            .optional()
+            .describe("Filter by repository owner/organization"),
         }),
         title: "list_repo_history",
       },

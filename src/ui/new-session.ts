@@ -5,7 +5,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type RepoSpec } from "../types";
+import type { RepoSpec } from "../types";
 
 import { createBaseLayout, clearLayout } from "./renderer";
 
@@ -67,7 +67,9 @@ export function showNewSessionPrompt(
 
     goalInput.onPaste = (event) => {
       const text = event.text.replaceAll(/[\r\n]+/g, "");
-      if (!text) {return;}
+      if (!text) {
+        return;
+      }
       goalInput.insertText(text);
       event.preventDefault();
     };

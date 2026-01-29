@@ -1,6 +1,6 @@
-import  { type CliRenderer } from "@opentui/core";
+import type { CliRenderer } from "@opentui/core";
 
-import  { type Session } from "../types";
+import type { Session } from "../types";
 
 import { writeAgentsMd } from "../agents-md";
 import { updateSessionSkills } from "../sessions";

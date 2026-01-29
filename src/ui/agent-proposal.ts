@@ -1,6 +1,8 @@
-import { type CliRenderer, TextRenderable } from "@opentui/core";
+import type { CliRenderer } from "@opentui/core";
 
-import  { type RepoSpec } from "../types";
+import { TextRenderable } from "@opentui/core";
+
+import type { RepoSpec } from "../types";
 
 import { createBaseLayout, clearLayout } from "./renderer";
 

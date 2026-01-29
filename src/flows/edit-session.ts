@@ -1,7 +1,7 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import  { type Session, type RepoSpec } from "../types";
+import type { Session, RepoSpec } from "../types";
 
 import { writeAgentsMd } from "../agents-md";
 import { recordRepoHistory } from "../repo-history";

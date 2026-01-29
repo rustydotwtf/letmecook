@@ -1,12 +1,11 @@
-import {
-  type CliRenderer,
-  TextRenderable,
-  InputRenderable,
-  type KeyEvent,
-} from "@opentui/core";
+import type { CliRenderer, KeyEvent } from "@opentui/core";
+
+import { TextRenderable, InputRenderable } from "@opentui/core";
+
+import type { RepoSpec } from "../types";
 
 import { listRepoHistory } from "../repo-history";
-import { parseRepoSpec, type RepoSpec } from "../types";
+import { parseRepoSpec } from "../types";
 import { showFooter, hideFooter } from "./common/footer";
 import { isEnter, isEscape, isArrowUp, isArrowDown } from "./common/keyboard";
 import { createBaseLayout, clearLayout } from "./renderer";
@@ -105,7 +104,9 @@ export async function showAddReposPrompt(
 
     repoInput.onPaste = (event) => {
       const text = event.text.replaceAll(/[\r\n]+/g, "");
-      if (!text) {return;}
+      if (!text) {
+        return;
+      }
       repoInput.insertText(text);
       currentInput = repoInput.value;
       if (currentInput.trim()) {
@@ -201,13 +202,17 @@ export async function showAddReposPrompt(
 
     function getMatchesForQuery(query: string): string[] {
       const trimmed = query.trim();
-      if (!trimmed) {return [];}
+      if (!trimmed) {
+        return [];
+      }
 
       const lowerQuery = trimmed.toLowerCase();
       return historySpecs
         .filter((spec) => spec.toLowerCase().startsWith(lowerQuery))
         .toSorted((a, b) => {
-          if (a.length !== b.length) {return a.length - b.length;}
+          if (a.length !== b.length) {
+            return a.length - b.length;
+          }
           return a.localeCompare(b);
         })
         .slice(0, maxMatches);
@@ -247,10 +252,14 @@ export async function showAddReposPrompt(
 
     function selectMatch(matchIndex: number) {
       const matches = getMatchesForQuery(lastQuery);
-      if (matchIndex < 0 || matchIndex >= matches.length) {return;}
+      if (matchIndex < 0 || matchIndex >= matches.length) {
+        return;
+      }
 
       const selectedMatch = matches[matchIndex];
-      if (!selectedMatch) {return;}
+      if (!selectedMatch) {
+        return;
+      }
 
       selectedMatchIndex = matchIndex;
       isNavigating = true; // Set flag to prevent input handler from resetting
@@ -275,7 +284,9 @@ export async function showAddReposPrompt(
     }
 
     function addCurrentRepo() {
-      if (!currentValidRepo) {return;}
+      if (!currentValidRepo) {
+        return;
+      }
 
       const spec = currentInput.trim();
       // Check if already added
@@ -420,7 +431,9 @@ export async function showAddReposPrompt(
       // Arrow keys for navigating matches
       if (isArrowUp(key)) {
         const matches = getMatchesForQuery(lastQuery);
-        if (matches.length === 0) {return;}
+        if (matches.length === 0) {
+          return;
+        }
 
         if (selectedMatchIndex < 0) {
           // Start from last match
@@ -435,7 +448,9 @@ export async function showAddReposPrompt(
 
       if (isArrowDown(key)) {
         const matches = getMatchesForQuery(lastQuery);
-        if (matches.length === 0) {return;}
+        if (matches.length === 0) {
+          return;
+        }
 
         if (selectedMatchIndex < 0) {
           // Start from first match

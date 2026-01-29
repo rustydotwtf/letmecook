@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 
-import  { type RepoSpec } from "./types";
+import type { RepoSpec } from "./types";
 
 import { generateUniqueName } from "./sessions";
 

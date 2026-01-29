@@ -1,6 +1,6 @@
-import  { type CliRenderer } from "@opentui/core";
+import type { CliRenderer } from "@opentui/core";
 
-import  { type Session } from "../types";
+import type { Session } from "../types";
 
 import { writeAgentsMd } from "../agents-md";
 import { refreshLatestRepos } from "../git";
@@ -124,7 +124,9 @@ async function refreshLatestBeforeResume(
   session: Session
 ): Promise<void> {
   const readOnlyRepos = session.repos.filter((repo) => repo.readOnly);
-  if (readOnlyRepos.length === 0) {return;}
+  if (readOnlyRepos.length === 0) {
+    return;
+  }
 
   const refreshProgressState = showProgress(renderer, readOnlyRepos, {
     initialPhase: "refreshing",
@@ -205,13 +207,17 @@ async function refreshLatestBeforeResumeSimple(
   session: Session
 ): Promise<void> {
   const readOnlyRepos = session.repos.filter((repo) => repo.readOnly);
-  if (readOnlyRepos.length === 0) {return;}
+  if (readOnlyRepos.length === 0) {
+    return;
+  }
 
   console.log("\nRefreshing read-only repositories...");
 
   const results = await refreshLatestRepos(readOnlyRepos, session.path);
 
-  if (results.length === 0) {return;}
+  if (results.length === 0) {
+    return;
+  }
 
   results.forEach((result) => {
     const icon =
@@ -230,7 +236,9 @@ async function refreshLatestBeforeResumeSimple(
 }
 
 async function updateSkillsSimple(session: Session): Promise<void> {
-  if (!session.skills || session.skills.length === 0) {return;}
+  if (!session.skills || session.skills.length === 0) {
+    return;
+  }
 
   console.log("\nUpdating skills...");
   const { success } = await updateSkills(session, (output) => {

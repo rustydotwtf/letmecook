@@ -1,6 +1,8 @@
-import { type CliRenderer, TextRenderable, type KeyEvent } from "@opentui/core";
+import type { CliRenderer, KeyEvent } from "@opentui/core";
 
-import  { type ChatConfig } from "../flows/chat-to-config";
+import { TextRenderable } from "@opentui/core";
+
+import type { ChatConfig } from "../flows/chat-to-config";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEnter, isEscape, isKey } from "./common/keyboard";

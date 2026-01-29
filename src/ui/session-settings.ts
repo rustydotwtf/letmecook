@@ -5,7 +5,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type Session, type RepoSpec } from "../types";
+import type { Session, RepoSpec } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import {
@@ -120,7 +120,7 @@ export function showSessionSettings(
     let selectedRepoIndex = 0;
     let selectedSkillIndex = 0;
     const updatedRepos: RepoSpec[] = session.repos.map((repo) => ({ ...repo }));
-    const updatedSkills = [...session.skills || []];
+    const updatedSkills = [...(session.skills || [])];
     let updatedGoal = session.goal ?? "";
 
     const updateReposList = () => {

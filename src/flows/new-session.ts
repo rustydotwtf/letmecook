@@ -1,9 +1,9 @@
-import  { type CliRenderer } from "@opentui/core";
+import type { CliRenderer } from "@opentui/core";
 
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import  { type Session, type RepoSpec } from "../types";
+import type { Session, RepoSpec } from "../types";
 
 import { writeAgentsMd, createClaudeMdSymlink } from "../agents-md";
 import { generateSessionName } from "../naming";
@@ -221,48 +221,47 @@ export async function createNewSession(
 
       return { session };
     }
-      // CLI mode - simpler output
-      const session = await createSession(
-        sessionName,
-        repos,
-        goal,
-        skills?.length ? skills : undefined
-      );
+    // CLI mode - simpler output
+    const session = await createSession(
+      sessionName,
+      repos,
+      goal,
+      skills?.length ? skills : undefined
+    );
 
-      console.log(`\nCloning ${repos.length} repository(ies)...`);
+    console.log(`\nCloning ${repos.length} repository(ies)...`);
 
-      const tasks: CommandTask[] = [
-        ...reposToCommandTasks(repos, session.path),
-        ...(skills && skills.length > 0
-          ? skillsToCommandTasks(skills, session.path)
-          : []),
-      ];
+    const tasks: CommandTask[] = [
+      ...reposToCommandTasks(repos, session.path),
+      ...(skills && skills.length > 0
+        ? skillsToCommandTasks(skills, session.path)
+        : []),
+    ];
 
-      const results = await runCommands(renderer, {
-        title: "Setting up session",
-        tasks,
-        showOutput: false, // CLI mode doesn't need visual output
-      });
+    const results = await runCommands(renderer, {
+      showOutput: false,
+      tasks,
+      title: "Setting up session", // CLI mode doesn't need visual output
+    });
 
-      // Print results
-      results.forEach((result) => {
-        if (result.success) {
-          console.log(`  ✓ ${result.task.label}`);
-        } else {
-          console.log(`  ✗ ${result.task.label}`);
-          if (result.error) {
-            console.log(`    ${result.error}`);
-          }
+    // Print results
+    results.forEach((result) => {
+      if (result.success) {
+        console.log(`  ✓ ${result.task.label}`);
+      } else {
+        console.log(`  ✗ ${result.task.label}`);
+        if (result.error) {
+          console.log(`    ${result.error}`);
         }
-      });
+      }
+    });
 
-      await writeAgentsMd(session);
-      await createClaudeMdSymlink(session.path);
+    await writeAgentsMd(session);
+    await createClaudeMdSymlink(session.path);
 
-      hideCommandRunner(renderer);
+    hideCommandRunner(renderer);
 
-      return { session };
-    
+    return { session };
   } catch (error) {
     hideCommandRunner(renderer);
     throw error;

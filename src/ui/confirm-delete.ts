@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type Session } from "../types";
+import type { Session } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -53,8 +53,8 @@ export function showDeleteConfirm(
       id: "delete-confirm-select",
       marginTop: 1,
       options: [
-        { name: "Cancel", description: "", value: "cancel" },
-        { name: "Delete session", description: "", value: "confirm" },
+        { description: "", name: "Cancel", value: "cancel" },
+        { description: "", name: "Delete session", value: "confirm" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",

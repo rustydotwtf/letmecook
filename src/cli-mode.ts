@@ -1,3 +1,5 @@
+import type { RepoSpec } from "./types";
+
 import { ChatLogger } from "./chat-logger";
 import { createNewSession, resumeSession } from "./flows";
 import {
@@ -7,7 +9,7 @@ import {
   deleteAllSessions,
   deleteSession,
 } from "./sessions";
-import { parseRepoSpec, type RepoSpec } from "./types";
+import { parseRepoSpec } from "./types";
 import { showNukeConfirm } from "./ui/confirm-nuke";
 import { showSessionList } from "./ui/list";
 import { showNewSessionPrompt } from "./ui/new-session";
@@ -104,9 +106,9 @@ export async function handleList(): Promise<void> {
           await updateLastAccessed(action.session.name);
           console.log(`\nResuming session: ${action.session.name}\n`);
           await resumeSession(renderer, {
-            session: action.session,
-            mode: "cli",
             initialRefresh: true,
+            mode: "cli",
+            session: action.session,
           });
           return;
         }
@@ -289,7 +291,9 @@ export function parseRepos(args: string[]): RepoSpec[] {
   const repos: RepoSpec[] = [];
 
   for (const arg of args) {
-    if (!arg || arg.startsWith("-")) {continue;}
+    if (!arg || arg.startsWith("-")) {
+      continue;
+    }
 
     if (!arg.includes("/")) {
       throw new Error(`Invalid repo format: ${arg} (expected owner/repo)`);

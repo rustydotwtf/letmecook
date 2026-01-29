@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type Session } from "../types";
+import type { Session } from "../types";
 
 import { formatRepoList } from "./common/repo-formatter";
 import { createBaseLayout, clearLayout } from "./renderer";
@@ -62,18 +62,18 @@ export function showSessionActions(
       marginTop: 1,
       options: [
         {
-          name: "Continue session",
           description: "Re-launch claude",
+          name: "Continue session",
           value: "continue",
         },
         {
-          name: "Add repositories",
           description: "Clone more repos to this session",
+          name: "Add repositories",
           value: "add-repos",
         },
         {
-          name: "Exit session",
           description: "Choose to keep or delete session",
+          name: "Exit session",
           value: "exit",
         },
       ],

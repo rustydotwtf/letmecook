@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type Session, type ExitChoice, type RepoSpec } from "../types";
+import type { Session, ExitChoice, RepoSpec } from "../types";
 
 import { sessionHasUncommittedChanges } from "../git";
 import { showFooter, hideFooter } from "./common/footer";
@@ -47,10 +47,10 @@ export function showExitPrompt(
       id: "exit-select",
       marginTop: 1,
       options: [
-        { name: "Resume session", description: "", value: "resume" },
-        { name: "Edit session", description: "", value: "edit" },
-        { name: "Delete session", description: "", value: "delete" },
-        { name: "Back to home", description: "", value: "home" },
+        { description: "", name: "Resume session", value: "resume" },
+        { description: "", name: "Edit session", value: "edit" },
+        { description: "", name: "Delete session", value: "delete" },
+        { description: "", name: "Back to home", value: "home" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",
@@ -145,10 +145,10 @@ export function showExitPromptWithChanges(
       id: "exit-select",
       marginTop: 1,
       options: [
-        { name: "Resume session", description: "", value: "resume" },
-        { name: "Edit session", description: "", value: "edit" },
-        { name: "Delete session", description: "", value: "delete" },
-        { name: "Back to home", description: "", value: "home" },
+        { description: "", name: "Resume session", value: "resume" },
+        { description: "", name: "Edit session", value: "edit" },
+        { description: "", name: "Delete session", value: "delete" },
+        { description: "", name: "Back to home", value: "home" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",

@@ -1,7 +1,7 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import  { type RepoSpec } from "./types";
+import type { RepoSpec } from "./types";
 
 import { readProcessOutputWithBuffer } from "./utils/stream";
 
@@ -88,7 +88,9 @@ export async function cloneRepo(
     const readStderr = async () => {
       while (true) {
         const { done, value } = await stderrReader.read();
-        if (done) {break;}
+        if (done) {
+          break;
+        }
         stderrBuffer += decoder.decode(value, { stream: true });
 
         // Process lines (split on newline or carriage return for progress updates)
@@ -112,7 +114,9 @@ export async function cloneRepo(
     const readStdout = async () => {
       while (true) {
         const { done, value } = await stdoutReader.read();
-        if (done) {break;}
+        if (done) {
+          break;
+        }
         stdoutBuffer += decoder.decode(value, { stream: true });
 
         const lines = stdoutBuffer.split(/[\r\n]+/);
@@ -227,7 +231,9 @@ export async function refreshLatestRepos(
   ) => void
 ): Promise<RefreshResult[]> {
   const readOnlyRepos = repos.filter((repo) => repo.readOnly);
-  if (readOnlyRepos.length === 0) {return [];}
+  if (readOnlyRepos.length === 0) {
+    return [];
+  }
 
   const results: RefreshResult[] = [];
 

@@ -1,4 +1,4 @@
-import  { type CliRenderer, type KeyEvent } from "@opentui/core";
+import type { CliRenderer, KeyEvent } from "@opentui/core";
 
 import { EventEmitter } from "node:events";
 

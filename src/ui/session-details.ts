@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type Session } from "../types";
+import type { Session } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -58,9 +58,9 @@ export function showSessionDetails(
       id: "session-details-select",
       marginTop: 1,
       options: [
-        { name: "Resume session", description: "", value: "resume" },
-        { name: "Edit settings", description: "", value: "edit" },
-        { name: "Back", description: "", value: "back" },
+        { description: "", name: "Resume session", value: "resume" },
+        { description: "", name: "Edit settings", value: "edit" },
+        { description: "", name: "Back", value: "back" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",

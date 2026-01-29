@@ -2,7 +2,7 @@ import { mkdir, readdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import  { type Session, type SessionManifest, type RepoSpec } from "./types";
+import type { Session, SessionManifest, RepoSpec } from "./types";
 
 import { repoSpecsMatch } from "./types";
 
@@ -24,7 +24,9 @@ export async function listSessions(): Promise<Session[]> {
   const sessions: Session[] = [];
 
   for (const entry of entries) {
-    if (!entry.isDirectory()) {continue;}
+    if (!entry.isDirectory()) {
+      continue;
+    }
 
     const sessionPath = join(SESSIONS_DIR, entry.name);
     const manifestPath = join(sessionPath, "manifest.json");
@@ -118,7 +120,9 @@ export async function createSession(
 
 export async function updateLastAccessed(name: string): Promise<void> {
   const session = await getSession(name);
-  if (!session) {return;}
+  if (!session) {
+    return;
+  }
 
   const manifest: SessionManifest = {
     created: session.created,
@@ -137,7 +141,9 @@ export async function updateSessionRepos(
   repos: RepoSpec[]
 ): Promise<Session | null> {
   const session = await getSession(name);
-  if (!session) {return null;}
+  if (!session) {
+    return null;
+  }
 
   const manifest: SessionManifest = {
     created: session.created,
@@ -161,7 +167,9 @@ export async function updateSessionSettings(
   settings: { repos?: RepoSpec[]; goal?: string; skills?: string[] }
 ): Promise<Session | null> {
   const session = await getSession(name);
-  if (!session) {return null;}
+  if (!session) {
+    return null;
+  }
 
   const manifest: SessionManifest = {
     created: session.created,

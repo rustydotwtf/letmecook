@@ -1,4 +1,4 @@
-import  { type KeyEvent } from "@opentui/core";
+import type { KeyEvent } from "@opentui/core";
 
 import { test, expect, describe } from "bun:test";
 

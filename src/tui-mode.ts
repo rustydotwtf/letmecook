@@ -1,9 +1,9 @@
-import  { type CliRenderer } from "@opentui/core";
+import type { CliRenderer } from "@opentui/core";
 
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
 
-import  { type Session } from "./types";
+import type { Session } from "./types";
 
 import { handleChatMode } from "./chat-mode";
 import { createNewSession, resumeSession } from "./flows";
@@ -139,7 +139,7 @@ async function handleNewSessionFlow(renderer: CliRenderer): Promise<void> {
     return;
   }
 
-  const {repos} = addReposResult;
+  const { repos } = addReposResult;
 
   const { skills, cancelled: skillsCancelled } =
     await showSkillsPrompt(renderer);

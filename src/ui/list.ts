@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import  { type Session } from "../types";
+import type { Session } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape, isArrowUp, isArrowDown } from "./common/keyboard";

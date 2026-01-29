@@ -1,7 +1,7 @@
 import { test, expect, describe, mock, beforeEach } from "bun:test";
 import { EventEmitter } from "node:events";
 
-import  { type Session } from "../../src/types";
+import type { Session } from "../../src/types";
 
 // Mock @opentui/core before importing the module
 const mockTextRenderable = mock(() => ({
@@ -40,11 +40,11 @@ function createMockRenderer() {
   return {
     destroy: mock(() => {}),
     keyInput: {
-      on: (event: string, handler: (...args: unknown[]) => void) => {
-        keyEmitter.on(event, handler);
-      },
       off: (event: string, handler: (...args: unknown[]) => void) => {
         keyEmitter.off(event, handler);
+      },
+      on: (event: string, handler: (...args: unknown[]) => void) => {
+        keyEmitter.on(event, handler);
       },
     },
     root: mockRoot,
@@ -56,22 +56,22 @@ function createMockRenderer() {
 
 // Mock module system
 mock.module("@opentui/core", () => ({
-  ASCIIFontRenderable: function () {
+  ASCIIFontRenderable: function  ASCIIFontRenderable() {
     return mockASCIIFontRenderable();
   },
-  BoxRenderable: function () {
+  BoxRenderable: function  BoxRenderable() {
     return mockBoxRenderable();
   },
   RGBA: {
     fromHex: mock(() => ({})),
   },
-  SelectRenderable: function () {
+  SelectRenderable: function  SelectRenderable() {
     return mockSelectRenderable();
   },
   SelectRenderableEvents: {
     ITEM_SELECTED: "item-selected",
   },
-  TextRenderable: function () {
+  TextRenderable: function  TextRenderable() {
     return mockTextRenderable();
   },
   measureText: mock(() => ({ width: 50 })),
@@ -87,7 +87,7 @@ function createTestSession(name: string): Session {
     lastAccessed: new Date().toISOString(),
     name,
     path: `/tmp/${name}`,
-    repos: [{ spec: "owner/repo", owner: "owner", name: "repo", dir: "repo" }],
+    repos: [{ dir: "repo", name: "repo", owner: "owner", spec: "owner/repo" }],
   };
 }
 

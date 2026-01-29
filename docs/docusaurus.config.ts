@@ -1,5 +1,5 @@
 import type * as Preset from "@docusaurus/preset-classic";
-import  { type Config } from "@docusaurus/types";
+import type { Config } from "@docusaurus/types";
 
 import { themes as prismThemes } from "prism-react-renderer";
 
@@ -22,12 +22,12 @@ const config: Config = {
     [
       "classic",
       {
+        blog: false,
         docs: {
           sidebarPath: "./sidebars.ts",
           routeBasePath: "/",
           editUrl: "https://github.com/rustydotwtf/letmecook/tree/main/docs/",
         },
-        blog: false,
         theme: {
           customCss: "./src/css/custom.css",
         },
@@ -42,22 +42,6 @@ const config: Config = {
     colorMode: {
       defaultMode: "dark",
       respectPrefersColorScheme: true,
-    },
-    navbar: {
-      title: "letmecook",
-      items: [
-        {
-          type: "docSidebar",
-          sidebarId: "docsSidebar",
-          position: "left",
-          label: "Docs",
-        },
-        {
-          href: "https://github.com/rustydotwtf/letmecook",
-          label: "GitHub",
-          position: "right",
-        },
-      ],
     },
     footer: {
       style: "dark",
@@ -86,6 +70,22 @@ const config: Config = {
         },
       ],
       copyright: `Copyright ${new Date().getFullYear()} rustydotwtf. Built with Docusaurus.`,
+    },
+    navbar: {
+      title: "letmecook",
+      items: [
+        {
+          type: "docSidebar",
+          sidebarId: "docsSidebar",
+          position: "left",
+          label: "Docs",
+        },
+        {
+          href: "https://github.com/rustydotwtf/letmecook",
+          label: "GitHub",
+          position: "right",
+        },
+      ],
     },
     prism: {
       theme: prismThemes.github,
