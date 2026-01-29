@@ -1,4 +1,9 @@
-import { type CliRenderer, type KeyEvent, TextRenderable } from "@opentui/core";
+import {
+  TextRenderable,
+  type BoxRenderable,
+  type CliRenderer,
+  type KeyEvent,
+} from "@opentui/core";
 
 import type { ChatConfig } from "../flows/chat-to-config";
 
@@ -12,147 +17,117 @@ export interface ConfirmationResult {
   action: ConfirmationAction;
 }
 
+function renderSection(
+  renderer: CliRenderer,
+  content: BoxRenderable,
+  label: string,
+  items: string[]
+): void {
+  const labelText = new TextRenderable(renderer, {
+    content: label,
+    fg: "#38bdf8",
+    id: label.toLowerCase().replaceAll(/[^a-z]+/g, "-"),
+    marginBottom: 0,
+  });
+  content.add(labelText);
+
+  if (items.length > 0) {
+    for (const [i, item] of items.entries()) {
+      const itemText = new TextRenderable(renderer, {
+        content: `  • ${item}`,
+        fg: "#94a3b8",
+        id: `${label.toLowerCase().replaceAll(/[^a-z]+/g, "-")}-${i}`,
+      });
+      content.add(itemText);
+    }
+  } else {
+    const noItemsText = new TextRenderable(renderer, {
+      content: "  (none)",
+      fg: "#64748b",
+      id: `${label.toLowerCase().replaceAll(/[^a-z]+/g, "-")}-none`,
+    });
+    content.add(noItemsText);
+  }
+}
+
+function renderConfirmationUI(renderer: CliRenderer, config: ChatConfig): void {
+  clearLayout(renderer);
+
+  const { content } = createBaseLayout(renderer, "Review Configuration");
+
+  const title = new TextRenderable(renderer, {
+    content: "Here's what I'll set up for you:",
+    fg: "#e2e8f0",
+    id: "confirm-title",
+    marginBottom: 2,
+  });
+  content.add(title);
+
+  renderSection(renderer, content, "📦 Repositories:", config.repos);
+  renderSection(renderer, content, "\n🛠️  Skills:", config.skills || []);
+  renderSection(
+    renderer,
+    content,
+    "\n🎯 Goal:",
+    config.goal ? [config.goal] : []
+  );
+
+  const confirmText = new TextRenderable(renderer, {
+    content: "Does this look right?",
+    fg: "#e2e8f0",
+    id: "confirm-question",
+    marginTop: 2,
+  });
+  content.add(confirmText);
+}
+
+function createKeyHandler(
+  renderer: CliRenderer,
+  resolve: (value: ConfirmationResult) => void
+): (key: KeyEvent) => void {
+  const cleanup = () => {
+    renderer.keyInput.off("keypress", handler);
+    hideFooter(renderer);
+    clearLayout(renderer);
+  };
+
+  const handler = (key: KeyEvent) => {
+    if (isEscape(key)) {
+      cleanup();
+      resolve({ action: "cancel" });
+    } else if (isEnter(key)) {
+      cleanup();
+      resolve({ action: "confirm" });
+    } else if (isKey(key, "e")) {
+      cleanup();
+      resolve({ action: "edit" });
+    } else if (isKey(key, "b")) {
+      cleanup();
+      resolve({ action: "back" });
+    }
+  };
+
+  return handler;
+}
+
 export function showChatConfirmation(
   renderer: CliRenderer,
   config: ChatConfig
 ): Promise<ConfirmationResult> {
+  renderConfirmationUI(renderer, config);
+
+  const { content } = createBaseLayout(renderer, "Review Configuration");
+
+  showFooter(renderer, content, {
+    back: true,
+    custom: ["Enter Confirm", "b Back to Chat", "e Manual Edit", "Esc Cancel"],
+    navigate: false,
+    select: false,
+  });
+
+  // eslint-disable-next-line promise/avoid-new -- Needed for event-driven pattern
   return new Promise((resolve) => {
-    clearLayout(renderer);
-
-    const { content } = createBaseLayout(renderer, "Review Configuration");
-
-    // Title
-    const title = new TextRenderable(renderer, {
-      content: "Here's what I'll set up for you:",
-      fg: "#e2e8f0",
-      id: "confirm-title",
-      marginBottom: 2,
-    });
-    content.add(title);
-
-    // Repositories
-    const reposLabel = new TextRenderable(renderer, {
-      content: "📦 Repositories:",
-      fg: "#38bdf8",
-      id: "repos-label",
-      marginBottom: 0,
-    });
-    content.add(reposLabel);
-
-    if (config.repos.length > 0) {
-      for (const [i, repo] of config.repos.entries()) {
-        const repoText = new TextRenderable(renderer, {
-          content: `  • ${repo}`,
-          fg: "#94a3b8",
-          id: `repo-${i}`,
-        });
-        content.add(repoText);
-      }
-    } else {
-      const noRepos = new TextRenderable(renderer, {
-        content: "  (none)",
-        fg: "#64748b",
-        id: "no-repos",
-      });
-      content.add(noRepos);
-    }
-
-    // Skills
-    const skillsLabel = new TextRenderable(renderer, {
-      content: "\n🛠️  Skills:",
-      fg: "#38bdf8",
-      id: "skills-label",
-      marginBottom: 0,
-    });
-    content.add(skillsLabel);
-
-    if (config.skills && config.skills.length > 0) {
-      for (const [i, skill] of config.skills.entries()) {
-        const skillText = new TextRenderable(renderer, {
-          content: `  • ${skill}`,
-          fg: "#94a3b8",
-          id: `skill-${i}`,
-        });
-        content.add(skillText);
-      }
-    } else {
-      const noSkills = new TextRenderable(renderer, {
-        content: "  (none)",
-        fg: "#64748b",
-        id: "no-skills",
-      });
-      content.add(noSkills);
-    }
-
-    // Goal
-    const goalLabel = new TextRenderable(renderer, {
-      content: "\n🎯 Goal:",
-      fg: "#38bdf8",
-      id: "goal-label",
-      marginBottom: 0,
-    });
-    content.add(goalLabel);
-
-    const goalText = new TextRenderable(renderer, {
-      content: config.goal ? `  ${config.goal}` : "  (none)",
-      fg: config.goal ? "#94a3b8" : "#64748b",
-      id: "goal-text",
-      marginBottom: 2,
-    });
-    content.add(goalText);
-
-    // Confirmation question
-    const confirmText = new TextRenderable(renderer, {
-      content: "Does this look right?",
-      fg: "#e2e8f0",
-      id: "confirm-question",
-      marginTop: 2,
-    });
-    content.add(confirmText);
-
-    const cleanup = () => {
-      renderer.keyInput.off("keypress", handleKeypress);
-      hideFooter(renderer);
-      clearLayout(renderer);
-    };
-
-    const handleKeypress = (key: KeyEvent) => {
-      if (isEscape(key)) {
-        cleanup();
-        resolve({ action: "cancel" });
-        return;
-      }
-
-      if (isEnter(key)) {
-        cleanup();
-        resolve({ action: "confirm" });
-        return;
-      }
-
-      if (isKey(key, "e")) {
-        cleanup();
-        resolve({ action: "edit" });
-        return;
-      }
-
-      if (isKey(key, "b")) {
-        cleanup();
-        resolve({ action: "back" });
-        return;
-      }
-    };
-
-    showFooter(renderer, content, {
-      back: true,
-      custom: [
-        "Enter Confirm",
-        "b Back to Chat",
-        "e Manual Edit",
-        "Esc Cancel",
-      ],
-      navigate: false,
-      select: false,
-    });
-    renderer.keyInput.on("keypress", handleKeypress);
+    const handler = createKeyHandler(renderer, resolve);
+    renderer.keyInput.on("keypress", handler);
   });
 }
