@@ -1,7 +1,10 @@
-import { test, expect, describe, mock, beforeEach } from "bun:test";
-import { EventEmitter } from "node:events";
+import type { CliRenderer } from "@opentui/core";
+
+import { test, expect, describe, mock, beforeEach, beforeAll } from "bun:test";
 
 import type { Session } from "../../src/types";
+
+import { showMainMenu } from "../../src/ui/main-menu";
 
 // Mock @opentui/core before importing the module
 const mockTextRenderable = mock(() => ({
@@ -9,17 +12,29 @@ const mockTextRenderable = mock(() => ({
 }));
 
 const mockSelectRenderable = mock(() => ({
-  blur: mock(() => { /* noop */ }),
-  focus: mock(() => { /* noop */ }),
+  blur: mock(() => {
+    /* noop */
+  }),
+  focus: mock(() => {
+    /* noop */
+  }),
   id: "mock-select",
-  off: mock(() => { /* noop */ }),
-  on: mock(() => { /* noop */ }),
+  off: mock(() => {
+    /* noop */
+  }),
+  on: mock(() => {
+    /* noop */
+  }),
 }));
 
 const mockBoxRenderable = mock(() => ({
-  add: mock(() => { /* noop */ }),
+  add: mock(() => {
+    /* noop */
+  }),
   id: "mock-box",
-  remove: mock(() => { /* noop */ }),
+  remove: mock(() => {
+    /* noop */
+  }),
 }));
 
 const mockASCIIFontRenderable = mock(() => ({
@@ -27,18 +42,38 @@ const mockASCIIFontRenderable = mock(() => ({
 }));
 
 // Create mock functions that we can access in tests
-let keyEmitter: EventEmitter;
+class MockKeyEmitter extends EventTarget {
+  emit(event: string, data: unknown): void {
+    this.dispatchEvent(new CustomEvent(event, { detail: data }));
+  }
+
+  on(event: string, handler: (...args: unknown[]) => void): void {
+    this.addEventListener(event, handler as EventListener);
+  }
+
+  off(event: string, handler: (...args: unknown[]) => void): void {
+    this.removeEventListener(event, handler as EventListener);
+  }
+}
+
+let keyEmitter: MockKeyEmitter;
 let mockRoot: { add: ReturnType<typeof mock>; remove: ReturnType<typeof mock> };
 
 function createMockRenderer() {
-  keyEmitter = new EventEmitter();
+  keyEmitter = new MockKeyEmitter();
   mockRoot = {
-    add: mock(() => { /* noop */ }),
-    remove: mock(() => { /* noop */ }),
+    add: mock(() => {
+      /* noop */
+    }),
+    remove: mock(() => {
+      /* noop */
+    }),
   };
 
   return {
-    destroy: mock(() => { /* noop */ }),
+    destroy: mock(() => {
+      /* noop */
+    }),
     keyInput: {
       off: (event: string, handler: (...args: unknown[]) => void) => {
         keyEmitter.off(event, handler);
@@ -48,37 +83,13 @@ function createMockRenderer() {
       },
     },
     root: mockRoot,
-    setBackgroundColor: mock(() => { /* noop */ }),
+    setBackgroundColor: mock(() => {
+      /* noop */
+    }),
     terminalHeight: 24,
     terminalWidth: 80,
   };
 }
-
-// Mock module system
-mock.module("@opentui/core", () => ({
-  ASCIIFontRenderable: function ASCIIFontRenderable() {
-    return mockASCIIFontRenderable();
-  },
-  BoxRenderable: function BoxRenderable() {
-    return mockBoxRenderable();
-  },
-  RGBA: {
-    fromHex: mock(() => ({})),
-  },
-  SelectRenderable: function SelectRenderable() {
-    return mockSelectRenderable();
-  },
-  SelectRenderableEvents: {
-    ITEM_SELECTED: "item-selected",
-  },
-  TextRenderable: function TextRenderable() {
-    return mockTextRenderable();
-  },
-  measureText: mock(() => ({ width: 50 })),
-}));
-
-// Now import after mocking
-import { showMainMenu } from "../../src/ui/main-menu";
 
 function createTestSession(name: string): Session {
   return {
@@ -94,12 +105,36 @@ function createTestSession(name: string): Session {
 describe("showMainMenu", () => {
   let renderer: ReturnType<typeof createMockRenderer>;
 
+  beforeAll(() => {
+    mock.module("@opentui/core", () => ({
+      ASCIIFontRenderable: function ASCIIFontRenderable() {
+        return mockASCIIFontRenderable();
+      },
+      BoxRenderable: function BoxRenderable() {
+        return mockBoxRenderable();
+      },
+      RGBA: {
+        fromHex: mock(() => ({})),
+      },
+      SelectRenderable: function SelectRenderable() {
+        return mockSelectRenderable();
+      },
+      SelectRenderableEvents: {
+        ITEM_SELECTED: "item-selected",
+      },
+      TextRenderable: function TextRenderable() {
+        return mockTextRenderable();
+      },
+      measureText: mock(() => ({ width: 50 })),
+    }));
+  });
+
   beforeEach(() => {
     renderer = createMockRenderer();
   });
 
   test("'q' key resolves with quit action when no sessions", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
     // Give the promise time to set up listeners
     await Bun.sleep(10);
@@ -117,7 +152,7 @@ describe("showMainMenu", () => {
   });
 
   test("escape key resolves with quit action", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
     await Bun.sleep(10);
 
@@ -133,7 +168,7 @@ describe("showMainMenu", () => {
   });
 
   test("'n' key resolves with new-session action", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
     await Bun.sleep(10);
 
@@ -150,7 +185,10 @@ describe("showMainMenu", () => {
 
   test("'d' key resolves with delete action when sessions exist", async () => {
     const sessions = [createTestSession("test-session")];
-    const resultPromise = showMainMenu(renderer as any, sessions);
+    const resultPromise = showMainMenu(
+      renderer as unknown as CliRenderer,
+      sessions
+    );
 
     await Bun.sleep(10);
 
@@ -163,14 +201,17 @@ describe("showMainMenu", () => {
 
     const result = await resultPromise;
     expect(result.type).toBe("delete");
-    if (result.type === "delete") {
-      expect(result.session.name).toBe("test-session");
-    }
+    expect((result as { type: "delete"; session: Session }).session.name).toBe(
+      "test-session"
+    );
   });
 
   test("'a' key resolves with nuke action when sessions exist", async () => {
     const sessions = [createTestSession("test-session")];
-    const resultPromise = showMainMenu(renderer as any, sessions);
+    const resultPromise = showMainMenu(
+      renderer as unknown as CliRenderer,
+      sessions
+    );
 
     await Bun.sleep(10);
 
@@ -186,7 +227,7 @@ describe("showMainMenu", () => {
   });
 
   test("'a' key does nothing when no sessions", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
     await Bun.sleep(10);
 
@@ -211,7 +252,7 @@ describe("showMainMenu", () => {
   });
 
   test("'d' key does nothing when no sessions", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
     await Bun.sleep(10);
 
