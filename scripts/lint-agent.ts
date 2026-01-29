@@ -56,7 +56,7 @@ function groupByFile(diagnostics: Diagnostic[]): Map<string, Diagnostic[]> {
 
 async function runLint(): Promise<void> {
   const proc = Bun.spawn({
-    cmd: ["oxlint", "--format", "json"],
+    cmd: ["bunx", "oxlint", "--format", "json"],
     stdout: "pipe",
     stderr: "pipe",
   });

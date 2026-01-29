@@ -125,6 +125,25 @@ export function validateNewSessionParamsSafe(
   };
 }
 
+function validateRepoParts(
+  spec: string,
+  slashIndex: number,
+  owner: string,
+  name: string
+): void {
+  if (slashIndex === -1) {
+    throw new Error(
+      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+    );
+  }
+
+  if (!owner || !name) {
+    throw new Error(
+      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+    );
+  }
+}
+
 function parseRepoSpec(spec: string): {
   spec: string;
   owner: string;
@@ -135,22 +154,11 @@ function parseRepoSpec(spec: string): {
   const colonIndex = spec.indexOf(":");
   const repoPath = colonIndex === -1 ? spec : spec.slice(0, colonIndex);
   const branch = colonIndex === -1 ? undefined : spec.slice(colonIndex + 1);
-
   const slashIndex = repoPath.indexOf("/");
-  if (slashIndex === -1) {
-    throw new Error(
-      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
-    );
-  }
-
   const owner = repoPath.slice(0, slashIndex);
   const name = repoPath.slice(slashIndex + 1);
 
-  if (!owner || !name) {
-    throw new Error(
-      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
-    );
-  }
+  validateRepoParts(spec, slashIndex, owner, name);
 
   return {
     branch,
