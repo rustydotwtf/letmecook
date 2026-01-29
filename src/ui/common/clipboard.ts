@@ -7,12 +7,14 @@ import { platform } from "node:os";
  * the terminal emulator handle the clipboard locally.
  */
 function writeOsc52(text: string): void {
-  if (!process.stdout.isTTY) {return;}
+  if (!process.stdout.isTTY) {
+    return;
+  }
   const base64 = Buffer.from(text).toString("base64");
-  const osc52 = `\x1B]52;c;${base64}\u0007`;
+  const osc52 = `\u001B]52;c;${base64}\u0007`;
   // tmux and screen require DCS passthrough wrapping
   const passthrough = process.env["TMUX"] || process.env["STY"];
-  const sequence = passthrough ? `\x1BPtmux;\x1B${osc52}\x1B\\` : osc52;
+  const sequence = passthrough ? `\u001BPtmux;\u001B${osc52}\u001B\\` : osc52;
   process.stdout.write(sequence);
 }
 
@@ -20,13 +22,17 @@ const getCopyMethod = (() => {
   let method: ((text: string) => Promise<void>) | undefined;
 
   return (): ((text: string) => Promise<void>) => {
-    if (method) {return method;}
+    if (method) {
+      return method;
+    }
 
     const os = platform();
 
     if (os === "darwin" && Bun.which("osascript")) {
       method = async (text: string) => {
-        const escaped = text.replaceAll(/\\/g, String.raw`\\`).replaceAll(/"/g, String.raw`\"`);
+        const escaped = text
+          .replaceAll('\\', String.raw`\\`)
+          .replaceAll('"', String.raw`\"`);
         await $`osascript -e 'set the clipboard to "${escaped}"'`
           .nothrow()
           .quiet();

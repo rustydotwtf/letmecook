@@ -73,9 +73,9 @@ export class ChatLogger {
       messages: [],
       metadata: {
         apiKeyPresent: !!process.env.AI_GATEWAY_API_KEY,
+        errorCount: 0,
         messageCount: 0,
         toolCallCount: 0,
-        errorCount: 0,
       },
       sessionCreated: false,
       startedAt: new Date().toISOString(),

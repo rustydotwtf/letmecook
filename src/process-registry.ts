@@ -25,7 +25,9 @@ interface DbRow {
 }
 
 async function getDb(): Promise<Database> {
-  if (db) {return db;}
+  if (db) {
+    return db;
+  }
 
   await mkdir(DATA_DIR, { recursive: true });
   db = new Database(DB_PATH, { create: true });

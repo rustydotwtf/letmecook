@@ -64,26 +64,26 @@ function getStatusIcon(status: TaskStatus): {
 } {
   switch (status) {
     case "done": {
-      return { icon: "[✓]", color: "#22c55e" };
+      return { color: "#22c55e", icon: "[✓]" };
     }
     case "running": {
-      return { icon: "[~]", color: "#fbbf24" };
+      return { color: "#fbbf24", icon: "[~]" };
     }
     case "error": {
-      return { icon: "[✗]", color: "#ef4444" };
+      return { color: "#ef4444", icon: "[✗]" };
     }
     case "aborted": {
-      return { icon: "[X]", color: "#ef4444" };
+      return { color: "#ef4444", icon: "[X]" };
     }
     case "skipped": {
-      return { icon: "[>]", color: "#f59e0b" };
+      return { color: "#f59e0b", icon: "[>]" };
     }
     case "backgrounded": {
-      return { icon: "[~]", color: "#38bdf8" };
+      return { color: "#38bdf8", icon: "[~]" };
     }
     case "pending":
     default: {
-      return { icon: "[ ]", color: "#94a3b8" };
+      return { color: "#94a3b8", icon: "[ ]" };
     }
   }
 }
@@ -283,7 +283,9 @@ export async function runCommands(
       const task = tasks[i];
       const taskState = taskStatuses[i];
 
-      if (!task || !taskState) {continue;}
+      if (!task || !taskState) {
+        continue;
+      }
 
       // If abort all was triggered, mark remaining tasks as aborted
       if (abortAll) {

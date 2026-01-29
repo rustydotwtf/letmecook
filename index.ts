@@ -10,7 +10,7 @@ import { handleCLIMode } from "./src/cli-mode";
 import { handleTUIMode } from "./src/tui-mode";
 
 const block = (r: number, g: number, b: number): string =>
-  `\x1B[48;2;${r};${g};${b}m  \x1B[0m`;
+  `\u001B[48;2;${r};${g};${b}m  \u001B[0m`;
 
 function printUsage(): void {
   console.log(`
@@ -88,11 +88,7 @@ function printWhy(): void {
   ];
   const artRows = arts[Math.floor(Math.random() * arts.length)]!;
   const art = artRows
-    .map((row) =>
-      [...row]
-        .map((cell) => palette[cell] ?? "  ")
-        .join("")
-    )
+    .map((row) => [...row].map((cell) => palette[cell] ?? "  ").join(""))
     .join("\n");
   console.log(`
 ${art}

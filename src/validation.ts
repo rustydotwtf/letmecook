@@ -20,9 +20,9 @@ export function formatZodError(error: unknown): string[] {
     "issues" in error &&
     Array.isArray((error as { issues: unknown[] }).issues)
   ) {
-    const {issues} = (
-      error as { issues: { path: PropertyKey[]; message: string }[] }
-    );
+    const { issues } = error as {
+      issues: { path: PropertyKey[]; message: string }[];
+    };
     return issues.map((e) => {
       const path = e.path.length > 0 ? String(e.path.join(".")) : "root";
       return `${path}: ${e.message}`;

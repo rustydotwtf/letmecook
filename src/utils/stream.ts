@@ -14,7 +14,9 @@ export async function readProcessOutput(
   const readStream = async (
     stream: ReadableStream<Uint8Array> | number | undefined
   ) => {
-    if (!stream || typeof stream === "number") {return;}
+    if (!stream || typeof stream === "number") {
+      return;
+    }
 
     const reader = stream.getReader();
     const decoder = new TextDecoder();
@@ -22,7 +24,9 @@ export async function readProcessOutput(
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) {break;}
+      if (done) {
+        break;
+      }
       const chunk = decoder.decode(value, { stream: true });
       buffer += chunk;
 
@@ -81,7 +85,9 @@ export async function readProcessOutputWithBuffer(
   const readStream = async (
     stream: ReadableStream<Uint8Array> | number | undefined
   ) => {
-    if (!stream || typeof stream === "number") {return;}
+    if (!stream || typeof stream === "number") {
+      return;
+    }
 
     const reader = stream.getReader();
     const decoder = new TextDecoder();
@@ -89,7 +95,9 @@ export async function readProcessOutputWithBuffer(
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) {break;}
+      if (done) {
+        break;
+      }
       const chunk = decoder.decode(value, { stream: true });
       fullOutputParts.push(chunk);
       buffer += chunk;
@@ -146,7 +154,9 @@ export async function readProcessOutputWithControl(
   const readStream = async (
     stream: ReadableStream<Uint8Array> | number | undefined
   ) => {
-    if (!stream || typeof stream === "number") {return;}
+    if (!stream || typeof stream === "number") {
+      return;
+    }
 
     const reader = stream.getReader();
     const decoder = new TextDecoder();
@@ -162,7 +172,9 @@ export async function readProcessOutputWithControl(
         }
 
         const { done, value } = await reader.read();
-        if (done) {break;}
+        if (done) {
+          break;
+        }
 
         const chunk = decoder.decode(value, { stream: true });
         fullOutputParts.push(chunk);

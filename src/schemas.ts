@@ -73,13 +73,17 @@ export function parseRepoSpec(spec: string): RepoSpec {
 }
 
 export function repoSpecsMatch(a: RepoSpec[], b: RepoSpec[]): boolean {
-  if (a.length !== b.length) {return false;}
+  if (a.length !== b.length) {
+    return false;
+  }
 
   const aSpecs = new Set(a.map((r) => `${r.owner}/${r.name}`));
   const bSpecs = new Set(b.map((r) => `${r.owner}/${r.name}`));
 
   for (const spec of aSpecs) {
-    if (!bSpecs.has(spec)) {return false;}
+    if (!bSpecs.has(spec)) {
+      return false;
+    }
   }
 
   return true;

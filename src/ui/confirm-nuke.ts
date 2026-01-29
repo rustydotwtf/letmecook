@@ -51,8 +51,8 @@ export function showNukeConfirm(
       id: "nuke-confirm-select",
       marginTop: 1,
       options: [
-        { name: "Cancel", description: "", value: "cancel" },
-        { name: "Delete all sessions", description: "", value: "confirm" },
+        { description: "", name: "Cancel", value: "cancel" },
+        { description: "", name: "Delete all sessions", value: "confirm" },
       ],
       selectedBackgroundColor: "#334155",
       selectedTextColor: "#38bdf8",

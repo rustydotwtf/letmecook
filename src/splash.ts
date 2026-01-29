@@ -1,5 +1,5 @@
 export const block = (r: number, g: number, b: number): string =>
-  `\x1B[48;2;${r};${g};${b}m  \x1B[0m`;
+  `\u001B[48;2;${r};${g};${b}m  \u001B[0m`;
 
 export const palette: Record<string, string> = {
   ".": "  ",
@@ -50,19 +50,13 @@ const pixelLetters: Record<string, string[]> = {
 
 export function renderFood(food: string[]): string {
   return food
-    .map((row) =>
-      [...row]
-        .map((cell) => palette[cell] ?? "  ")
-        .join("")
-    )
+    .map((row) => [...row].map((cell) => palette[cell] ?? "  ").join(""))
     .join("\n");
 }
 
 // Render a single row of pixel art from a pattern string
 function renderRow(pattern: string): string {
-  return [...pattern]
-    .map((cell) => palette[cell] ?? "  ")
-    .join("");
+  return [...pattern].map((cell) => palette[cell] ?? "  ").join("");
 }
 
 // Generate fire row - intensity 1.0 = solid base, 0.0 = wispy tips
@@ -192,7 +186,7 @@ export async function showSplash(): Promise<void> {
     // Calculate centering
     // eslint-disable-next-line no-control-regex -- ANSI escape codes require control chars
     const firstRowWidth = (artLines[0] ?? "").replaceAll(
-      /\x1B\[[0-9;]*m/g,
+      /\u001B\[[0-9;]*m/g,
       ""
     ).length;
     const hPadding = Math.max(0, Math.floor((termWidth - firstRowWidth) / 2));
@@ -204,7 +198,7 @@ export async function showSplash(): Promise<void> {
     const vPadding = Math.max(0, Math.floor((termHeight - artHeight) / 2));
 
     // Move cursor to top-left and redraw (avoids flicker from clear)
-    process.stdout.write("\x1B[H"); // cursor to home
+    process.stdout.write("\u001B[H"); // cursor to home
     process.stdout.write("\n".repeat(vPadding) + paddedArt);
 
     await Bun.sleep(frameDelay);

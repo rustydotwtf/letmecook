@@ -56,22 +56,22 @@ function createMockRenderer() {
 
 // Mock module system
 mock.module("@opentui/core", () => ({
-  ASCIIFontRenderable: function  ASCIIFontRenderable() {
+  ASCIIFontRenderable: function ASCIIFontRenderable() {
     return mockASCIIFontRenderable();
   },
-  BoxRenderable: function  BoxRenderable() {
+  BoxRenderable: function BoxRenderable() {
     return mockBoxRenderable();
   },
   RGBA: {
     fromHex: mock(() => ({})),
   },
-  SelectRenderable: function  SelectRenderable() {
+  SelectRenderable: function SelectRenderable() {
     return mockSelectRenderable();
   },
   SelectRenderableEvents: {
     ITEM_SELECTED: "item-selected",
   },
-  TextRenderable: function  TextRenderable() {
+  TextRenderable: function TextRenderable() {
     return mockTextRenderable();
   },
   measureText: mock(() => ({ width: 50 })),

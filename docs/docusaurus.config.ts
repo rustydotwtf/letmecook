@@ -24,9 +24,9 @@ const config: Config = {
       {
         blog: false,
         docs: {
-          sidebarPath: "./sidebars.ts",
-          routeBasePath: "/",
           editUrl: "https://github.com/rustydotwtf/letmecook/tree/main/docs/",
+          routeBasePath: "/",
+          sidebarPath: "./sidebars.ts",
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -44,7 +44,7 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     footer: {
-      style: "dark",
+      copyright: `Copyright ${new Date().getFullYear()} rustydotwtf. Built with Docusaurus.`,
       links: [
         {
           title: "Documentation",
@@ -69,10 +69,9 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright ${new Date().getFullYear()} rustydotwtf. Built with Docusaurus.`,
+      style: "dark",
     },
     navbar: {
-      title: "letmecook",
       items: [
         {
           type: "docSidebar",
@@ -86,11 +85,12 @@ const config: Config = {
           position: "right",
         },
       ],
+      title: "letmecook",
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
       additionalLanguages: ["bash", "json", "typescript"],
+      darkTheme: prismThemes.dracula,
+      theme: prismThemes.github,
     },
   } satisfies Preset.ThemeConfig,
 
