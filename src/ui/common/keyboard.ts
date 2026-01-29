@@ -1,4 +1,4 @@
-import type { KeyEvent } from "@opentui/core";
+import  { type KeyEvent } from "@opentui/core";
 
 /**
  * Unified keyboard mapping constants for consistent navigation across the TUI.

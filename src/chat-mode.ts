@@ -1,6 +1,6 @@
-import type { ChatConfig } from "./flows/chat-to-config";
-import type { ToolCallResult } from "./flows/chat-to-config";
-import type { Session } from "./types";
+import  { type ChatConfig } from "./flows/chat-to-config";
+import  { type ToolCallResult } from "./flows/chat-to-config";
+import  { type Session } from "./types";
 
 import { ChatLogger } from "./chat-logger";
 import { ConfigBuilder } from "./config-builder";
@@ -106,7 +106,7 @@ export async function handleChatMode(): Promise<ChatModeResult> {
 
   try {
     // Add welcome message
-    messages.push({ role: "assistant", content: INCREMENTAL_WELCOME_MESSAGE });
+    messages.push({ content: INCREMENTAL_WELCOME_MESSAGE, role: "assistant" });
     logger.addMessage("assistant", INCREMENTAL_WELCOME_MESSAGE);
 
     let elements: ChatWithSidebarElements;
@@ -134,7 +134,7 @@ export async function handleChatMode(): Promise<ChatModeResult> {
         destroyRenderer();
         logger.markCancelled();
         const logPath = await logger.save();
-        return { cancelled: true, useManualMode: false, logPath };
+        return { cancelled: true, logPath, useManualMode: false };
       }
 
       if (!inputResult.message.trim()) {
@@ -146,25 +146,25 @@ export async function handleChatMode(): Promise<ChatModeResult> {
       // Check if user is ready (and config is valid)
       if (isReadySignal(userMessage) && configBuilder.isReady()) {
         // Add final message and break to confirmation
-        messages.push({ role: "user", content: userMessage });
+        messages.push({ content: userMessage, role: "user" });
         logger.addMessage("user", userMessage);
         break;
       }
 
       // If user says ready but no repos, tell them
       if (isReadySignal(userMessage) && !configBuilder.isReady()) {
-        messages.push({ role: "user", content: userMessage });
+        messages.push({ content: userMessage, role: "user" });
         logger.addMessage("user", userMessage);
 
         const needRepoMessage =
           "I need at least one repository before we can proceed. What would you like to work on?";
-        messages.push({ role: "assistant", content: needRepoMessage });
+        messages.push({ content: needRepoMessage, role: "assistant" });
         logger.addMessage("assistant", needRepoMessage);
         continue;
       }
 
       // Add user message
-      messages.push({ role: "user", content: userMessage });
+      messages.push({ content: userMessage, role: "user" });
       logger.addMessage("user", userMessage);
 
       // Refresh layout to show user message
@@ -205,7 +205,7 @@ export async function handleChatMode(): Promise<ChatModeResult> {
           // Add tool results to messages so LLM can reference them later
           const toolOutput = formatToolResultForMessage(tr);
           if (toolOutput) {
-            messages.push({ role: "assistant", content: toolOutput });
+            messages.push({ content: toolOutput, role: "assistant" });
             logger.addMessage("assistant", toolOutput);
           }
         }
@@ -213,14 +213,14 @@ export async function handleChatMode(): Promise<ChatModeResult> {
 
       // Add assistant response
       if (chatResult.response) {
-        messages.push({ role: "assistant", content: chatResult.response });
+        messages.push({ content: chatResult.response, role: "assistant" });
         logger.addMessage("assistant", chatResult.response);
       }
 
       if (chatResult.error) {
         logger.addError("llm", chatResult.error);
         const errorMessage = "Sorry, I encountered an error. Please try again.";
-        messages.push({ role: "assistant", content: errorMessage });
+        messages.push({ content: errorMessage, role: "assistant" });
         logger.addMessage("assistant", errorMessage);
       }
 
@@ -242,13 +242,13 @@ export async function handleChatMode(): Promise<ChatModeResult> {
       destroyRenderer();
       logger.markCancelled();
       const logPath = await logger.save();
-      return { cancelled: true, useManualMode: false, logPath };
+      return { cancelled: true, logPath, useManualMode: false };
     }
 
     if (confirmResult.action === "back") {
       // Go back to chat - add a message and continue
       const reviseMessage = "Let me revise what I'm looking for.";
-      messages.push({ role: "user", content: reviseMessage });
+      messages.push({ content: reviseMessage, role: "user" });
       logger.addMessage("user", reviseMessage);
 
       destroyRenderer();
@@ -268,7 +268,7 @@ export async function handleChatMode(): Promise<ChatModeResult> {
       destroyRenderer();
       logger.markCancelled();
       const logPath = await logger.save();
-      return { cancelled: false, useManualMode: true, logPath };
+      return { cancelled: false, logPath, useManualMode: true };
     }
 
     // Confirmed - create session
@@ -280,7 +280,7 @@ export async function handleChatMode(): Promise<ChatModeResult> {
     logger.addError("llm", errorMessage);
     console.error("Chat mode error:", error);
     const logPath = await logger.save();
-    return { cancelled: true, useManualMode: false, logPath };
+    return { cancelled: true, logPath, useManualMode: false };
   }
 }
 
@@ -315,7 +315,7 @@ async function continueChatAfterBack(
       destroyRenderer();
       logger.markCancelled();
       const logPath = await logger.save();
-      return { cancelled: true, useManualMode: false, logPath };
+      return { cancelled: true, logPath, useManualMode: false };
     }
 
     if (!inputResult.message.trim()) {
@@ -326,23 +326,23 @@ async function continueChatAfterBack(
 
     // Check if user is ready
     if (isReadySignal(userMessage) && configBuilder.isReady()) {
-      messages.push({ role: "user", content: userMessage });
+      messages.push({ content: userMessage, role: "user" });
       logger.addMessage("user", userMessage);
       break;
     }
 
     if (isReadySignal(userMessage) && !configBuilder.isReady()) {
-      messages.push({ role: "user", content: userMessage });
+      messages.push({ content: userMessage, role: "user" });
       logger.addMessage("user", userMessage);
 
       const needRepoMessage =
         "I need at least one repository before we can proceed. What would you like to work on?";
-      messages.push({ role: "assistant", content: needRepoMessage });
+      messages.push({ content: needRepoMessage, role: "assistant" });
       logger.addMessage("assistant", needRepoMessage);
       continue;
     }
 
-    messages.push({ role: "user", content: userMessage });
+    messages.push({ content: userMessage, role: "user" });
     logger.addMessage("user", userMessage);
 
     destroyRenderer();
@@ -379,14 +379,14 @@ async function continueChatAfterBack(
         // Add tool results to messages so LLM can reference them later
         const toolOutput = formatToolResultForMessage(tr);
         if (toolOutput) {
-          messages.push({ role: "assistant", content: toolOutput });
+          messages.push({ content: toolOutput, role: "assistant" });
           logger.addMessage("assistant", toolOutput);
         }
       }
     }
 
     if (chatResult.response) {
-      messages.push({ role: "assistant", content: chatResult.response });
+      messages.push({ content: chatResult.response, role: "assistant" });
       logger.addMessage("assistant", chatResult.response);
     }
 
@@ -411,12 +411,12 @@ async function continueChatAfterBack(
     destroyRenderer();
     logger.markCancelled();
     const logPath = await logger.save();
-    return { cancelled: true, useManualMode: false, logPath };
+    return { cancelled: true, logPath, useManualMode: false };
   }
 
   if (confirmResult.action === "back") {
     const reviseMessage = "Let me revise further.";
-    messages.push({ role: "user", content: reviseMessage });
+    messages.push({ content: reviseMessage, role: "user" });
     logger.addMessage("user", reviseMessage);
 
     destroyRenderer();
@@ -434,7 +434,7 @@ async function continueChatAfterBack(
     destroyRenderer();
     logger.markCancelled();
     const logPath = await logger.save();
-    return { cancelled: false, useManualMode: true, logPath };
+    return { cancelled: false, logPath, useManualMode: true };
   }
 
   destroyRenderer();
@@ -455,16 +455,16 @@ async function createSessionFromConfig(
       );
       const logPath = await logger.save();
       console.error("No valid repositories found in configuration.");
-      return { cancelled: true, useManualMode: false, logPath };
+      return { cancelled: true, logPath, useManualMode: false };
     }
 
     const renderer = await createRenderer();
 
     const result = await createNewSession(renderer, {
-      repos,
       goal: config.goal || undefined,
-      skills: config.skills.length > 0 ? config.skills : undefined,
       mode: "tui",
+      repos,
+      skills: config.skills.length > 0 ? config.skills : undefined,
     });
 
     destroyRenderer();
@@ -472,28 +472,28 @@ async function createSessionFromConfig(
     if (!result) {
       logger.markCancelled();
       const logPath = await logger.save();
-      return { cancelled: true, useManualMode: false, logPath };
+      return { cancelled: true, logPath, useManualMode: false };
     }
 
     logger.markSessionCreated(result.session.name, {
+      goal: config.goal,
       repos: config.repos,
       skills: config.skills,
-      goal: config.goal,
     });
     const logPath = await logger.save();
 
     return {
-      session: result.session,
       cancelled: false,
-      useManualMode: false,
       logPath,
+      session: result.session,
+      useManualMode: false,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.addError("llm", errorMessage);
     console.error("Failed to create session:", error);
     const logPath = await logger.save();
-    return { cancelled: true, useManualMode: false, logPath };
+    return { cancelled: true, logPath, useManualMode: false };
   }
 }
 

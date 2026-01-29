@@ -1,15 +1,15 @@
 import { symlink } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Session } from "./types";
+import  { type Session } from "./types";
 
 export function generateAgentsMd(session: Session): string {
   const createdDate = new Date(session.created).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    month: "long",
+    year: "numeric",
   });
 
   const hasReadOnlyRepos = session.repos.some((repo) => repo.readOnly);

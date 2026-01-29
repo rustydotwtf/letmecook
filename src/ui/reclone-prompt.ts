@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { RepoSpec } from "../types";
+import  { type RepoSpec } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -24,44 +24,44 @@ export function showReclonePrompt(
     const { content } = createBaseLayout(renderer, "Update issue");
 
     const repoInfo = new TextRenderable(renderer, {
-      id: "repo-info",
       content: `${repo.owner}/${repo.name}`,
       fg: "#38bdf8",
+      id: "repo-info",
       marginBottom: 1,
     });
     content.add(repoInfo);
 
     const warning = new TextRenderable(renderer, {
-      id: "warning",
       content: "We had issues updating this repo.",
       fg: "#f59e0b",
+      id: "warning",
       marginBottom: 0,
     });
     content.add(warning);
 
     const question = new TextRenderable(renderer, {
-      id: "question",
       content: "Wipe and reclone it?",
       fg: "#e2e8f0",
+      id: "question",
       marginBottom: 1,
     });
     content.add(question);
 
     const select = new SelectRenderable(renderer, {
-      id: "reclone-select",
-      width: 24,
+      backgroundColor: "transparent",
+      focusedBackgroundColor: "transparent",
       height: 2,
+      id: "reclone-select",
+      marginTop: 1,
       options: [
         { name: "Reclone", description: "", value: "reclone" },
         { name: "Skip", description: "", value: "skip" },
       ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
       selectedTextColor: "#38bdf8",
-      marginTop: 1,
+      showDescription: false,
+      textColor: "#e2e8f0",
+      width: 24,
     });
     content.add(select);
 
@@ -88,10 +88,10 @@ export function showReclonePrompt(
     };
 
     showFooter(renderer, content, {
-      navigate: true,
-      select: true,
       back: true,
       custom: ["Esc Skip"],
+      navigate: true,
+      select: true,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);

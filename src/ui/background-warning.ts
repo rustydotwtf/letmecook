@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { BackgroundProcess } from "../process-registry";
+import  { type BackgroundProcess } from "../process-registry";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -27,9 +27,9 @@ export function showQuitWarning(
     );
 
     const warning = new TextRenderable(renderer, {
-      id: "warning",
       content: `${processes.length} background process${processes.length > 1 ? "es" : ""} still running:`,
       fg: "#f59e0b",
+      id: "warning",
       marginBottom: 1,
     });
     content.add(warning);
@@ -37,37 +37,37 @@ export function showQuitWarning(
     // List the running processes
     processes.forEach((proc, i) => {
       const processInfo = new TextRenderable(renderer, {
-        id: `process-${i}`,
         content: `  • ${proc.description}`,
         fg: "#94a3b8",
+        id: `process-${i}`,
       });
       content.add(processInfo);
     });
 
     const question = new TextRenderable(renderer, {
-      id: "question",
       content: "What would you like to do?",
       fg: "#e2e8f0",
+      id: "question",
       marginTop: 1,
     });
     content.add(question);
 
     const select = new SelectRenderable(renderer, {
-      id: "quit-warning-select",
-      width: 38,
+      backgroundColor: "transparent",
+      focusedBackgroundColor: "transparent",
       height: 3,
+      id: "quit-warning-select",
+      marginTop: 1,
       options: [
         { name: "Keep running & quit", description: "", value: "continue" },
         { name: "Kill all & quit", description: "", value: "kill" },
         { name: "Cancel", description: "", value: "cancel" },
       ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
       selectedTextColor: "#38bdf8",
-      marginTop: 1,
+      showDescription: false,
+      textColor: "#e2e8f0",
+      width: 38,
     });
     content.add(select);
 
@@ -94,9 +94,9 @@ export function showQuitWarning(
     };
 
     showFooter(renderer, content, {
+      back: true,
       navigate: true,
       select: true,
-      back: true,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);
@@ -119,9 +119,9 @@ export function showSessionStartWarning(
     );
 
     const warning = new TextRenderable(renderer, {
-      id: "warning",
       content: `${processes.length} background process${processes.length > 1 ? "es" : ""} still running for this session:`,
       fg: "#f59e0b",
+      id: "warning",
       marginBottom: 1,
     });
     content.add(warning);
@@ -129,44 +129,44 @@ export function showSessionStartWarning(
     // List the running processes
     processes.forEach((proc, i) => {
       const processInfo = new TextRenderable(renderer, {
-        id: `process-${i}`,
         content: `  • ${proc.description}`,
         fg: "#94a3b8",
+        id: `process-${i}`,
       });
       content.add(processInfo);
     });
 
     const note = new TextRenderable(renderer, {
-      id: "note",
       content: "Some repositories may not be fully cloned yet.",
       fg: "#94a3b8",
+      id: "note",
       marginTop: 1,
     });
     content.add(note);
 
     const question = new TextRenderable(renderer, {
-      id: "question",
       content: "Continue with session?",
       fg: "#e2e8f0",
+      id: "question",
       marginTop: 1,
     });
     content.add(question);
 
     const select = new SelectRenderable(renderer, {
-      id: "session-warning-select",
-      width: 38,
+      backgroundColor: "transparent",
+      focusedBackgroundColor: "transparent",
       height: 2,
+      id: "session-warning-select",
+      marginTop: 1,
       options: [
         { name: "Continue anyway", description: "", value: "continue" },
         { name: "Cancel", description: "", value: "cancel" },
       ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
       selectedTextColor: "#38bdf8",
-      marginTop: 1,
+      showDescription: false,
+      textColor: "#e2e8f0",
+      width: 38,
     });
     content.add(select);
 
@@ -193,9 +193,9 @@ export function showSessionStartWarning(
     };
 
     showFooter(renderer, content, {
+      back: true,
       navigate: true,
       select: true,
-      back: true,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);

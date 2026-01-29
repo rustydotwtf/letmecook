@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { Session } from "../types";
+import  { type Session } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -24,43 +24,43 @@ export function showDeleteConfirm(
     const { content } = createBaseLayout(renderer, "Delete session");
 
     const sessionInfo = new TextRenderable(renderer, {
-      id: "session-info",
       content: `Session: ${session.name}`,
       fg: "#38bdf8",
+      id: "session-info",
       marginBottom: 1,
     });
     content.add(sessionInfo);
 
     const warning = new TextRenderable(renderer, {
-      id: "warning",
       content: "This permanently deletes the session and its files.",
       fg: "#f59e0b",
+      id: "warning",
       marginBottom: 1,
     });
     content.add(warning);
 
     const question = new TextRenderable(renderer, {
-      id: "question",
       content: "Are you sure you want to delete this session?",
       fg: "#e2e8f0",
+      id: "question",
     });
     content.add(question);
 
     const select = new SelectRenderable(renderer, {
-      id: "delete-confirm-select",
-      width: 38,
+      backgroundColor: "transparent",
+      focusedBackgroundColor: "transparent",
       height: 2,
+      id: "delete-confirm-select",
+      marginTop: 1,
       options: [
         { name: "Cancel", description: "", value: "cancel" },
         { name: "Delete session", description: "", value: "confirm" },
       ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
       selectedTextColor: "#38bdf8",
-      marginTop: 1,
+      showDescription: false,
+      textColor: "#e2e8f0",
+      width: 38,
     });
     content.add(select);
 
@@ -87,9 +87,9 @@ export function showDeleteConfirm(
     };
 
     showFooter(renderer, content, {
+      back: true,
       navigate: true,
       select: true,
-      back: true,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);

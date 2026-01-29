@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { Session, ExitChoice, RepoSpec } from "../types";
+import  { type Session, type ExitChoice, type RepoSpec } from "../types";
 
 import { sessionHasUncommittedChanges } from "../git";
 import { showFooter, hideFooter } from "./common/footer";
@@ -24,39 +24,39 @@ export function showExitPrompt(
 
     // Session info
     const sessionInfo = new TextRenderable(renderer, {
-      id: "session-info",
       content: `Session: ${session.name}`,
       fg: "#38bdf8",
+      id: "session-info",
       marginBottom: 1,
     });
     content.add(sessionInfo);
 
     // Question
     const question = new TextRenderable(renderer, {
-      id: "question",
       content: "What would you like to do?",
       fg: "#e2e8f0",
+      id: "question",
       marginBottom: 1,
     });
     content.add(question);
 
     const select = new SelectRenderable(renderer, {
-      id: "exit-select",
-      width: 40,
+      backgroundColor: "transparent",
+      focusedBackgroundColor: "transparent",
       height: 4,
+      id: "exit-select",
+      marginTop: 1,
       options: [
         { name: "Resume session", description: "", value: "resume" },
         { name: "Edit session", description: "", value: "edit" },
         { name: "Delete session", description: "", value: "delete" },
         { name: "Back to home", description: "", value: "home" },
       ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
       selectedTextColor: "#38bdf8",
-      marginTop: 1,
+      showDescription: false,
+      textColor: "#e2e8f0",
+      width: 40,
     });
     content.add(select);
 
@@ -83,9 +83,9 @@ export function showExitPrompt(
     };
 
     showFooter(renderer, content, {
+      back: true,
       navigate: true,
       select: true,
-      back: true,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);
@@ -105,56 +105,56 @@ export function showExitPromptWithChanges(
 
     // Session info
     const sessionInfo = new TextRenderable(renderer, {
-      id: "session-info",
       content: `Session: ${session.name}`,
       fg: "#38bdf8",
+      id: "session-info",
       marginBottom: 1,
     });
     content.add(sessionInfo);
 
     // Warning about uncommitted changes
     const warning = new TextRenderable(renderer, {
-      id: "warning",
       content: "⚠️  Uncommitted changes detected:",
       fg: "#f59e0b",
+      id: "warning",
       marginBottom: 0,
     });
     content.add(warning);
 
     const changedReposList = new TextRenderable(renderer, {
-      id: "changed-repos",
       content: reposWithChanges.map((r) => `   - ${r.dir}/`).join("\n"),
       fg: "#fbbf24",
+      id: "changed-repos",
       marginBottom: 1,
     });
     content.add(changedReposList);
 
     // Question
     const question = new TextRenderable(renderer, {
-      id: "question",
       content: "What would you like to do?",
       fg: "#e2e8f0",
+      id: "question",
       marginBottom: 1,
     });
     content.add(question);
 
     const select = new SelectRenderable(renderer, {
-      id: "exit-select",
-      width: 40,
+      backgroundColor: "transparent",
+      focusedBackgroundColor: "transparent",
       height: 4,
+      id: "exit-select",
+      marginTop: 1,
       options: [
         { name: "Resume session", description: "", value: "resume" },
         { name: "Edit session", description: "", value: "edit" },
         { name: "Delete session", description: "", value: "delete" },
         { name: "Back to home", description: "", value: "home" },
       ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
       selectedTextColor: "#38bdf8",
-      marginTop: 1,
+      showDescription: false,
+      textColor: "#e2e8f0",
+      width: 40,
     });
     content.add(select);
 
@@ -181,9 +181,9 @@ export function showExitPromptWithChanges(
     };
 
     showFooter(renderer, content, {
+      back: true,
       navigate: true,
       select: true,
-      back: true,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);

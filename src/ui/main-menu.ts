@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { Session } from "../types";
+import  { type Session } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape, isArrowUp, isArrowDown } from "./common/keyboard";
@@ -32,9 +32,9 @@ export function showMainMenu(
 
     // Sessions section with count
     const sessionsHeader = new TextRenderable(renderer, {
-      id: "sessions-header",
       content: `Sessions (${sessions.length})`,
       fg: "#e2e8f0",
+      id: "sessions-header",
       marginBottom: 1,
     });
     content.add(sessionsHeader);
@@ -43,18 +43,18 @@ export function showMainMenu(
     const select =
       options.length > 0
         ? new SelectRenderable(renderer, {
-            id: "session-list",
-            width: 65,
-            height: Math.min(sessions.length * 2, 10),
-            options,
-            showDescription: true,
             backgroundColor: "transparent",
-            focusedBackgroundColor: "transparent",
-            selectedBackgroundColor: "#334155",
-            textColor: "#e2e8f0",
-            selectedTextColor: "#38bdf8",
             descriptionColor: "#64748b",
+            focusedBackgroundColor: "transparent",
+            height: Math.min(sessions.length * 2, 10),
+            id: "session-list",
+            options,
+            selectedBackgroundColor: "#334155",
             selectedDescriptionColor: "#94a3b8",
+            selectedTextColor: "#38bdf8",
+            showDescription: true,
+            textColor: "#e2e8f0",
+            width: 65,
           })
         : null;
 
@@ -62,9 +62,9 @@ export function showMainMenu(
       content.add(select);
     } else {
       const emptyText = new TextRenderable(renderer, {
-        id: "empty-sessions",
         content: "No sessions yet. Start one with [n].",
         fg: "#94a3b8",
+        id: "empty-sessions",
         marginBottom: 1,
       });
       content.add(emptyText);
@@ -78,7 +78,7 @@ export function showMainMenu(
 
     const handleSelect = (_index: number, option: { value: Session }) => {
       cleanup();
-      resolve({ type: "resume", session: option.value });
+      resolve({ session: option.value, type: "resume" });
     };
 
     const handleKeypress = (key: KeyEvent) => {
@@ -90,7 +90,7 @@ export function showMainMenu(
         const session = sessions[selectedIndex];
         if (session) {
           cleanup();
-          resolve({ type: "delete", session });
+          resolve({ session, type: "delete" });
         }
         return;
       }
@@ -140,10 +140,10 @@ export function showMainMenu(
     footerActions.push("q Quit");
 
     showFooter(renderer, content, {
-      navigate: sessions.length > 0,
-      select: false,
       back: false,
       custom: footerActions,
+      navigate: sessions.length > 0,
+      select: false,
     });
 
     if (select) {

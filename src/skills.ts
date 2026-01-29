@@ -1,4 +1,4 @@
-import type { Session } from "./types";
+import  { type Session } from "./types";
 
 import { writeAgentsMd } from "./agents-md";
 import { updateSessionSkills } from "./sessions";
@@ -9,13 +9,13 @@ export async function updateSkills(
   onProgress?: (output: string) => void
 ): Promise<{ success: boolean; output: string[] }> {
   if (!session.skills || session.skills.length === 0) {
-    return { success: true, output: [] };
+    return { output: [], success: true };
   }
 
   const proc = Bun.spawn(["bunx", "skills", "update", "-y"], {
     cwd: session.path,
-    stdout: "pipe",
     stderr: "pipe",
+    stdout: "pipe",
   });
 
   return readProcessOutput(proc, onProgress);
@@ -28,8 +28,8 @@ export async function addSkillToSession(
 ): Promise<{ success: boolean; output: string[] }> {
   const proc = Bun.spawn(["bunx", "skills", "add", skillString, "-y"], {
     cwd: session.path,
-    stdout: "pipe",
     stderr: "pipe",
+    stdout: "pipe",
   });
 
   return readProcessOutput(proc, onProgress);

@@ -5,7 +5,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { Session, RepoSpec } from "../types";
+import  { type Session, type RepoSpec } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import {
@@ -36,81 +36,81 @@ export function showSessionSettings(
     const { content } = createBaseLayout(renderer, "Edit session settings");
 
     const sessionInfo = new TextRenderable(renderer, {
-      id: "session-info",
       content: `Session: ${session.name}`,
       fg: "#38bdf8",
+      id: "session-info",
       marginBottom: 1,
     });
     content.add(sessionInfo);
 
     const goalLabel = new TextRenderable(renderer, {
-      id: "goal-label",
       content: "Goal:",
       fg: "#e2e8f0",
+      id: "goal-label",
       marginBottom: 0,
     });
     content.add(goalLabel);
 
     const goalInput = new InputRenderable(renderer, {
-      id: "goal-input",
-      width: 60,
+      backgroundColor: "#334155",
+      cursorColor: "#38bdf8",
       height: 1,
+      id: "goal-input",
+      marginTop: 1,
       placeholder: "Add a goal for this session",
       placeholderColor: "#64748b",
-      backgroundColor: "#334155",
       textColor: "#f8fafc",
-      cursorColor: "#38bdf8",
-      marginTop: 1,
+      width: 60,
     });
     goalInput.value = session.goal ?? "";
     content.add(goalInput);
 
     const reposLabel = new TextRenderable(renderer, {
-      id: "repos-label",
       content: "\nRepositories:",
       fg: "#e2e8f0",
-      marginTop: 1,
+      id: "repos-label",
       marginBottom: 0,
+      marginTop: 1,
     });
     content.add(reposLabel);
 
     const reposList = new TextRenderable(renderer, {
-      id: "repos-list",
       content: "(none)",
       fg: "#94a3b8",
+      id: "repos-list",
       marginTop: 0,
     });
     content.add(reposList);
 
     const skillsLabel = new TextRenderable(renderer, {
-      id: "skills-label",
       content: "\nSkills:",
       fg: "#e2e8f0",
-      marginTop: 1,
+      id: "skills-label",
       marginBottom: 0,
+      marginTop: 1,
     });
     content.add(skillsLabel);
 
     const skillsList = new TextRenderable(renderer, {
-      id: "skills-list",
       content: "(none)",
       fg: "#94a3b8",
+      id: "skills-list",
       marginTop: 0,
     });
     content.add(skillsList);
 
     const statusText = new TextRenderable(renderer, {
-      id: "status",
       content: "",
       fg: "#64748b",
+      id: "status",
       marginTop: 1,
     });
     content.add(statusText);
 
     const instructions = new TextRenderable(renderer, {
-      id: "instructions",
       content: "",
       fg: "#64748b",
+      id: "instructions",
       marginTop: 1,
     });
     content.add(instructions);
@@ -120,7 +120,7 @@ export function showSessionSettings(
     let selectedRepoIndex = 0;
     let selectedSkillIndex = 0;
     const updatedRepos: RepoSpec[] = session.repos.map((repo) => ({ ...repo }));
-    const updatedSkills = (session.skills || []).slice();
+    const updatedSkills = [...session.skills || []];
     let updatedGoal = session.goal ?? "";
 
     const updateReposList = () => {
@@ -235,10 +235,10 @@ export function showSessionSettings(
 
       hideFooter(renderer);
       showFooter(renderer, content, {
-        navigate: true,
-        select: false,
         back: true,
         custom: ["Tab Switch", ...customActions],
+        navigate: true,
+        select: false,
       });
     };
 

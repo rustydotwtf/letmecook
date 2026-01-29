@@ -1,9 +1,9 @@
-import type { CliRenderer } from "@opentui/core";
+import  { type CliRenderer } from "@opentui/core";
 
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Session, RepoSpec } from "../types";
+import  { type Session, type RepoSpec } from "../types";
 
 import { writeAgentsMd, createClaudeMdSymlink } from "../agents-md";
 import { generateSessionName } from "../naming";
@@ -62,9 +62,9 @@ function reposToCommandTasks(
         ];
 
     return {
-      label: `Cloning ${repo.owner}/${repo.name}`,
       command: args,
       cwd: sessionPath,
+      label: `Cloning ${repo.owner}/${repo.name}`,
     };
   });
 }
@@ -74,9 +74,9 @@ function skillsToCommandTasks(
   sessionPath: string
 ): CommandTask[] {
   return skills.map((skill) => ({
-    label: `Installing ${skill}`,
     command: ["bunx", "skills", "add", skill, "-y"],
     cwd: sessionPath,
+    label: `Installing ${skill}`,
   }));
 }
 
@@ -94,18 +94,22 @@ export async function createNewSession(
         const choice = await showConflictPrompt(renderer, existingSession);
 
         switch (choice) {
-          case "resume":
+          case "resume": {
             return { session: existingSession, skipped: true };
+          }
 
-          case "nuke":
+          case "nuke": {
             await deleteSession(existingSession.name);
             break;
+          }
 
-          case "new":
+          case "new": {
             break;
+          }
 
-          case "cancel":
+          case "cancel": {
             return null;
+          }
         }
       }
     }
@@ -114,9 +118,9 @@ export async function createNewSession(
     let sessionName: string;
     if (mode === "tui") {
       const proposal = showAgentProposal(renderer, {
-        sessionName: "generating...",
-        repos,
         goal,
+        repos,
+        sessionName: "generating...",
       });
       sessionName = await generateSessionName(repos, goal);
       proposal.sessionNameText.content = `Session: ${sessionName}`;
@@ -144,14 +148,14 @@ export async function createNewSession(
       ];
 
       const results = await runCommands(renderer, {
-        title: "Setting up session",
-        tasks,
-        showOutput: true,
-        outputLines: 5,
         allowAbort: true,
-        allowSkip: tasks.length > 1,
         allowBackground: true,
+        allowSkip: tasks.length > 1,
+        outputLines: 5,
         sessionName,
+        showOutput: true,
+        tasks,
+        title: "Setting up session",
       });
 
       // Handle aborted operation - clean up and return null
@@ -172,7 +176,7 @@ export async function createNewSession(
         if (repoName) {
           const repoPath = join(session.path, repoName);
           try {
-            await rm(repoPath, { recursive: true, force: true });
+            await rm(repoPath, { force: true, recursive: true });
           } catch {
             // Ignore cleanup errors
           }
@@ -216,7 +220,7 @@ export async function createNewSession(
       await createClaudeMdSymlink(session.path);
 
       return { session };
-    } else {
+    }
       // CLI mode - simpler output
       const session = await createSession(
         sessionName,
@@ -258,7 +262,7 @@ export async function createNewSession(
       hideCommandRunner(renderer);
 
       return { session };
-    }
+    
   } catch (error) {
     hideCommandRunner(renderer);
     throw error;

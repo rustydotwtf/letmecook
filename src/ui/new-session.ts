@@ -5,7 +5,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { RepoSpec } from "../types";
+import  { type RepoSpec } from "../types";
 
 import { createBaseLayout, clearLayout } from "./renderer";
 
@@ -25,9 +25,9 @@ export function showNewSessionPrompt(
 
     // Show repos
     const reposLabel = new TextRenderable(renderer, {
-      id: "repos-label",
       content: "Repositories:",
       fg: "#e2e8f0",
+      id: "repos-label",
       marginBottom: 0,
     });
     content.add(reposLabel);
@@ -36,47 +36,47 @@ export function showNewSessionPrompt(
       const branch = repo.branch ? ` (${repo.branch})` : " (default)";
       const roMarker = repo.readOnly ? " [Read-only]" : "";
       const repoText = new TextRenderable(renderer, {
-        id: `repo-${i}`,
         content: `  - ${repo.owner}/${repo.name}${branch}${roMarker}`,
         fg: "#94a3b8",
+        id: `repo-${i}`,
       });
       content.add(repoText);
     });
 
     // Goal prompt
     const goalLabel = new TextRenderable(renderer, {
-      id: "goal-label",
       content: "\nAnything you'd like to add? (goal/context for AI agents)",
       fg: "#e2e8f0",
+      id: "goal-label",
       marginTop: 1,
     });
     content.add(goalLabel);
 
     const goalInput = new InputRenderable(renderer, {
-      id: "goal-input",
-      width: 60,
+      backgroundColor: "#334155",
+      cursorColor: "#38bdf8",
       height: 1,
+      id: "goal-input",
+      marginTop: 1,
       placeholder: "e.g., Integrate testing framework...",
       placeholderColor: "#64748b",
-      backgroundColor: "#334155",
       textColor: "#f8fafc",
-      cursorColor: "#38bdf8",
-      marginTop: 1,
+      width: 60,
     });
     content.add(goalInput);
 
     goalInput.onPaste = (event) => {
-      const text = event.text.replace(/[\r\n]+/g, "");
-      if (!text) return;
+      const text = event.text.replaceAll(/[\r\n]+/g, "");
+      if (!text) {return;}
       goalInput.insertText(text);
       event.preventDefault();
     };
 
     // Instructions
     const instructions = new TextRenderable(renderer, {
-      id: "instructions",
       content: "\n[Enter] Continue   [Esc] Cancel",
       fg: "#64748b",
+      id: "instructions",
       marginTop: 1,
     });
     content.add(instructions);
@@ -90,7 +90,7 @@ export function showNewSessionPrompt(
       } else if (key.name === "return" || key.name === "enter") {
         cleanup();
         const goal = goalInput.value.trim() || undefined;
-        resolve({ goal, cancelled: false });
+        resolve({ cancelled: false, goal });
       }
     };
 

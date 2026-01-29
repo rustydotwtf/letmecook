@@ -1,19 +1,18 @@
-import type { ReactNode } from "react";
+import  { type ReactNode } from "react";
 
 import Heading from "@theme/Heading";
 import { clsx } from "clsx";
 
 import styles from "./styles.module.css";
 
-type FeatureItem = {
+interface FeatureItem {
   title: string;
   Svg: React.ComponentType<React.ComponentProps<"svg">>;
   description: ReactNode;
-};
+}
 
 const FeatureList: FeatureItem[] = [
   {
-    title: "Easy to Use",
     Svg: require("@site/static/img/undraw_docusaurus_mountain.svg").default,
     description: (
       <>
@@ -21,9 +20,9 @@ const FeatureList: FeatureItem[] = [
         used to get your website up and running quickly.
       </>
     ),
+    title: "Easy to Use",
   },
   {
-    title: "Focus on What Matters",
     Svg: require("@site/static/img/undraw_docusaurus_tree.svg").default,
     description: (
       <>
@@ -31,9 +30,9 @@ const FeatureList: FeatureItem[] = [
         ahead and move your docs into the <code>docs</code> directory.
       </>
     ),
+    title: "Focus on What Matters",
   },
   {
-    title: "Powered by React",
     Svg: require("@site/static/img/undraw_docusaurus_react.svg").default,
     description: (
       <>
@@ -41,6 +40,7 @@ const FeatureList: FeatureItem[] = [
         be extended while reusing the same header and footer.
       </>
     ),
+    title: "Powered by React",
   },
 ];
 

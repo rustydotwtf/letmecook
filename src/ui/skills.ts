@@ -24,49 +24,49 @@ export async function showSkillsPrompt(
     const { content } = createBaseLayout(renderer, "Add skills to session");
 
     const description = new TextRenderable(renderer, {
-      id: "description",
       content:
         "Enter skill packages to install (e.g., vercel-labs/agent-skills).\nSkills will be installed in the session directory.",
       fg: "#64748b",
+      id: "description",
       marginBottom: 1,
     });
     content.add(description);
 
     const input = new InputRenderable(renderer, {
-      id: "skill-input",
-      width: 60,
+      backgroundColor: "#334155",
+      cursorColor: "#38bdf8",
       height: 1,
+      id: "skill-input",
+      marginTop: 1,
       placeholder: "Enter skill package",
       placeholderColor: "#64748b",
-      backgroundColor: "#334155",
       textColor: "#f8fafc",
-      cursorColor: "#38bdf8",
-      marginTop: 1,
+      width: 60,
     });
     content.add(input);
 
     const skillsLabel = new TextRenderable(renderer, {
-      id: "skills-label",
       content: "\nAdded skills:",
       fg: "#e2e8f0",
-      marginTop: 1,
+      id: "skills-label",
       marginBottom: 0,
+      marginTop: 1,
     });
     content.add(skillsLabel);
 
     const existingSkillsText = new TextRenderable(renderer, {
-      id: "existing-skills",
       content: "(none)",
       fg: "#64748b",
-      marginTop: 1,
+      id: "existing-skills",
       marginBottom: 0,
+      marginTop: 1,
     });
     content.add(existingSkillsText);
 
     const skillsCounter = new TextRenderable(renderer, {
-      id: "skills-counter",
       content: "",
       fg: "#94a3b8",
+      id: "skills-counter",
       marginTop: 0,
     });
     content.add(skillsCounter);
@@ -97,8 +97,8 @@ export async function showSkillsPrompt(
       if (isEscape(key)) {
         cleanup();
         resolve({
-          skills: [],
           cancelled: true,
+          skills: [],
         });
         return;
       }
@@ -114,8 +114,8 @@ export async function showSkillsPrompt(
           // Empty input = done (with or without skills)
           cleanup();
           resolve({
-            skills,
             cancelled: false,
+            skills,
           });
         }
         return;
@@ -124,10 +124,10 @@ export async function showSkillsPrompt(
 
     input.focus();
     showFooter(renderer, content, {
-      navigate: false,
-      select: true,
       back: true,
       custom: ["Enter Add/Done"],
+      navigate: false,
+      select: true,
     });
     renderer.keyInput.on("keypress", handleKeypress);
     updateExistingSkills();

@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { Session } from "../types";
+import  { type Session } from "../types";
 
 import { formatRepoList } from "./common/repo-formatter";
 import { createBaseLayout, clearLayout } from "./renderer";
@@ -24,39 +24,42 @@ export function showSessionActions(
 
     // Session info
     const sessionInfo = new TextRenderable(renderer, {
-      id: "session-info",
       content: `Session: ${session.name}`,
       fg: "#38bdf8",
+      id: "session-info",
       marginBottom: 1,
     });
     content.add(sessionInfo);
 
     // Show repos
     const reposText = formatRepoList(session.repos, {
-      showMarkers: true,
       prefix: "  ",
+      showMarkers: true,
     });
     const reposInfo = new TextRenderable(renderer, {
-      id: "repos-info",
       content: `Repositories:\n${reposText}`,
       fg: "#94a3b8",
+      id: "repos-info",
       marginBottom: 1,
     });
     content.add(reposInfo);
 
     // Question
     const question = new TextRenderable(renderer, {
-      id: "question",
       content: "What would you like to do?",
       fg: "#e2e8f0",
+      id: "question",
     });
     content.add(question);
 
     // Options
     const select = new SelectRenderable(renderer, {
-      id: "action-select",
-      width: 40,
+      backgroundColor: "transparent",
+      descriptionColor: "#64748b",
+      focusedBackgroundColor: "transparent",
       height: 3,
+      id: "action-select",
+      marginTop: 1,
       options: [
         {
           name: "Continue session",
@@ -74,23 +77,20 @@ export function showSessionActions(
           value: "exit",
         },
       ],
-      showDescription: true,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
-      selectedTextColor: "#38bdf8",
-      descriptionColor: "#64748b",
       selectedDescriptionColor: "#94a3b8",
-      marginTop: 1,
+      selectedTextColor: "#38bdf8",
+      showDescription: true,
+      textColor: "#e2e8f0",
+      width: 40,
     });
     content.add(select);
 
     // Instructions
     const instructions = new TextRenderable(renderer, {
-      id: "instructions",
       content: "\n[Enter] Select   [Esc] Exit session",
       fg: "#64748b",
+      id: "instructions",
       marginTop: 1,
     });
     content.add(instructions);

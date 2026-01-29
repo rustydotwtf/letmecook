@@ -1,9 +1,9 @@
-import type { CliRenderer } from "@opentui/core";
+import  { type CliRenderer } from "@opentui/core";
 
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
 
-import type { Session } from "./types";
+import  { type Session } from "./types";
 
 import { handleChatMode } from "./chat-mode";
 import { createNewSession, resumeSession } from "./flows";
@@ -79,13 +79,15 @@ export async function handleTUIMode(): Promise<void> {
           break;
         }
 
-        case "new-session":
+        case "new-session": {
           await handleNewSessionFlow(renderer);
           break;
+        }
 
-        case "resume":
+        case "resume": {
           await handleSessionDetailsFlow(renderer, action.session);
           break;
+        }
 
         case "delete": {
           const choice = await showDeleteConfirm(renderer, action.session);
@@ -137,7 +139,7 @@ async function handleNewSessionFlow(renderer: CliRenderer): Promise<void> {
     return;
   }
 
-  const repos = addReposResult.repos;
+  const {repos} = addReposResult;
 
   const { skills, cancelled: skillsCancelled } =
     await showSkillsPrompt(renderer);
@@ -153,10 +155,10 @@ async function handleNewSessionFlow(renderer: CliRenderer): Promise<void> {
   }
 
   const result = await createNewSession(renderer, {
-    repos,
     goal: goalResult.goal,
-    skills: skills.length > 0 ? skills : undefined,
     mode: "tui",
+    repos,
+    skills: skills.length > 0 ? skills : undefined,
   });
 
   if (!result) {
@@ -175,9 +177,9 @@ async function handleNewSessionFlow(renderer: CliRenderer): Promise<void> {
 
   await runManualSetup(session);
   await resumeSession(renderer, {
-    session,
-    mode: "tui",
     initialRefresh: false,
+    mode: "tui",
+    session,
   });
 }
 
@@ -231,9 +233,9 @@ async function handleSessionDetailsFlow(
     if (detailsAction === "resume") {
       await updateLastAccessed(currentSession.name);
       await resumeSession(renderer, {
-        session: currentSession,
-        mode: "tui",
         initialRefresh: true,
+        mode: "tui",
+        session: currentSession,
       });
       return;
     }
@@ -242,16 +244,16 @@ async function handleSessionDetailsFlow(
       const editResult = await showSessionSettings(renderer, currentSession);
       if (editResult.action === "saved") {
         const saved = await updateSessionSettings(editResult.session.name, {
-          repos: editResult.session.repos,
           goal: editResult.session.goal,
+          repos: editResult.session.repos,
         });
         if (saved) {
           currentSession = saved;
         }
       } else if (editResult.action === "add-repos") {
         const saved = await updateSessionSettings(editResult.session.name, {
-          repos: editResult.session.repos,
           goal: editResult.session.goal,
+          repos: editResult.session.repos,
         });
         if (saved) {
           currentSession = saved;

@@ -50,12 +50,12 @@ export function createBaseLayout(
 
   // Main container
   const container = new BoxRenderable(r, {
-    id: "main-container",
-    width: "100%",
-    height: "100%",
-    flexDirection: "column",
     alignItems: "center",
+    flexDirection: "column",
+    height: "100%",
+    id: "main-container",
     padding: 1,
+    width: "100%",
   });
   r.root.add(container);
 
@@ -63,47 +63,47 @@ export function createBaseLayout(
   const titleText = "letmecook";
   const titleFont = "tiny";
   const { width: titleWidth } = measureText({
-    text: titleText,
     font: titleFont,
+    text: titleText,
   });
   const centerX = Math.floor(width / 2) - Math.floor(titleWidth / 2);
 
   const title = new ASCIIFontRenderable(r, {
-    id: "title",
-    text: titleText,
-    font: titleFont,
     color: RGBA.fromHex("#f8fafc"),
-    position: "absolute",
+    font: titleFont,
+    id: "title",
     left: centerX,
+    position: "absolute",
+    text: titleText,
     top: 11,
   });
   r.root.add(title);
 
   // Content box below title
   const content = new BoxRenderable(r, {
+    backgroundColor: "#1e293b",
+    borderColor: "#475569",
+    borderStyle: "single",
+    flexDirection: "column",
     id: "content",
-    width: Math.min(70, width - 4),
     marginTop: 15,
     padding: 1,
-    flexDirection: "column",
-    borderStyle: "single",
-    borderColor: "#475569",
-    backgroundColor: "#1e293b",
+    width: Math.min(70, width - 4),
   });
   container.add(content);
 
   // Add subtitle if provided
   if (subtitle) {
     const subtitleText = new TextRenderable(r, {
-      id: "subtitle",
       content: subtitle,
       fg: "#94a3b8",
+      id: "subtitle",
       marginBottom: 1,
     });
     content.add(subtitleText);
   }
 
-  return { container, title, content };
+  return { container, content, title };
 }
 
 export function clearLayout(r: CliRenderer): void {

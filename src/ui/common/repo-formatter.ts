@@ -1,4 +1,4 @@
-import type { RepoSpec } from "../../types";
+import  { type RepoSpec } from "../../types";
 
 export interface RepoFormatterOptions {
   showMarkers?: boolean;
@@ -11,7 +11,7 @@ export function formatRepoList(
 ): string {
   const { showMarkers = true, prefix = "" } = options;
 
-  if (repos.length === 0) return "(none)";
+  if (repos.length === 0) {return "(none)";}
 
   return repos
     .map((repo) => {

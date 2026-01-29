@@ -10,8 +10,8 @@ import {
 } from "@opentui/core";
 import { measureText } from "@opentui/core";
 
-import type { PartialConfig } from "../config-builder";
-import type { ChatMessage } from "../flows/chat-to-config";
+import  { type PartialConfig } from "../config-builder";
+import  { type ChatMessage } from "../flows/chat-to-config";
 
 import { copyToClipboard } from "./common/clipboard";
 import { showFooter, hideFooter } from "./common/footer";
@@ -63,12 +63,12 @@ export function createChatWithSidebarLayout(
 
   // Main container
   const container = new BoxRenderable(renderer, {
-    id: "main-container",
-    width: "100%",
-    height: "100%",
-    flexDirection: "column",
     alignItems: "center",
+    flexDirection: "column",
+    height: "100%",
+    id: "main-container",
     padding: 1,
+    width: "100%",
   });
   renderer.root.add(container);
 
@@ -76,18 +76,18 @@ export function createChatWithSidebarLayout(
   const titleText = "letmecook";
   const titleFont = "tiny";
   const { width: titleWidth } = measureText({
-    text: titleText,
     font: titleFont,
+    text: titleText,
   });
   const centerX = Math.floor(width / 2) - Math.floor(titleWidth / 2);
 
   const title = new ASCIIFontRenderable(renderer, {
-    id: "title",
-    text: titleText,
-    font: titleFont,
     color: RGBA.fromHex("#f8fafc"),
-    position: "absolute",
+    font: titleFont,
+    id: "title",
     left: centerX,
+    position: "absolute",
+    text: titleText,
     top: 11,
   });
   renderer.root.add(title);
@@ -99,47 +99,47 @@ export function createChatWithSidebarLayout(
 
   // Main horizontal box containing chat and sidebar
   const mainBox = new BoxRenderable(renderer, {
-    id: "content",
-    width: totalWidth,
-    marginTop: 15,
     flexDirection: "row",
     gap: 1,
+    id: "content",
+    marginTop: 15,
+    width: totalWidth,
   });
   container.add(mainBox);
 
   // === LEFT: Chat Box ===
   const chatBox = new BoxRenderable(renderer, {
-    id: "chat-box",
-    width: chatWidth,
-    height: Math.max(16, height - 22),
-    flexDirection: "column",
-    borderStyle: "single",
-    borderColor: "#475569",
     backgroundColor: "#1e293b",
+    borderColor: "#475569",
+    borderStyle: "single",
+    flexDirection: "column",
+    height: Math.max(16, height - 22),
+    id: "chat-box",
     padding: 1,
+    width: chatWidth,
   });
   mainBox.add(chatBox);
 
   // Chat header
   const chatHeader = new TextRenderable(renderer, {
-    id: "chat-header",
     content: "Chat",
     fg: "#94a3b8",
+    id: "chat-header",
     marginBottom: 1,
   });
   chatBox.add(chatHeader);
 
   // Chat scrollable area
   const chatScrollBox = new ScrollBoxRenderable(renderer, {
-    id: "chat-scrollbox",
-    width: chatWidth - 4,
+    backgroundColor: "transparent",
+    border: false,
     height: Math.max(8, height - 32),
-    scrollY: true,
+    id: "chat-scrollbox",
     scrollX: false,
+    scrollY: true,
     stickyScroll: true,
     stickyStart: "bottom",
-    border: false,
-    backgroundColor: "transparent",
+    width: chatWidth - 4,
   });
   chatBox.add(chatScrollBox);
 
@@ -149,9 +149,9 @@ export function createChatWithSidebarLayout(
     const fg = msg.role === "user" ? "#e2e8f0" : "#94a3b8";
 
     const messageText = new TextRenderable(renderer, {
-      id: `msg-${index}`,
       content: `${prefix} ${msg.content}`,
       fg,
+      id: `msg-${index}`,
       marginBottom: 1,
       maxWidth: chatWidth - 8,
     });
@@ -160,68 +160,68 @@ export function createChatWithSidebarLayout(
 
   // Input container
   const inputContainer = new BoxRenderable(renderer, {
-    id: "input-container",
-    width: chatWidth - 4,
     flexDirection: "column",
+    id: "input-container",
     marginTop: 1,
+    width: chatWidth - 4,
   });
   chatBox.add(inputContainer);
 
   // Input
   const input = new InputRenderable(renderer, {
-    id: "chat-input",
-    width: chatWidth - 6,
+    backgroundColor: "#334155",
+    cursorColor: "#38bdf8",
     height: 1,
+    id: "chat-input",
     placeholder: "Type your message...",
     placeholderColor: "#64748b",
-    backgroundColor: "#334155",
     textColor: "#f8fafc",
-    cursorColor: "#38bdf8",
+    width: chatWidth - 6,
   });
   inputContainer.add(input);
 
   // Enable pasting
   input.onPaste = (event) => {
-    const text = event.text.replace(/[\r\n]+/g, "");
-    if (!text) return;
+    const text = event.text.replaceAll(/[\r\n]+/g, "");
+    if (!text) {return;}
     input.insertText(text);
     event.preventDefault();
   };
 
   // === RIGHT: Sidebar Box ===
   const sidebarBox = new BoxRenderable(renderer, {
-    id: "sidebar-box",
-    width: sidebarWidth,
-    height: Math.max(16, height - 22),
-    flexDirection: "column",
-    borderStyle: "single",
-    borderColor: "#475569",
     backgroundColor: "#1e293b",
+    borderColor: "#475569",
+    borderStyle: "single",
+    flexDirection: "column",
+    height: Math.max(16, height - 22),
+    id: "sidebar-box",
     padding: 1,
+    width: sidebarWidth,
   });
   mainBox.add(sidebarBox);
 
   // Sidebar header
   const sidebarHeader = new TextRenderable(renderer, {
-    id: "sidebar-header",
     content: "Configuration",
     fg: "#94a3b8",
+    id: "sidebar-header",
     marginBottom: 1,
   });
   sidebarBox.add(sidebarHeader);
 
   // Repositories section
   const reposLabel = new TextRenderable(renderer, {
-    id: "repos-label",
     content: "\u{1F4E6} Repositories:",
     fg: "#38bdf8",
+    id: "repos-label",
     marginBottom: 0,
   });
   sidebarBox.add(reposLabel);
 
   const reposContainer = new BoxRenderable(renderer, {
-    id: "repos-container",
     flexDirection: "column",
+    id: "repos-container",
     marginBottom: 1,
     marginLeft: 1,
   });
@@ -229,17 +229,17 @@ export function createChatWithSidebarLayout(
 
   // Skills section
   const skillsLabel = new TextRenderable(renderer, {
-    id: "skills-label",
     content: "\u{1F6E0}\uFE0F  Skills:",
     fg: "#38bdf8",
-    marginTop: 1,
+    id: "skills-label",
     marginBottom: 0,
+    marginTop: 1,
   });
   sidebarBox.add(skillsLabel);
 
   const skillsContainer = new BoxRenderable(renderer, {
-    id: "skills-container",
     flexDirection: "column",
+    id: "skills-container",
     marginBottom: 1,
     marginLeft: 1,
   });
@@ -247,29 +247,29 @@ export function createChatWithSidebarLayout(
 
   // Goal section
   const goalLabel = new TextRenderable(renderer, {
-    id: "goal-label",
     content: "\u{1F3AF} Goal:",
     fg: "#38bdf8",
-    marginTop: 1,
+    id: "goal-label",
     marginBottom: 0,
+    marginTop: 1,
   });
   sidebarBox.add(goalLabel);
 
   const goalText = new TextRenderable(renderer, {
-    id: "goal-text",
     content: "(not set)",
     fg: "#64748b",
-    marginLeft: 1,
+    id: "goal-text",
     marginBottom: 1,
+    marginLeft: 1,
     maxWidth: sidebarWidth - 4,
   });
   sidebarBox.add(goalText);
 
   // Status
   const statusText = new TextRenderable(renderer, {
-    id: "status-text",
     content: 'Status: Waiting for input...\nSay "ready" when done',
     fg: "#64748b",
+    id: "status-text",
     marginTop: 2,
   });
   sidebarBox.add(statusText);
@@ -279,19 +279,21 @@ export function createChatWithSidebarLayout(
 
   // Populate initial config
   const elements: ChatWithSidebarElements = {
-    container,
-    title,
-    mainBox,
     chatBox,
     chatScrollBox,
-    sidebarBox,
-    inputContainer,
-    input,
-    reposContainer,
-    skillsContainer,
-    goalText,
-    statusText,
+    container,
     cookingIndicator,
+    goalText,
+    hideCooking: () => {
+      // Hide cooking indicator and re-enable input
+      if (cookingIndicator) {
+        cookingIndicator.stop();
+      }
+    },
+    input,
+    inputContainer,
+    mainBox,
+    reposContainer,
     showCooking: () => {
       // Disable input and show cooking indicator
       input.blur();
@@ -299,12 +301,10 @@ export function createChatWithSidebarLayout(
         cookingIndicator.start();
       }
     },
-    hideCooking: () => {
-      // Hide cooking indicator and re-enable input
-      if (cookingIndicator) {
-        cookingIndicator.stop();
-      }
-    },
+    sidebarBox,
+    skillsContainer,
+    statusText,
+    title,
   };
 
   updateSidebar(renderer, elements, config);
@@ -348,17 +348,17 @@ export function updateSidebar(
   if (config.repos.length > 0) {
     config.repos.forEach((repo, i) => {
       const repoText = new TextRenderable(renderer, {
-        id: `sidebar-repo-${i}`,
         content: `\u2022 ${repo}`,
         fg: "#94a3b8",
+        id: `sidebar-repo-${i}`,
       });
       reposContainer.add(repoText);
     });
   } else {
     const noRepos = new TextRenderable(renderer, {
-      id: "sidebar-no-repos",
       content: "(none)",
       fg: "#64748b",
+      id: "sidebar-no-repos",
     });
     reposContainer.add(noRepos);
   }
@@ -368,17 +368,17 @@ export function updateSidebar(
   if (config.skills.length > 0) {
     config.skills.forEach((skill, i) => {
       const skillText = new TextRenderable(renderer, {
-        id: `sidebar-skill-${i}`,
         content: `\u2022 ${skill}`,
         fg: "#94a3b8",
+        id: `sidebar-skill-${i}`,
       });
       skillsContainer.add(skillText);
     });
   } else {
     const noSkills = new TextRenderable(renderer, {
-      id: "sidebar-no-skills",
       content: "(none)",
       fg: "#64748b",
+      id: "sidebar-no-skills",
     });
     skillsContainer.add(noSkills);
   }
@@ -415,9 +415,9 @@ export function addMessageToChat(
   const fg = message.role === "user" ? "#e2e8f0" : "#94a3b8";
 
   const messageText = new TextRenderable(renderer, {
-    id: `msg-${index}`,
     content: `${prefix} ${message.content}`,
     fg,
+    id: `msg-${index}`,
     marginBottom: 1,
     maxWidth: 56,
   });
@@ -434,18 +434,18 @@ export function createStreamingMessage(
   let streamingText = "";
 
   const streamingPrefix = new TextRenderable(renderer, {
-    id: "streaming-prefix",
     content: "\u{1F916} ",
     fg: "#94a3b8",
-    marginTop: 1,
+    id: "streaming-prefix",
     marginBottom: 0,
+    marginTop: 1,
   });
   elements.chatScrollBox.add(streamingPrefix);
 
   const streamingMessage = new TextRenderable(renderer, {
-    id: "streaming-content",
     content: "",
     fg: "#94a3b8",
+    id: "streaming-content",
     marginBottom: 1,
     maxWidth: 56,
   });
@@ -466,7 +466,7 @@ export function createStreamingMessage(
     }
   };
 
-  return { update, finish };
+  return { finish, update };
 }
 
 /**
@@ -489,7 +489,7 @@ export function waitForChatInput(
     const handleKeypress = (key: KeyEvent) => {
       if (isEscape(key)) {
         cleanup();
-        resolve({ message: "", cancelled: true });
+        resolve({ cancelled: true, message: "" });
         return;
       }
 
@@ -497,7 +497,7 @@ export function waitForChatInput(
         const message = input.value.trim();
         // Note: We don't need to clear input since layout is recreated after each message
         cleanup();
-        resolve({ message, cancelled: false });
+        resolve({ cancelled: false, message });
         return;
       }
 
@@ -524,10 +524,10 @@ export function waitForChatInput(
 
     input.focus();
     showFooter(renderer, container, {
-      navigate: false,
-      select: false,
       back: true,
       custom: ["Enter Send", '"ready" to proceed', "Ctrl+C Copy", "Esc Cancel"],
+      navigate: false,
+      select: false,
     });
     renderer.keyInput.on("keypress", handleKeypress);
   });

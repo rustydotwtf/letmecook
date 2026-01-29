@@ -1,7 +1,7 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Session, RepoSpec } from "../types";
+import  { type Session, type RepoSpec } from "../types";
 
 import { writeAgentsMd } from "../agents-md";
 import { recordRepoHistory } from "../repo-history";
@@ -59,9 +59,9 @@ function reposToCommandTasks(
         ];
 
     return {
-      label: `Cloning ${repo.owner}/${repo.name}`,
       command: args,
       cwd: sessionPath,
+      label: `Cloning ${repo.owner}/${repo.name}`,
     };
   });
 }
@@ -71,9 +71,9 @@ function skillsToCommandTasks(
   sessionPath: string
 ): CommandTask[] {
   return skills.map((skill) => ({
-    label: `Installing ${skill}`,
     command: ["bunx", "skills", "add", skill, "-y"],
     cwd: sessionPath,
+    label: `Installing ${skill}`,
   }));
 }
 
@@ -98,13 +98,13 @@ export async function editSession(
         const tasks = reposToCommandTasks(newRepos, currentSession.path);
 
         const results = await runCommands(renderer, {
-          title: "Adding repositories",
-          tasks,
-          showOutput: true,
-          outputLines: 5,
           allowAbort: true,
-          allowSkip: tasks.length > 1,
           allowBackground: true,
+          allowSkip: tasks.length > 1,
+          outputLines: 5,
+          showOutput: true,
+          tasks,
+          title: "Adding repositories",
         });
 
         // Handle aborted operation
@@ -115,7 +115,7 @@ export async function editSession(
           for (const repo of newRepos) {
             const repoPath = join(currentSession.path, repo.dir);
             try {
-              await rm(repoPath, { recursive: true, force: true });
+              await rm(repoPath, { force: true, recursive: true });
             } catch {
               // Ignore cleanup errors
             }
@@ -134,7 +134,7 @@ export async function editSession(
           if (repo) {
             const repoPath = join(currentSession.path, repo.dir);
             try {
-              await rm(repoPath, { recursive: true, force: true });
+              await rm(repoPath, { force: true, recursive: true });
             } catch {
               // Ignore cleanup errors
             }
@@ -197,13 +197,13 @@ export async function editSession(
         const tasks = skillsToCommandTasks(newSkills, currentSession.path);
 
         const results = await runCommands(renderer, {
-          title: "Adding skills",
-          tasks,
-          showOutput: true,
-          outputLines: 5,
           allowAbort: true,
-          allowSkip: tasks.length > 1,
           allowBackground: true,
+          allowSkip: tasks.length > 1,
+          outputLines: 5,
+          showOutput: true,
+          tasks,
+          title: "Adding skills",
         });
 
         // Handle aborted operation

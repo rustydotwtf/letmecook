@@ -1,9 +1,9 @@
-import type { CliRenderer } from "@opentui/core";
+import  { type CliRenderer } from "@opentui/core";
 
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Session, RepoSpec } from "../types";
+import  { type Session, type RepoSpec } from "../types";
 
 import { writeAgentsMd } from "../agents-md";
 import { recordRepoHistory } from "../repo-history";
@@ -57,9 +57,9 @@ function reposToCommandTasks(
         ];
 
     return {
-      label: `Cloning ${repo.owner}/${repo.name}`,
       command: args,
       cwd: sessionPath,
+      label: `Cloning ${repo.owner}/${repo.name}`,
     };
   });
 }
@@ -79,14 +79,14 @@ export async function addReposFlow(
       const tasks = reposToCommandTasks(newRepos, session.path);
 
       const results = await runCommands(renderer, {
-        title: "Adding repositories",
-        tasks,
-        showOutput: true,
-        outputLines: 5,
         allowAbort: true,
-        allowSkip: tasks.length > 1,
         allowBackground: true,
+        allowSkip: tasks.length > 1,
+        outputLines: 5,
         sessionName: session.name,
+        showOutput: true,
+        tasks,
+        title: "Adding repositories",
       });
 
       // Handle aborted operation - return without changes
@@ -97,12 +97,12 @@ export async function addReposFlow(
         for (const repo of newRepos) {
           const repoPath = join(session.path, repo.dir);
           try {
-            await rm(repoPath, { recursive: true, force: true });
+            await rm(repoPath, { force: true, recursive: true });
           } catch {
             // Ignore cleanup errors
           }
         }
-        return { session, cancelled: true };
+        return { cancelled: true, session };
       }
 
       // Clean up skipped repo directories
@@ -113,7 +113,7 @@ export async function addReposFlow(
         if (repo) {
           const repoPath = join(session.path, repo.dir);
           try {
-            await rm(repoPath, { recursive: true, force: true });
+            await rm(repoPath, { force: true, recursive: true });
           } catch {
             // Ignore cleanup errors
           }
@@ -153,12 +153,12 @@ export async function addReposFlow(
         await recordRepoHistory(successfulRepos);
         await writeAgentsMd(nextSession);
 
-        return { session: nextSession, cancelled: false };
+        return { cancelled: false, session: nextSession };
       }
 
-      return { session, cancelled: false };
+      return { cancelled: false, session };
     }
   }
 
-  return { session, cancelled: addResult.cancelled };
+  return { cancelled: addResult.cancelled, session };
 }

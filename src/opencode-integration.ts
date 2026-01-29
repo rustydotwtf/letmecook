@@ -6,8 +6,8 @@ export async function runInteractiveOpencode(
   return new Promise((resolve) => {
     const proc = spawn("claude", ["--dangerously-skip-permissions"], {
       cwd: sessionPath,
-      stdio: "inherit",
       env: { ...process.env, IS_DEMO: "1" },
+      stdio: "inherit",
     });
 
     proc.on("close", () => {

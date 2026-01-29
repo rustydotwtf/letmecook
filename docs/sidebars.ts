@@ -1,40 +1,40 @@
-import type { SidebarsConfig } from "@docusaurus/plugin-content-docs";
+import  { type SidebarsConfig } from "@docusaurus/plugin-content-docs";
 
 const sidebars: SidebarsConfig = {
   docsSidebar: [
     "getting-started",
     {
-      type: "category",
-      label: "Concepts",
       items: [
         "concepts/sessions",
         "concepts/agents-md",
         "concepts/multi-repo-workspaces",
       ],
+      label: "Concepts",
+      type: "category",
     },
     {
-      type: "category",
-      label: "Guides",
       items: [
         "guides/tui-guide",
         "guides/cli-guide",
         "guides/managing-sessions",
         "guides/adding-skills",
       ],
+      label: "Guides",
+      type: "category",
     },
     {
-      type: "category",
-      label: "Reference",
       items: [
         "reference/cli-commands",
         "reference/configuration",
         "reference/session-manifest",
       ],
+      label: "Reference",
+      type: "category",
     },
     {
-      type: "category",
-      label: "Contributing",
       items: ["contributing/development-setup", "contributing/architecture"],
+      label: "Contributing",
+      type: "category",
     },
   ],
 };

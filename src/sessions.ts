@@ -2,7 +2,7 @@ import { mkdir, readdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import type { Session, SessionManifest, RepoSpec } from "./types";
+import  { type Session, type SessionManifest, type RepoSpec } from "./types";
 
 import { repoSpecsMatch } from "./types";
 
@@ -24,7 +24,7 @@ export async function listSessions(): Promise<Session[]> {
   const sessions: Session[] = [];
 
   for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
+    if (!entry.isDirectory()) {continue;}
 
     const sessionPath = join(SESSIONS_DIR, entry.name);
     const manifestPath = join(sessionPath, "manifest.json");
@@ -99,12 +99,12 @@ export async function createSession(
 
   const now = new Date().toISOString();
   const manifest: SessionManifest = {
+    created: now,
+    goal,
+    lastAccessed: now,
     name,
     repos,
-    goal,
     skills,
-    created: now,
-    lastAccessed: now,
   };
 
   const manifestPath = join(sessionPath, "manifest.json");
@@ -118,14 +118,14 @@ export async function createSession(
 
 export async function updateLastAccessed(name: string): Promise<void> {
   const session = await getSession(name);
-  if (!session) return;
+  if (!session) {return;}
 
   const manifest: SessionManifest = {
+    created: session.created,
+    goal: session.goal,
+    lastAccessed: new Date().toISOString(),
     name: session.name,
     repos: session.repos,
-    goal: session.goal,
-    created: session.created,
-    lastAccessed: new Date().toISOString(),
   };
 
   const manifestPath = join(session.path, "manifest.json");
@@ -137,14 +137,14 @@ export async function updateSessionRepos(
   repos: RepoSpec[]
 ): Promise<Session | null> {
   const session = await getSession(name);
-  if (!session) return null;
+  if (!session) {return null;}
 
   const manifest: SessionManifest = {
+    created: session.created,
+    goal: session.goal,
+    lastAccessed: new Date().toISOString(),
     name: session.name,
     repos,
-    goal: session.goal,
-    created: session.created,
-    lastAccessed: new Date().toISOString(),
   };
 
   const manifestPath = join(session.path, "manifest.json");
@@ -161,15 +161,15 @@ export async function updateSessionSettings(
   settings: { repos?: RepoSpec[]; goal?: string; skills?: string[] }
 ): Promise<Session | null> {
   const session = await getSession(name);
-  if (!session) return null;
+  if (!session) {return null;}
 
   const manifest: SessionManifest = {
+    created: session.created,
+    goal: settings.goal ?? session.goal,
+    lastAccessed: new Date().toISOString(),
     name: session.name,
     repos: settings.repos ?? session.repos,
-    goal: settings.goal ?? session.goal,
     skills: settings.skills ?? session.skills,
-    created: session.created,
-    lastAccessed: new Date().toISOString(),
   };
 
   const manifestPath = join(session.path, "manifest.json");
@@ -192,7 +192,7 @@ export async function deleteSession(name: string): Promise<boolean> {
   const sessionPath = join(SESSIONS_DIR, name);
 
   try {
-    await rm(sessionPath, { recursive: true, force: true });
+    await rm(sessionPath, { force: true, recursive: true });
     return true;
   } catch {
     return false;
@@ -205,7 +205,7 @@ export async function deleteAllSessions(): Promise<number> {
 
   try {
     // Nuke entire .letmecook directory including SQLite history
-    await rm(LETMECOOK_DIR, { recursive: true, force: true });
+    await rm(LETMECOOK_DIR, { force: true, recursive: true });
     return count;
   } catch {
     return 0;

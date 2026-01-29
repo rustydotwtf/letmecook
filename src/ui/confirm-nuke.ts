@@ -22,43 +22,43 @@ export function showNukeConfirm(
     const { content } = createBaseLayout(renderer, "Delete all sessions");
 
     const countInfo = new TextRenderable(renderer, {
-      id: "count-info",
       content: `${sessionCount} session${sessionCount === 1 ? "" : "s"} will be deleted`,
       fg: "#38bdf8",
+      id: "count-info",
       marginBottom: 1,
     });
     content.add(countInfo);
 
     const warning = new TextRenderable(renderer, {
-      id: "warning",
       content: "This permanently deletes all sessions, history, and data.",
       fg: "#f59e0b",
+      id: "warning",
       marginBottom: 1,
     });
     content.add(warning);
 
     const question = new TextRenderable(renderer, {
-      id: "question",
       content: "Are you sure you want to delete all sessions?",
       fg: "#e2e8f0",
+      id: "question",
     });
     content.add(question);
 
     const select = new SelectRenderable(renderer, {
-      id: "nuke-confirm-select",
-      width: 38,
+      backgroundColor: "transparent",
+      focusedBackgroundColor: "transparent",
       height: 2,
+      id: "nuke-confirm-select",
+      marginTop: 1,
       options: [
         { name: "Cancel", description: "", value: "cancel" },
         { name: "Delete all sessions", description: "", value: "confirm" },
       ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
       selectedTextColor: "#38bdf8",
-      marginTop: 1,
+      showDescription: false,
+      textColor: "#e2e8f0",
+      width: 38,
     });
     content.add(select);
 
@@ -85,9 +85,9 @@ export function showNukeConfirm(
     };
 
     showFooter(renderer, content, {
+      back: true,
       navigate: true,
       select: true,
-      back: true,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);

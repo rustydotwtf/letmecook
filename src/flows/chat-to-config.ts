@@ -1,7 +1,7 @@
 import { streamText, type ToolSet } from "ai";
 import { z } from "zod";
 
-import type { ConfigBuilder } from "../config-builder";
+import  { type ConfigBuilder } from "../config-builder";
 
 import {
   INCREMENTAL_CHAT_PROMPT,
@@ -67,13 +67,7 @@ export async function chatToConfigIncremental(
     const tools: ToolSet = {
       // Config building tools
       add_repo: {
-        title: "add_repo",
         description: "Add a repository to the workspace configuration",
-        inputSchema: z.object({
-          repo: z
-            .string()
-            .describe("Repository in format owner/repo or owner/repo:branch"),
-        }),
         execute: async ({ repo }) => {
           const startTime = Date.now();
 
@@ -139,13 +133,15 @@ export async function chatToConfigIncremental(
             currentRepos: configBuilder.config.repos,
           };
         },
+        inputSchema: z.object({
+          repo: z
+            .string()
+            .describe("Repository in format owner/repo or owner/repo:branch"),
+        }),
+        title: "add_repo",
       },
       add_skill: {
-        title: "add_skill",
         description: "Add a skill or package to install in the workspace",
-        inputSchema: z.object({
-          skill: z.string().describe("Skill or package name to install"),
-        }),
         execute: async ({ skill }) => {
           const startTime = Date.now();
           const added = configBuilder.addSkill(skill);
@@ -159,15 +155,13 @@ export async function chatToConfigIncremental(
             currentSkills: configBuilder.config.skills,
           };
         },
+        inputSchema: z.object({
+          skill: z.string().describe("Skill or package name to install"),
+        }),
+        title: "add_skill",
       },
       set_goal: {
-        title: "set_goal",
         description: "Set the goal/purpose for this workspace session",
-        inputSchema: z.object({
-          goal: z
-            .string()
-            .describe("Brief description of what the user wants to accomplish"),
-        }),
         execute: async ({ goal }) => {
           const startTime = Date.now();
           configBuilder.setGoal(goal);
@@ -178,16 +172,16 @@ export async function chatToConfigIncremental(
             message: `Goal set to: ${goal}`,
           };
         },
+        inputSchema: z.object({
+          goal: z
+            .string()
+            .describe("Brief description of what the user wants to accomplish"),
+        }),
+        title: "set_goal",
       },
       // Research tools (existing)
       list_repos: {
-        title: "list_repos",
         description: "List all repositories for a given owner/organization",
-        inputSchema: z.object({
-          owner: z.string(),
-          limit: z.number().optional(),
-          topic: z.string().optional(),
-        }),
         execute: async ({ owner, limit, topic }) => {
           const startTime = Date.now();
           const args = [
@@ -217,17 +211,16 @@ export async function chatToConfigIncremental(
           toolTimings.set("list_repos", duration);
           return result;
         },
+        inputSchema: z.object({
+          owner: z.string(),
+          limit: z.number().optional(),
+          topic: z.string().optional(),
+        }),
+        title: "list_repos",
       },
       view_issue: {
-        title: "view_issue",
         description:
           "View a GitHub issue. Accepts either a full GitHub URL or owner/repo with issue number.",
-        inputSchema: z.object({
-          url: z.string().optional().describe("Full GitHub issue URL"),
-          owner: z.string().optional().describe("Repository owner"),
-          repo: z.string().optional().describe("Repository name"),
-          issue: z.number().optional().describe("Issue number"),
-        }),
         execute: async ({ url, owner, repo, issue }) => {
           const startTime = Date.now();
 
@@ -314,21 +307,17 @@ ${data.body || "*No description provided*"}`;
             return { error: "Failed to parse issue data", markdown: "" };
           }
         },
+        inputSchema: z.object({
+          url: z.string().optional().describe("Full GitHub issue URL"),
+          owner: z.string().optional().describe("Repository owner"),
+          repo: z.string().optional().describe("Repository name"),
+          issue: z.number().optional().describe("Issue number"),
+        }),
+        title: "view_issue",
       },
       list_repo_history: {
-        title: "list_repo_history",
         description:
           "List previously used repositories from history. Useful when user mentions 'my repos' or wants to reuse repos.",
-        inputSchema: z.object({
-          owner: z
-            .string()
-            .optional()
-            .describe("Filter by repository owner/organization"),
-          limit: z
-            .number()
-            .optional()
-            .describe("Maximum number of results to return"),
-        }),
         execute: async ({ owner, limit }) => {
           const startTime = Date.now();
           const items = await listRepoHistory(limit ?? 50);
@@ -350,15 +339,26 @@ ${data.body || "*No description provided*"}`;
             })),
           };
         },
+        inputSchema: z.object({
+          owner: z
+            .string()
+            .optional()
+            .describe("Filter by repository owner/organization"),
+          limit: z
+            .number()
+            .optional()
+            .describe("Maximum number of results to return"),
+        }),
+        title: "list_repo_history",
       },
     };
 
     const result = streamText({
-      model: "moonshotai/kimi-k2.5",
-      temperature: 0.7,
-      prompt,
-      tools,
       maxSteps: 100,
+      model: "moonshotai/kimi-k2.5",
+      prompt,
+      temperature: 0.7,
+      tools,
     } as any);
 
     let response = "";
@@ -381,10 +381,10 @@ ${data.body || "*No description provided*"}`;
           const durationMs = toolTimings.get(chunk.toolName) || 0;
           const chunkAny = chunk as any;
           toolResults.push({
-            toolName: chunk.toolName,
+            durationMs,
             input: chunkAny.input ?? chunkAny.args,
             output: chunkAny.output ?? chunkAny.result,
-            durationMs,
+            toolName: chunk.toolName,
           });
           break;
         }
@@ -403,8 +403,8 @@ ${data.body || "*No description provided*"}`;
     };
   } catch (llmError) {
     return {
-      response: "",
       error: `LLM error: ${llmError instanceof Error ? llmError.message : String(llmError)}`,
+      response: "",
     };
   }
 }

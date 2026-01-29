@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { Session } from "../types";
+import  { type Session } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
@@ -25,18 +25,18 @@ export function showSessionDetails(
     const { content } = createBaseLayout(renderer, "Session details");
 
     const sessionInfo = new TextRenderable(renderer, {
-      id: "session-info",
       content: `Session: ${session.name}`,
       fg: "#38bdf8",
+      id: "session-info",
       marginBottom: 1,
     });
     content.add(sessionInfo);
 
     const goalText = session.goal ? session.goal : "(none)";
     const goalInfo = new TextRenderable(renderer, {
-      id: "goal-info",
       content: `Goal: ${goalText}`,
       fg: "#94a3b8",
+      id: "goal-info",
       marginBottom: 1,
     });
     content.add(goalInfo);
@@ -44,29 +44,29 @@ export function showSessionDetails(
     const reposText = formatRepoList(session.repos, { prefix: "  " });
 
     const reposInfo = new TextRenderable(renderer, {
-      id: "repos-info",
       content: `Repositories:\n${reposText || "  (none)"}`,
       fg: "#94a3b8",
+      id: "repos-info",
       marginBottom: 1,
     });
     content.add(reposInfo);
 
     const select = new SelectRenderable(renderer, {
-      id: "session-details-select",
-      width: 40,
+      backgroundColor: "transparent",
+      focusedBackgroundColor: "transparent",
       height: 3,
+      id: "session-details-select",
+      marginTop: 1,
       options: [
         { name: "Resume session", description: "", value: "resume" },
         { name: "Edit settings", description: "", value: "edit" },
         { name: "Back", description: "", value: "back" },
       ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
       selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
       selectedTextColor: "#38bdf8",
-      marginTop: 1,
+      showDescription: false,
+      textColor: "#e2e8f0",
+      width: 40,
     });
     content.add(select);
 
@@ -93,9 +93,9 @@ export function showSessionDetails(
     };
 
     showFooter(renderer, content, {
+      back: true,
       navigate: true,
       select: true,
-      back: true,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);

@@ -41,71 +41,71 @@ export async function showAddReposPrompt(
 
     // Repository input
     const repoLabel = new TextRenderable(renderer, {
-      id: "repo-label",
       content: "Repository (owner/repo format):",
       fg: "#e2e8f0",
+      id: "repo-label",
       marginBottom: 0,
     });
     content.add(repoLabel);
 
     const repoInput = new InputRenderable(renderer, {
-      id: "repo-input",
-      width: 50,
+      backgroundColor: "#334155",
+      cursorColor: "#38bdf8",
       height: 1,
+      id: "repo-input",
+      marginTop: 1,
       placeholder: "e.g., microsoft/playwright",
       placeholderColor: "#64748b",
-      backgroundColor: "#334155",
       textColor: "#f8fafc",
-      cursorColor: "#38bdf8",
-      marginTop: 1,
+      width: 50,
     });
     content.add(repoInput);
 
     // Matches display
     const matchesLabel = new TextRenderable(renderer, {
-      id: "matches-label",
       content: "Matches:",
       fg: "#94a3b8",
+      id: "matches-label",
       marginTop: 1,
     });
     content.add(matchesLabel);
 
     const matchesList = new TextRenderable(renderer, {
-      id: "matches-list",
       content: "(no matches)",
       fg: "#64748b",
+      id: "matches-list",
       marginTop: 0,
     });
     content.add(matchesList);
 
     // Inline toggles (always visible when repo is valid)
     const detailsLabel = new TextRenderable(renderer, {
-      id: "details-label",
       content: "",
       fg: "#e2e8f0",
+      id: "details-label",
       marginTop: 1,
     });
     content.add(detailsLabel);
 
     const detailsLatest = new TextRenderable(renderer, {
-      id: "details-latest",
       content: "",
       fg: "#94a3b8",
+      id: "details-latest",
       marginTop: 0,
     });
     content.add(detailsLatest);
 
     const confirmButton = new TextRenderable(renderer, {
-      id: "confirm-button",
       content: "",
       fg: "#10b981",
+      id: "confirm-button",
       marginTop: 1,
     });
     content.add(confirmButton);
 
     repoInput.onPaste = (event) => {
-      const text = event.text.replace(/[\r\n]+/g, "");
-      if (!text) return;
+      const text = event.text.replaceAll(/[\r\n]+/g, "");
+      if (!text) {return;}
       repoInput.insertText(text);
       currentInput = repoInput.value;
       if (currentInput.trim()) {
@@ -128,26 +128,26 @@ export async function showAddReposPrompt(
 
     // Status display
     const statusText = new TextRenderable(renderer, {
-      id: "status",
       content: "",
       fg: "#64748b",
+      id: "status",
       marginTop: 1,
     });
     content.add(statusText);
 
     // Repos list with counter
     const reposLabel = new TextRenderable(renderer, {
-      id: "repos-label",
       content: "\nAdded repositories:",
       fg: "#e2e8f0",
+      id: "repos-label",
       marginTop: 1,
     });
     content.add(reposLabel);
 
     const reposList = new TextRenderable(renderer, {
-      id: "repos-list",
       content: "(none)",
       fg: "#64748b",
+      id: "repos-list",
       marginTop: 1,
     });
     content.add(reposList);
@@ -180,9 +180,9 @@ export async function showAddReposPrompt(
         detailsLatest.content = `  ${latestSelected ? "▶" : " "} ${latestCheckbox} Read-only [l]`;
         detailsLatest.fg = latestSelected
           ? "#f8fafc"
-          : currentLatest
+          : (currentLatest
             ? "#22d3ee"
-            : "#94a3b8";
+            : "#94a3b8");
 
         const confirmSelected = confirmOptionIndex === 1;
         confirmButton.content = `  ${confirmSelected ? "▶" : " "} [Add repository]`;
@@ -201,13 +201,13 @@ export async function showAddReposPrompt(
 
     function getMatchesForQuery(query: string): string[] {
       const trimmed = query.trim();
-      if (!trimmed) return [];
+      if (!trimmed) {return [];}
 
       const lowerQuery = trimmed.toLowerCase();
       return historySpecs
         .filter((spec) => spec.toLowerCase().startsWith(lowerQuery))
         .toSorted((a, b) => {
-          if (a.length !== b.length) return a.length - b.length;
+          if (a.length !== b.length) {return a.length - b.length;}
           return a.localeCompare(b);
         })
         .slice(0, maxMatches);
@@ -247,10 +247,10 @@ export async function showAddReposPrompt(
 
     function selectMatch(matchIndex: number) {
       const matches = getMatchesForQuery(lastQuery);
-      if (matchIndex < 0 || matchIndex >= matches.length) return;
+      if (matchIndex < 0 || matchIndex >= matches.length) {return;}
 
       const selectedMatch = matches[matchIndex];
-      if (!selectedMatch) return;
+      if (!selectedMatch) {return;}
 
       selectedMatchIndex = matchIndex;
       isNavigating = true; // Set flag to prevent input handler from resetting
@@ -275,7 +275,7 @@ export async function showAddReposPrompt(
     }
 
     function addCurrentRepo() {
-      if (!currentValidRepo) return;
+      if (!currentValidRepo) {return;}
 
       const spec = currentInput.trim();
       // Check if already added
@@ -336,17 +336,17 @@ export async function showAddReposPrompt(
     function updateFooter() {
       if (isConfirming) {
         showFooter(renderer, content, {
-          navigate: true,
-          select: false,
           back: true,
           custom: ["l Read-only", "space Toggle", "enter Add"],
+          navigate: true,
+          select: false,
         });
       } else {
         showFooter(renderer, content, {
-          navigate: true,
-          select: true,
           back: true,
           custom: repos.length > 0 ? ["enter (empty) Continue"] : [],
+          navigate: true,
+          select: true,
         });
       }
     }
@@ -360,7 +360,7 @@ export async function showAddReposPrompt(
           return;
         }
         cleanup();
-        resolve({ repos, cancelled: true });
+        resolve({ cancelled: true, repos });
         return;
       }
 
@@ -412,7 +412,7 @@ export async function showAddReposPrompt(
         } else if (!currentInput.trim() && repos.length > 0) {
           // Empty input + repos added = continue
           cleanup();
-          resolve({ repos, cancelled: false });
+          resolve({ cancelled: false, repos });
         }
         return;
       }
@@ -420,7 +420,7 @@ export async function showAddReposPrompt(
       // Arrow keys for navigating matches
       if (isArrowUp(key)) {
         const matches = getMatchesForQuery(lastQuery);
-        if (matches.length === 0) return;
+        if (matches.length === 0) {return;}
 
         if (selectedMatchIndex < 0) {
           // Start from last match
@@ -435,7 +435,7 @@ export async function showAddReposPrompt(
 
       if (isArrowDown(key)) {
         const matches = getMatchesForQuery(lastQuery);
-        if (matches.length === 0) return;
+        if (matches.length === 0) {return;}
 
         if (selectedMatchIndex < 0) {
           // Start from first match

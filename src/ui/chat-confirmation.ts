@@ -1,6 +1,6 @@
 import { type CliRenderer, TextRenderable, type KeyEvent } from "@opentui/core";
 
-import type { ChatConfig } from "../flows/chat-to-config";
+import  { type ChatConfig } from "../flows/chat-to-config";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEnter, isEscape, isKey } from "./common/keyboard";
@@ -23,18 +23,18 @@ export function showChatConfirmation(
 
     // Title
     const title = new TextRenderable(renderer, {
-      id: "confirm-title",
       content: "Here's what I'll set up for you:",
       fg: "#e2e8f0",
+      id: "confirm-title",
       marginBottom: 2,
     });
     content.add(title);
 
     // Repositories
     const reposLabel = new TextRenderable(renderer, {
-      id: "repos-label",
       content: "📦 Repositories:",
       fg: "#38bdf8",
+      id: "repos-label",
       marginBottom: 0,
     });
     content.add(reposLabel);
@@ -42,26 +42,26 @@ export function showChatConfirmation(
     if (config.repos.length > 0) {
       config.repos.forEach((repo, i) => {
         const repoText = new TextRenderable(renderer, {
-          id: `repo-${i}`,
           content: `  • ${repo}`,
           fg: "#94a3b8",
+          id: `repo-${i}`,
         });
         content.add(repoText);
       });
     } else {
       const noRepos = new TextRenderable(renderer, {
-        id: "no-repos",
         content: "  (none)",
         fg: "#64748b",
+        id: "no-repos",
       });
       content.add(noRepos);
     }
 
     // Skills
     const skillsLabel = new TextRenderable(renderer, {
-      id: "skills-label",
       content: "\n🛠️  Skills:",
       fg: "#38bdf8",
+      id: "skills-label",
       marginBottom: 0,
     });
     content.add(skillsLabel);
@@ -69,43 +69,43 @@ export function showChatConfirmation(
     if (config.skills && config.skills.length > 0) {
       config.skills.forEach((skill, i) => {
         const skillText = new TextRenderable(renderer, {
-          id: `skill-${i}`,
           content: `  • ${skill}`,
           fg: "#94a3b8",
+          id: `skill-${i}`,
         });
         content.add(skillText);
       });
     } else {
       const noSkills = new TextRenderable(renderer, {
-        id: "no-skills",
         content: "  (none)",
         fg: "#64748b",
+        id: "no-skills",
       });
       content.add(noSkills);
     }
 
     // Goal
     const goalLabel = new TextRenderable(renderer, {
-      id: "goal-label",
       content: "\n🎯 Goal:",
       fg: "#38bdf8",
+      id: "goal-label",
       marginBottom: 0,
     });
     content.add(goalLabel);
 
     const goalText = new TextRenderable(renderer, {
-      id: "goal-text",
       content: config.goal ? `  ${config.goal}` : "  (none)",
       fg: config.goal ? "#94a3b8" : "#64748b",
+      id: "goal-text",
       marginBottom: 2,
     });
     content.add(goalText);
 
     // Confirmation question
     const confirmText = new TextRenderable(renderer, {
-      id: "confirm-question",
       content: "Does this look right?",
       fg: "#e2e8f0",
+      id: "confirm-question",
       marginTop: 2,
     });
     content.add(confirmText);
@@ -143,8 +143,6 @@ export function showChatConfirmation(
     };
 
     showFooter(renderer, content, {
-      navigate: false,
-      select: false,
       back: true,
       custom: [
         "Enter Confirm",
@@ -152,6 +150,8 @@ export function showChatConfirmation(
         "e Manual Edit",
         "Esc Cancel",
       ],
+      navigate: false,
+      select: false,
     });
     renderer.keyInput.on("keypress", handleKeypress);
   });

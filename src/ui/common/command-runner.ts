@@ -63,21 +63,28 @@ function getStatusIcon(status: TaskStatus): {
   color: string;
 } {
   switch (status) {
-    case "done":
+    case "done": {
       return { icon: "[✓]", color: "#22c55e" };
-    case "running":
+    }
+    case "running": {
       return { icon: "[~]", color: "#fbbf24" };
-    case "error":
+    }
+    case "error": {
       return { icon: "[✗]", color: "#ef4444" };
-    case "aborted":
+    }
+    case "aborted": {
       return { icon: "[X]", color: "#ef4444" };
-    case "skipped":
+    }
+    case "skipped": {
       return { icon: "[>]", color: "#f59e0b" };
-    case "backgrounded":
+    }
+    case "backgrounded": {
       return { icon: "[~]", color: "#38bdf8" };
+    }
     case "pending":
-    default:
+    default: {
       return { icon: "[ ]", color: "#94a3b8" };
+    }
   }
 }
 
@@ -85,7 +92,7 @@ export function showCommandRunner(
   renderer: CliRenderer,
   options: CommandRunnerOptions
 ): {
-  taskStatuses: Array<{ task: CommandTask; status: TaskStatus }>;
+  taskStatuses: { task: CommandTask; status: TaskStatus }[];
   content: Renderable;
 } {
   clearLayout(renderer);
@@ -96,25 +103,25 @@ export function showCommandRunner(
   const { content } = createBaseLayout(renderer, title);
 
   tasksLabel = new TextRenderable(renderer, {
-    id: "tasks-label",
     content: "Tasks",
     fg: "#e2e8f0",
-    marginTop: 1,
+    id: "tasks-label",
     marginBottom: 1,
+    marginTop: 1,
   });
   content.add(tasksLabel);
 
   const taskStatuses = tasks.map((task) => ({
-    task,
     status: "pending" as const,
+    task,
   }));
 
   tasks.forEach((task, i) => {
     const statusIcon = getStatusIcon("pending");
     const taskText = new TextRenderable(renderer, {
-      id: `task-${i}`,
       content: `${statusIcon.icon} ${task.label}`,
       fg: statusIcon.color,
+      id: `task-${i}`,
     });
     content.add(taskText);
     taskTexts.push(taskText);
@@ -122,36 +129,36 @@ export function showCommandRunner(
 
   if (showOutput) {
     currentCommandText = new TextRenderable(renderer, {
-      id: "current-command",
       content: "",
       fg: "#64748b",
+      id: "current-command",
       marginTop: 2,
     });
     content.add(currentCommandText);
 
     const separator = new TextRenderable(renderer, {
-      id: "output-separator",
       content: "──────────────────────────────────────",
       fg: "#475569",
+      id: "output-separator",
       marginTop: 0,
     });
     content.add(separator);
 
     outputText = new TextRenderable(renderer, {
-      id: "command-output",
       content: "",
       fg: "#64748b",
+      id: "command-output",
       marginTop: 0,
     });
     content.add(outputText);
   }
 
-  return { taskStatuses, content };
+  return { content, taskStatuses };
 }
 
 export function updateCommandRunner(
   renderer: CliRenderer,
-  taskStatuses: Array<{ task: CommandTask; status: TaskStatus }>,
+  taskStatuses: { task: CommandTask; status: TaskStatus }[],
   currentTaskIndex?: number,
   outputLines?: string[]
 ): void {
@@ -235,10 +242,10 @@ export async function runCommands(
   // Show footer with control options
   if (footerHints.length > 0) {
     showFooter(renderer, content, {
-      navigate: false,
-      select: false,
       back: false,
       custom: footerHints,
+      navigate: false,
+      select: false,
     });
     renderer.requestRender();
   }
@@ -276,17 +283,17 @@ export async function runCommands(
       const task = tasks[i];
       const taskState = taskStatuses[i];
 
-      if (!task || !taskState) continue;
+      if (!task || !taskState) {continue;}
 
       // If abort all was triggered, mark remaining tasks as aborted
       if (abortAll) {
         taskState.status = "aborted";
         results.push({
-          task,
-          success: false,
           exitCode: -1,
-          output: [],
           outcome: "aborted",
+          output: [],
+          success: false,
+          task,
         });
         updateCommandRunner(renderer, taskStatuses, i, []);
         continue;
@@ -302,8 +309,8 @@ export async function runCommands(
       try {
         const proc = Bun.spawn(task.command, {
           cwd: task.cwd,
-          stdout: "pipe",
           stderr: "pipe",
+          stdout: "pipe",
         });
         currentProc = proc;
 
@@ -340,9 +347,9 @@ export async function runCommands(
           raceResult.type === "stream"
             ? raceResult
             : {
-                success: true,
-                output: outputBuffer,
                 fullOutput: "",
+                output: outputBuffer,
+                success: true,
                 wasInterrupted: false,
               };
 
@@ -350,21 +357,21 @@ export async function runCommands(
         if (controlAction === "abort" || abortAll) {
           taskState.status = "aborted";
           results.push({
-            task,
-            success: false,
             exitCode: -1,
-            output: outputBuffer.length > 0 ? outputBuffer : output,
             outcome: "aborted",
+            output: outputBuffer.length > 0 ? outputBuffer : output,
+            success: false,
+            task,
           });
           // abortAll is already set, remaining tasks will be marked as aborted
         } else if (controlAction === "skip") {
           taskState.status = "skipped";
           results.push({
-            task,
-            success: false,
             exitCode: -1,
-            output: outputBuffer.length > 0 ? outputBuffer : output,
             outcome: "skipped",
+            output: outputBuffer.length > 0 ? outputBuffer : output,
+            success: false,
+            task,
           });
         } else if (controlAction === "background") {
           taskState.status = "backgrounded";
@@ -390,12 +397,12 @@ export async function runCommands(
           // Was interrupted but no specific action (shouldn't happen)
           taskState.status = "error";
           results.push({
-            task,
-            success: false,
-            exitCode: -1,
-            output: outputBuffer.length > 0 ? outputBuffer : output,
             error: "Command was interrupted",
+            exitCode: -1,
             outcome: "error",
+            output: outputBuffer.length > 0 ? outputBuffer : output,
+            success: false,
+            task,
           });
         } else {
           // Normal completion
@@ -404,23 +411,23 @@ export async function runCommands(
           if (success && exitCode === 0) {
             taskState.status = "done";
             results.push({
-              task,
-              success: true,
               exitCode: 0,
-              output: outputBuffer.length > 0 ? outputBuffer : output,
               outcome: "completed",
+              output: outputBuffer.length > 0 ? outputBuffer : output,
+              success: true,
+              task,
             });
           } else {
             taskState.status = "error";
             const errorMsg =
               fullOutput.trim() || `Command exited with code ${exitCode}`;
             results.push({
-              task,
-              success: false,
-              exitCode,
-              output: outputBuffer.length > 0 ? outputBuffer : output,
               error: errorMsg,
+              exitCode,
               outcome: "error",
+              output: outputBuffer.length > 0 ? outputBuffer : output,
+              success: false,
+              task,
             });
           }
         }
@@ -441,12 +448,12 @@ export async function runCommands(
         taskState.status = "error";
         const errorMsg = error instanceof Error ? error.message : String(error);
         results.push({
-          task,
-          success: false,
-          exitCode: 1,
-          output: [],
           error: errorMsg,
+          exitCode: 1,
           outcome: "error",
+          output: [],
+          success: false,
+          task,
         });
 
         if (showOutput) {

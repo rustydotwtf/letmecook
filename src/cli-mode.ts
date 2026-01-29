@@ -50,9 +50,9 @@ export async function handleNewSessionCLI(repos: RepoSpec[]): Promise<void> {
     }
 
     const result = await createNewSession(renderer, {
-      repos,
       goal,
       mode: "cli",
+      repos,
     });
 
     if (!result) {
@@ -67,9 +67,9 @@ export async function handleNewSessionCLI(repos: RepoSpec[]): Promise<void> {
       destroyRenderer();
       console.log(`\nResuming existing session: ${session.name}\n`);
       await resumeSession(renderer, {
-        session,
-        mode: "cli",
         initialRefresh: true,
+        mode: "cli",
+        session,
       });
       return;
     }
@@ -79,9 +79,9 @@ export async function handleNewSessionCLI(repos: RepoSpec[]): Promise<void> {
     console.log(`Path: ${session.path}\n`);
 
     await resumeSession(renderer, {
-      session,
-      mode: "cli",
       initialRefresh: false,
+      mode: "cli",
+      session,
     });
   } catch (error) {
     destroyRenderer();
@@ -99,7 +99,7 @@ export async function handleList(): Promise<void> {
       const action = await showSessionList(renderer, sessions);
 
       switch (action.type) {
-        case "resume":
+        case "resume": {
           destroyRenderer();
           await updateLastAccessed(action.session.name);
           console.log(`\nResuming session: ${action.session.name}\n`);
@@ -109,10 +109,12 @@ export async function handleList(): Promise<void> {
             initialRefresh: true,
           });
           return;
+        }
 
-        case "delete":
+        case "delete": {
           console.log("[TODO] Delete session flow");
           break;
+        }
 
         case "nuke": {
           const choice = await showNukeConfirm(renderer, sessions.length);
@@ -125,9 +127,10 @@ export async function handleList(): Promise<void> {
           break;
         }
 
-        case "quit":
+        case "quit": {
           destroyRenderer();
           return;
+        }
       }
     }
   } catch (error) {
@@ -157,9 +160,9 @@ export async function handleResume(sessionName: string): Promise<void> {
 
   const renderer = await createRenderer();
   await resumeSession(renderer, {
-    session,
-    mode: "cli",
     initialRefresh: true,
+    mode: "cli",
+    session,
   });
 }
 
@@ -286,7 +289,7 @@ export function parseRepos(args: string[]): RepoSpec[] {
   const repos: RepoSpec[] = [];
 
   for (const arg of args) {
-    if (!arg || arg.startsWith("-")) continue;
+    if (!arg || arg.startsWith("-")) {continue;}
 
     if (!arg.includes("/")) {
       throw new Error(`Invalid repo format: ${arg} (expected owner/repo)`);

@@ -1,6 +1,6 @@
-import type { CliRenderer, KeyEvent } from "@opentui/core";
+import  { type CliRenderer, type KeyEvent } from "@opentui/core";
 
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 
 interface MockElement {
   id?: string;
@@ -25,8 +25,8 @@ export function createMockRenderer(): MockCliRenderer {
       const element = el as { id?: string; constructor?: { name?: string } };
       elements.push({
         id: element.id,
-        type: element.constructor?.name || "unknown",
         props: element as Record<string, unknown>,
+        type: element.constructor?.name || "unknown",
       });
     },
     remove: () => {},
@@ -35,11 +35,11 @@ export function createMockRenderer(): MockCliRenderer {
   const mock = {
     root: mockRoot,
     keyInput: {
-      on: (event: string, handler: (...args: unknown[]) => void) => {
-        keyEmitter.on(event, handler);
-      },
       off: (event: string, handler: (...args: unknown[]) => void) => {
         keyEmitter.off(event, handler);
+      },
+      on: (event: string, handler: (...args: unknown[]) => void) => {
+        keyEmitter.on(event, handler);
       },
     },
     terminalWidth: 80,

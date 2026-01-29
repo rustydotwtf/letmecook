@@ -15,7 +15,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await rm(testDir, { recursive: true, force: true });
+  await rm(testDir, { force: true, recursive: true });
 });
 
 describe("CLI commands", () => {
@@ -31,9 +31,9 @@ describe("CLI commands", () => {
       .quiet();
 
     return {
-      stdout: result.stdout.toString(),
-      stderr: result.stderr.toString(),
       exitCode: result.exitCode,
+      stderr: result.stderr.toString(),
+      stdout: result.stdout.toString(),
     };
   };
 

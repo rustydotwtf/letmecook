@@ -20,9 +20,9 @@ export function formatZodError(error: unknown): string[] {
     "issues" in error &&
     Array.isArray((error as { issues: unknown[] }).issues)
   ) {
-    const issues = (
+    const {issues} = (
       error as { issues: { path: PropertyKey[]; message: string }[] }
-    ).issues;
+    );
     return issues.map((e) => {
       const path = e.path.length > 0 ? String(e.path.join(".")) : "root";
       return `${path}: ${e.message}`;
@@ -50,19 +50,19 @@ export function validateRepoSpecSafe(spec: string): ValidationResult<RepoSpec> {
 
     if (!result.success) {
       return {
-        success: false,
         errors: formatZodError(result.error),
+        success: false,
       };
     }
 
     return {
-      success: true,
       data: result.data,
+      success: true,
     };
   } catch (error) {
     return {
-      success: false,
       errors: [error instanceof Error ? error.message : "Unknown error"],
+      success: false,
     };
   }
 }
@@ -85,14 +85,14 @@ export function validateSessionManifestSafe(
 
   if (!result.success) {
     return {
-      success: false,
       errors: formatZodError(result.error),
+      success: false,
     };
   }
 
   return {
-    success: true,
     data: result.data,
+    success: true,
   };
 }
 
@@ -114,14 +114,14 @@ export function validateNewSessionParamsSafe(
 
   if (!result.success) {
     return {
-      success: false,
       errors: formatZodError(result.error),
+      success: false,
     };
   }
 
   return {
-    success: true,
     data: result.data,
+    success: true,
   };
 }
 
@@ -153,10 +153,10 @@ function parseRepoSpec(spec: string): {
   }
 
   return {
-    spec,
-    owner,
-    name,
     branch,
     dir: name,
+    name,
+    owner,
+    spec,
   };
 }

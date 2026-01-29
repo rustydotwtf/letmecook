@@ -7,11 +7,11 @@ describe("parseRepos", () => {
     const repos = parseRepos(["owner/repo"]);
     expect(repos).toHaveLength(1);
     expect(repos[0]).toEqual({
-      spec: "owner/repo",
-      owner: "owner",
-      name: "repo",
       branch: undefined,
       dir: "repo",
+      name: "repo",
+      owner: "owner",
+      spec: "owner/repo",
     });
   });
 

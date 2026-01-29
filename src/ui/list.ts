@@ -6,7 +6,7 @@ import {
   type KeyEvent,
 } from "@opentui/core";
 
-import type { Session } from "../types";
+import  { type Session } from "../types";
 
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape, isArrowUp, isArrowDown } from "./common/keyboard";
@@ -33,9 +33,9 @@ export function showSessionList(
 
     if (sessions.length === 0) {
       const emptyText = new TextRenderable(renderer, {
-        id: "empty",
         content: "No sessions found.\n\nCreate one with: letmecook owner/repo",
         fg: "#94a3b8",
+        id: "empty",
       });
       content.add(emptyText);
 
@@ -49,10 +49,10 @@ export function showSessionList(
       };
 
       showFooter(renderer, content, {
-        navigate: false,
-        select: false,
         back: false,
+        navigate: false,
         quit: true,
+        select: false,
       });
 
       renderer.keyInput.on("keypress", handleKeypress);
@@ -63,18 +63,18 @@ export function showSessionList(
     const options = buildSessionOptions(sessions);
 
     const select = new SelectRenderable(renderer, {
-      id: "session-list",
-      width: 65,
-      height: Math.min(sessions.length * 2, 12),
-      options,
-      showDescription: true,
       backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
-      selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
-      selectedTextColor: "#38bdf8",
       descriptionColor: "#64748b",
+      focusedBackgroundColor: "transparent",
+      height: Math.min(sessions.length * 2, 12),
+      id: "session-list",
+      options,
+      selectedBackgroundColor: "#334155",
       selectedDescriptionColor: "#94a3b8",
+      selectedTextColor: "#38bdf8",
+      showDescription: true,
+      textColor: "#e2e8f0",
+      width: 65,
     });
     content.add(select);
 
@@ -84,7 +84,7 @@ export function showSessionList(
 
     const handleSelect = (_index: number, option: { value: Session }) => {
       cleanup();
-      resolve({ type: "resume", session: option.value });
+      resolve({ session: option.value, type: "resume" });
     };
 
     const handleKeypress = (key: KeyEvent) => {
@@ -97,7 +97,7 @@ export function showSessionList(
         const session = sessions[selectedIndex];
         if (session) {
           cleanup();
-          resolve({ type: "delete", session });
+          resolve({ session, type: "delete" });
         }
       } else if (key.name === "a") {
         cleanup();
@@ -117,10 +117,10 @@ export function showSessionList(
     };
 
     showFooter(renderer, content, {
-      navigate: true,
-      select: false,
       back: false,
       custom: ["Enter Resume", "d Delete", "a Nuke", "q Quit"],
+      navigate: true,
+      select: false,
     });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);

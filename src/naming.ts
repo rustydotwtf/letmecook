@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 
-import type { RepoSpec } from "./types";
+import  { type RepoSpec } from "./types";
 
 import { generateUniqueName } from "./sessions";
 
@@ -34,9 +34,9 @@ Reply with ONLY the name, nothing else. No quotes, no explanation.`,
     let name = text
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/--+/g, "-")
-      .replace(/^-|-$/g, "")
+      .replaceAll(/[^a-z0-9-]/g, "")
+      .replaceAll(/--+/g, "-")
+      .replaceAll(/^-|-$/g, "")
       .slice(0, 24);
 
     // Fallback if AI returns garbage

@@ -1,6 +1,6 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 
-import type { ChatConfig } from "./flows/chat-to-config";
+import  { type ChatConfig } from "./flows/chat-to-config";
 
 export interface PartialConfig {
   repos: string[];
@@ -22,9 +22,9 @@ export class ConfigBuilder extends EventEmitter {
   constructor() {
     super();
     this._config = {
+      goal: null,
       repos: [],
       skills: [],
-      goal: null,
     };
   }
 
@@ -38,7 +38,7 @@ export class ConfigBuilder extends EventEmitter {
    */
   addRepo(repo: string): boolean {
     const normalized = repo.trim();
-    if (!normalized) return false;
+    if (!normalized) {return false;}
 
     // Check if already exists
     if (this._config.repos.includes(normalized)) {
@@ -75,7 +75,7 @@ export class ConfigBuilder extends EventEmitter {
    */
   addSkill(skill: string): boolean {
     const normalized = skill.trim();
-    if (!normalized) return false;
+    if (!normalized) {return false;}
 
     // Check if already exists
     if (this._config.skills.includes(normalized)) {
@@ -128,9 +128,9 @@ export class ConfigBuilder extends EventEmitter {
    */
   toFinalConfig(): ChatConfig {
     return {
+      goal: this._config.goal || "",
       repos: [...this._config.repos],
       skills: [...this._config.skills],
-      goal: this._config.goal || "",
     };
   }
 
@@ -139,9 +139,9 @@ export class ConfigBuilder extends EventEmitter {
    */
   reset(): void {
     this._config = {
+      goal: null,
       repos: [],
       skills: [],
-      goal: null,
     };
     this.emit("config-changed", this.config);
   }

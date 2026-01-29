@@ -1,6 +1,6 @@
 import { type CliRenderer, TextRenderable } from "@opentui/core";
 
-import type { RepoSpec } from "../types";
+import  { type RepoSpec } from "../types";
 
 import { createBaseLayout, clearLayout } from "./renderer";
 
@@ -30,10 +30,10 @@ export interface ProgressOptions {
 
 export interface ProgressState {
   sessionName?: string;
-  repos: Array<{
+  repos: {
     repo: RepoSpec;
     status: ProgressRepoStatus;
-  }>;
+  }[];
   phase: ProgressPhase;
   currentOutput?: string[]; // Last 5 lines of git output
 }
@@ -48,20 +48,27 @@ function getPhasePresentation(phase: ProgressPhase): {
   fg: string;
 } {
   switch (phase) {
-    case "naming":
+    case "naming": {
       return { content: "Generating session name...", fg: "#fbbf24" };
-    case "proposal":
+    }
+    case "proposal": {
       return { content: "Here's what the agent proposed:", fg: "#38bdf8" };
-    case "cloning":
+    }
+    case "cloning": {
       return { content: "Cloning repositories...", fg: "#38bdf8" };
-    case "installing-skills":
+    }
+    case "installing-skills": {
       return { content: "Installing skills...", fg: "#38bdf8" };
-    case "refreshing":
+    }
+    case "refreshing": {
       return { content: "Refreshing read-only repositories...", fg: "#38bdf8" };
-    case "done":
+    }
+    case "done": {
       return { content: "Ready!", fg: "#22c55e" };
-    default:
+    }
+    default: {
       return { content: "Processing...", fg: "#38bdf8" };
+    }
   }
 }
 
@@ -84,38 +91,38 @@ export function showProgress(
   const phasePresentation = getPhasePresentation(initialPhase);
 
   phaseText = new TextRenderable(renderer, {
-    id: "phase",
     content: phasePresentation.content,
     fg: phasePresentation.fg,
+    id: "phase",
     marginBottom: 1,
   });
   content.add(phaseText);
 
   sessionText = new TextRenderable(renderer, {
-    id: "session-name",
     content: "",
     fg: "#38bdf8",
+    id: "session-name",
   });
   content.add(sessionText);
 
   const cloningLabel = new TextRenderable(renderer, {
-    id: "cloning-label",
     content: `\n${label}`,
     fg: "#e2e8f0",
+    id: "cloning-label",
     marginTop: 1,
   });
   content.add(cloningLabel);
 
   const state: ProgressState = {
-    repos: repos.map((repo) => ({ repo, status: "pending" as const })),
     phase: initialPhase,
+    repos: repos.map((repo) => ({ repo, status: "pending" as const })),
   };
 
   repos.forEach((repo, i) => {
     const statusText = new TextRenderable(renderer, {
-      id: `repo-status-${i}`,
       content: `  [ ] ${repo.owner}/${repo.name}`,
       fg: "#94a3b8",
+      id: `repo-status-${i}`,
     });
     content.add(statusText);
     statusTexts.push(statusText);

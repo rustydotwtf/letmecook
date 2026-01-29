@@ -1,5 +1,5 @@
 export const block = (r: number, g: number, b: number): string =>
-  `\x1b[48;2;${r};${g};${b}m  \x1b[0m`;
+  `\x1B[48;2;${r};${g};${b}m  \x1B[0m`;
 
 export const palette: Record<string, string> = {
   ".": "  ",
@@ -31,9 +31,10 @@ export const foods = [
 
 // Pixel art letters for "LETMECOOK" (7 rows each)
 const pixelLetters: Record<string, string[]> = {
-  L: ["WW...", "WW...", "WW...", "WW...", "WW...", "WW...", "WWWWW"],
+  C: [".WWWW", "WWWWW", "WW...", "WW...", "WW...", "WWWWW", ".WWWW"],
   E: ["WWWWW", "WW...", "WW...", "WWWW.", "WW...", "WW...", "WWWWW"],
-  T: ["WWWWWW", "..WW..", "..WW..", "..WW..", "..WW..", "..WW..", "..WW.."],
+  K: ["WW..WW", "WW.WW.", "WWWW..", "WWW...", "WWWW..", "WW.WW.", "WW..WW"],
+  L: ["WW...", "WW...", "WW...", "WW...", "WW...", "WW...", "WWWWW"],
   M: [
     "WW...WW",
     "WWW.WWW",
@@ -43,16 +44,14 @@ const pixelLetters: Record<string, string[]> = {
     "WW...WW",
     "WW...WW",
   ],
-  C: [".WWWW", "WWWWW", "WW...", "WW...", "WW...", "WWWWW", ".WWWW"],
   O: [".WWWW.", "WWWWWW", "WW..WW", "WW..WW", "WW..WW", "WWWWWW", ".WWWW."],
-  K: ["WW..WW", "WW.WW.", "WWWW..", "WWW...", "WWWW..", "WW.WW.", "WW..WW"],
+  T: ["WWWWWW", "..WW..", "..WW..", "..WW..", "..WW..", "..WW..", "..WW.."],
 };
 
 export function renderFood(food: string[]): string {
   return food
     .map((row) =>
-      row
-        .split("")
+      [...row]
         .map((cell) => palette[cell] ?? "  ")
         .join("")
     )
@@ -61,8 +60,7 @@ export function renderFood(food: string[]): string {
 
 // Render a single row of pixel art from a pattern string
 function renderRow(pattern: string): string {
-  return pattern
-    .split("")
+  return [...pattern]
     .map((cell) => palette[cell] ?? "  ")
     .join("");
 }
@@ -193,8 +191,8 @@ export async function showSplash(): Promise<void> {
 
     // Calculate centering
     // eslint-disable-next-line no-control-regex -- ANSI escape codes require control chars
-    const firstRowWidth = (artLines[0] ?? "").replace(
-      /\x1b\[[0-9;]*m/g,
+    const firstRowWidth = (artLines[0] ?? "").replaceAll(
+      /\x1B\[[0-9;]*m/g,
       ""
     ).length;
     const hPadding = Math.max(0, Math.floor((termWidth - firstRowWidth) / 2));
@@ -206,7 +204,7 @@ export async function showSplash(): Promise<void> {
     const vPadding = Math.max(0, Math.floor((termHeight - artHeight) / 2));
 
     // Move cursor to top-left and redraw (avoids flicker from clear)
-    process.stdout.write("\x1b[H"); // cursor to home
+    process.stdout.write("\x1B[H"); // cursor to home
     process.stdout.write("\n".repeat(vPadding) + paddedArt);
 
     await Bun.sleep(frameDelay);

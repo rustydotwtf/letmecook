@@ -1,6 +1,6 @@
-import type { CliRenderer } from "@opentui/core";
+import  { type CliRenderer } from "@opentui/core";
 
-import type { Session } from "../types";
+import  { type Session } from "../types";
 
 import { writeAgentsMd } from "../agents-md";
 import { refreshLatestRepos } from "../git";
@@ -94,8 +94,8 @@ export async function resumeSession(
           editResult.action === "add-skills"
         ) {
           const saved = await updateSessionSettings(editResult.session.name, {
-            repos: editResult.session.repos,
             goal: editResult.session.goal,
+            repos: editResult.session.repos,
             skills: editResult.session.skills,
           });
 
@@ -124,12 +124,12 @@ async function refreshLatestBeforeResume(
   session: Session
 ): Promise<void> {
   const readOnlyRepos = session.repos.filter((repo) => repo.readOnly);
-  if (readOnlyRepos.length === 0) return;
+  if (readOnlyRepos.length === 0) {return;}
 
   const refreshProgressState = showProgress(renderer, readOnlyRepos, {
-    title: "Refreshing repositories",
-    label: "Refreshing read-only repositories:",
     initialPhase: "refreshing",
+    label: "Refreshing read-only repositories:",
+    title: "Refreshing repositories",
   });
   refreshProgressState.sessionName = session.name;
   updateProgress(renderer, refreshProgressState);
@@ -164,9 +164,9 @@ async function refreshLatestBeforeResume(
 
     if (choice === "reclone") {
       const recloneProgressState = showProgress(renderer, [result.repo], {
-        title: "Recloning repository",
-        label: "Recloning:",
         initialPhase: "cloning",
+        label: "Recloning:",
+        title: "Recloning repository",
       });
       recloneProgressState.sessionName = session.name;
       updateProgress(renderer, recloneProgressState);
@@ -205,13 +205,13 @@ async function refreshLatestBeforeResumeSimple(
   session: Session
 ): Promise<void> {
   const readOnlyRepos = session.repos.filter((repo) => repo.readOnly);
-  if (readOnlyRepos.length === 0) return;
+  if (readOnlyRepos.length === 0) {return;}
 
   console.log("\nRefreshing read-only repositories...");
 
   const results = await refreshLatestRepos(readOnlyRepos, session.path);
 
-  if (results.length === 0) return;
+  if (results.length === 0) {return;}
 
   results.forEach((result) => {
     const icon =
@@ -230,7 +230,7 @@ async function refreshLatestBeforeResumeSimple(
 }
 
 async function updateSkillsSimple(session: Session): Promise<void> {
-  if (!session.skills || session.skills.length === 0) return;
+  if (!session.skills || session.skills.length === 0) {return;}
 
   console.log("\nUpdating skills...");
   const { success } = await updateSkills(session, (output) => {
@@ -248,10 +248,10 @@ async function runOpencodeMode(
 ): Promise<void> {
   const proc = Bun.spawn(["claude", "--dangerously-skip-permissions"], {
     cwd: sessionPath,
+    env: { ...process.env, IS_DEMO: mode === "tui" ? "1" : undefined },
+    stderr: "inherit",
     stdin: "inherit",
     stdout: "inherit",
-    stderr: "inherit",
-    env: { ...process.env, IS_DEMO: mode === "tui" ? "1" : undefined },
   });
   await proc.exited;
 }

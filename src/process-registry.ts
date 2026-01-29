@@ -25,7 +25,7 @@ interface DbRow {
 }
 
 async function getDb(): Promise<Database> {
-  if (db) return db;
+  if (db) {return db;}
 
   await mkdir(DATA_DIR, { recursive: true });
   db = new Database(DB_PATH, { create: true });
@@ -44,9 +44,9 @@ async function getDb(): Promise<Database> {
 
 function rowToProcess(row: DbRow): BackgroundProcess {
   return {
-    pid: row.pid,
     command: row.command,
     description: row.description,
+    pid: row.pid,
     sessionName: row.session_name,
     startTime: row.start_time,
   };

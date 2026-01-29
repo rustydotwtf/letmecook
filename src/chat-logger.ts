@@ -66,31 +66,31 @@ export class ChatLogger {
   constructor() {
     this.startTime = Date.now();
     this.log = {
-      id: this.generateId(),
-      startedAt: new Date().toISOString(),
-      sessionCreated: false,
-      messages: [],
-      toolCalls: [],
-      errors: [],
-      configAttempts: [],
       cancelled: false,
+      configAttempts: [],
+      errors: [],
+      id: this.generateId(),
+      messages: [],
       metadata: {
         apiKeyPresent: !!process.env.AI_GATEWAY_API_KEY,
         messageCount: 0,
         toolCallCount: 0,
         errorCount: 0,
       },
+      sessionCreated: false,
+      startedAt: new Date().toISOString(),
+      toolCalls: [],
     };
   }
 
   private generateId(): string {
-    return Date.now() + "-" + Math.random().toString(36).substring(2, 9);
+    return Date.now() + "-" + Math.random().toString(36).slice(2, 9);
   }
 
   addMessage(role: LoggedMessage["role"], content: string): void {
     this.log.messages.push({
-      role,
       content,
+      role,
       timestamp: new Date().toISOString(),
     });
     this.log.metadata.messageCount++;
@@ -103,11 +103,11 @@ export class ChatLogger {
     durationMs: number
   ): void {
     this.log.toolCalls.push({
-      toolName,
+      durationMs,
       input,
       output,
       timestamp: new Date().toISOString(),
-      durationMs,
+      toolName,
     });
     this.log.metadata.toolCallCount++;
   }
@@ -118,10 +118,10 @@ export class ChatLogger {
     details?: unknown
   ): void {
     this.log.errors.push({
-      type,
-      message,
       details,
+      message,
       timestamp: new Date().toISOString(),
+      type,
     });
     this.log.metadata.errorCount++;
   }
@@ -179,9 +179,9 @@ export class ChatLogger {
           const id = filename.replace(".json", "");
           const stat = await Bun.file(join(CHAT_LOGS_DIR, filename)).stat();
           logs.push({
-            id,
-            filename,
             createdAt: stat.mtime.toISOString(),
+            filename,
+            id,
           });
         }
       }

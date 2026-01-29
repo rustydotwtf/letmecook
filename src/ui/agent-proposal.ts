@@ -1,6 +1,6 @@
 import { type CliRenderer, TextRenderable } from "@opentui/core";
 
-import type { RepoSpec } from "../types";
+import  { type RepoSpec } from "../types";
 
 import { createBaseLayout, clearLayout } from "./renderer";
 
@@ -25,9 +25,9 @@ export function showAgentProposal(
 
   // Session name
   const sessionNameText = new TextRenderable(renderer, {
-    id: "session-name",
     content: `Session: ${proposal.sessionName}`,
     fg: "#38bdf8",
+    id: "session-name",
     marginBottom: 2,
   });
   content.add(sessionNameText);
@@ -35,17 +35,17 @@ export function showAgentProposal(
   // Goal if provided
   if (proposal.goal) {
     const goalLabel = new TextRenderable(renderer, {
-      id: "goal-label",
       content: "Goal:",
       fg: "#e2e8f0",
+      id: "goal-label",
       marginBottom: 0,
     });
     content.add(goalLabel);
 
     const goalText = new TextRenderable(renderer, {
-      id: "goal-text",
       content: proposal.goal,
       fg: "#94a3b8",
+      id: "goal-text",
       marginBottom: 2,
     });
     content.add(goalText);
@@ -53,18 +53,18 @@ export function showAgentProposal(
 
   // Repository plan
   const planLabel = new TextRenderable(renderer, {
-    id: "plan-label",
     content: "Repositories to clone:",
     fg: "#e2e8f0",
+    id: "plan-label",
     marginBottom: 1,
   });
   content.add(planLabel);
 
   proposal.repos.forEach((repo) => {
     const repoText = new TextRenderable(renderer, {
-      id: `repo-${repo.owner}-${repo.name}`,
       content: `  📦 ${repo.owner}/${repo.name}`,
       fg: "#10b981",
+      id: `repo-${repo.owner}-${repo.name}`,
       marginBottom: 0,
     });
     content.add(repoText);
@@ -72,23 +72,23 @@ export function showAgentProposal(
 
   // Summary
   const summaryText = new TextRenderable(renderer, {
-    id: "summary",
     content: `\nThis will clone ${proposal.repos.length} repositories.`,
     fg: "#64748b",
+    id: "summary",
     marginTop: 2,
   });
   content.add(summaryText);
 
   // Continue prompt
   const continueText = new TextRenderable(renderer, {
-    id: "continue",
     content: "Continuing...",
     fg: "#64748b",
+    id: "continue",
     marginTop: 1,
   });
   content.add(continueText);
 
   renderer.requestRender();
 
-  return { sessionNameText, content };
+  return { content, sessionNameText };
 }

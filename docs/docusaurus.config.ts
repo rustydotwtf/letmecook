@@ -1,29 +1,22 @@
 import type * as Preset from "@docusaurus/preset-classic";
-import type { Config } from "@docusaurus/types";
+import  { type Config } from "@docusaurus/types";
 
 import { themes as prismThemes } from "prism-react-renderer";
 
 const config: Config = {
-  title: "letmecook",
-  tagline: "Multi-repo workspace manager for AI coding sessions",
+  baseUrl: "/",
   favicon: "img/favicon.ico",
-
   future: {
     v4: true,
   },
-
-  url: "https://letmecook.sh",
-  baseUrl: "/",
-
-  organizationName: "rustydotwtf",
-  projectName: "letmecook",
-
-  onBrokenLinks: "throw",
 
   i18n: {
     defaultLocale: "en",
     locales: ["en"],
   },
+
+  onBrokenLinks: "throw",
+  organizationName: "rustydotwtf",
 
   presets: [
     [
@@ -41,6 +34,9 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
+  projectName: "letmecook",
+
+  tagline: "Multi-repo workspace manager for AI coding sessions",
 
   themeConfig: {
     colorMode: {
@@ -97,6 +93,10 @@ const config: Config = {
       additionalLanguages: ["bash", "json", "typescript"],
     },
   } satisfies Preset.ThemeConfig,
+
+  title: "letmecook",
+
+  url: "https://letmecook.sh",
 };
 
 export default config;

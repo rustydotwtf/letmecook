@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { platform } from "os";
+import { platform } from "node:os";
 
 /**
  * Writes text to clipboard via OSC 52 escape sequence.
@@ -7,12 +7,12 @@ import { platform } from "os";
  * the terminal emulator handle the clipboard locally.
  */
 function writeOsc52(text: string): void {
-  if (!process.stdout.isTTY) return;
+  if (!process.stdout.isTTY) {return;}
   const base64 = Buffer.from(text).toString("base64");
-  const osc52 = `\x1b]52;c;${base64}\x07`;
+  const osc52 = `\x1B]52;c;${base64}\u0007`;
   // tmux and screen require DCS passthrough wrapping
   const passthrough = process.env["TMUX"] || process.env["STY"];
-  const sequence = passthrough ? `\x1bPtmux;\x1b${osc52}\x1b\\` : osc52;
+  const sequence = passthrough ? `\x1BPtmux;\x1B${osc52}\x1B\\` : osc52;
   process.stdout.write(sequence);
 }
 
@@ -20,13 +20,13 @@ const getCopyMethod = (() => {
   let method: ((text: string) => Promise<void>) | undefined;
 
   return (): ((text: string) => Promise<void>) => {
-    if (method) return method;
+    if (method) {return method;}
 
     const os = platform();
 
     if (os === "darwin" && Bun.which("osascript")) {
       method = async (text: string) => {
-        const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+        const escaped = text.replaceAll(/\\/g, String.raw`\\`).replaceAll(/"/g, String.raw`\"`);
         await $`osascript -e 'set the clipboard to "${escaped}"'`
           .nothrow()
           .quiet();
@@ -38,9 +38,9 @@ const getCopyMethod = (() => {
       if (process.env["WAYLAND_DISPLAY"] && Bun.which("wl-copy")) {
         method = async (text: string) => {
           const proc = Bun.spawn(["wl-copy"], {
+            stderr: "ignore",
             stdin: "pipe",
             stdout: "ignore",
-            stderr: "ignore",
           });
           proc.stdin.write(text);
           proc.stdin.end();
@@ -51,9 +51,9 @@ const getCopyMethod = (() => {
       if (Bun.which("xclip")) {
         method = async (text: string) => {
           const proc = Bun.spawn(["xclip", "-selection", "clipboard"], {
+            stderr: "ignore",
             stdin: "pipe",
             stdout: "ignore",
-            stderr: "ignore",
           });
           proc.stdin.write(text);
           proc.stdin.end();
@@ -64,9 +64,9 @@ const getCopyMethod = (() => {
       if (Bun.which("xsel")) {
         method = async (text: string) => {
           const proc = Bun.spawn(["xsel", "--clipboard", "--input"], {
+            stderr: "ignore",
             stdin: "pipe",
             stdout: "ignore",
-            stderr: "ignore",
           });
           proc.stdin.write(text);
           proc.stdin.end();
@@ -86,7 +86,7 @@ const getCopyMethod = (() => {
             "-Command",
             "[Console]::InputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value ([Console]::In.ReadToEnd())",
           ],
-          { stdin: "pipe", stdout: "ignore", stderr: "ignore" }
+          { stderr: "ignore", stdin: "pipe", stdout: "ignore" }
         );
         proc.stdin.write(text);
         proc.stdin.end();

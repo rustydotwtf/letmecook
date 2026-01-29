@@ -1,7 +1,7 @@
 import { test, expect, describe, mock, beforeEach } from "bun:test";
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 
-import type { Session } from "../../src/types";
+import  { type Session } from "../../src/types";
 
 // Mock @opentui/core before importing the module
 const mockTextRenderable = mock(() => ({
@@ -9,16 +9,16 @@ const mockTextRenderable = mock(() => ({
 }));
 
 const mockSelectRenderable = mock(() => ({
-  id: "mock-select",
-  focus: mock(() => {}),
   blur: mock(() => {}),
-  on: mock(() => {}),
+  focus: mock(() => {}),
+  id: "mock-select",
   off: mock(() => {}),
+  on: mock(() => {}),
 }));
 
 const mockBoxRenderable = mock(() => ({
-  id: "mock-box",
   add: mock(() => {}),
+  id: "mock-box",
   remove: mock(() => {}),
 }));
 
@@ -38,7 +38,7 @@ function createMockRenderer() {
   };
 
   return {
-    root: mockRoot,
+    destroy: mock(() => {}),
     keyInput: {
       on: (event: string, handler: (...args: unknown[]) => void) => {
         keyEmitter.on(event, handler);
@@ -47,17 +47,23 @@ function createMockRenderer() {
         keyEmitter.off(event, handler);
       },
     },
-    terminalWidth: 80,
-    terminalHeight: 24,
+    root: mockRoot,
     setBackgroundColor: mock(() => {}),
-    destroy: mock(() => {}),
+    terminalHeight: 24,
+    terminalWidth: 80,
   };
 }
 
 // Mock module system
 mock.module("@opentui/core", () => ({
-  TextRenderable: function () {
-    return mockTextRenderable();
+  ASCIIFontRenderable: function () {
+    return mockASCIIFontRenderable();
+  },
+  BoxRenderable: function () {
+    return mockBoxRenderable();
+  },
+  RGBA: {
+    fromHex: mock(() => ({})),
   },
   SelectRenderable: function () {
     return mockSelectRenderable();
@@ -65,14 +71,8 @@ mock.module("@opentui/core", () => ({
   SelectRenderableEvents: {
     ITEM_SELECTED: "item-selected",
   },
-  BoxRenderable: function () {
-    return mockBoxRenderable();
-  },
-  ASCIIFontRenderable: function () {
-    return mockASCIIFontRenderable();
-  },
-  RGBA: {
-    fromHex: mock(() => ({})),
+  TextRenderable: function () {
+    return mockTextRenderable();
   },
   measureText: mock(() => ({ width: 50 })),
 }));
@@ -82,12 +82,12 @@ import { showMainMenu } from "../../src/ui/main-menu";
 
 function createTestSession(name: string): Session {
   return {
-    name,
-    repos: [{ spec: "owner/repo", owner: "owner", name: "repo", dir: "repo" }],
-    goal: "Test goal",
     created: new Date().toISOString(),
+    goal: "Test goal",
     lastAccessed: new Date().toISOString(),
+    name,
     path: `/tmp/${name}`,
+    repos: [{ spec: "owner/repo", owner: "owner", name: "repo", dir: "repo" }],
   };
 }
 
@@ -106,9 +106,9 @@ describe("showMainMenu", () => {
 
     // Simulate pressing 'q'
     keyEmitter.emit("keypress", {
-      name: "q",
       ctrl: false,
       meta: false,
+      name: "q",
       shift: false,
     });
 
@@ -122,9 +122,9 @@ describe("showMainMenu", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     keyEmitter.emit("keypress", {
-      name: "escape",
       ctrl: false,
       meta: false,
+      name: "escape",
       shift: false,
     });
 
@@ -138,9 +138,9 @@ describe("showMainMenu", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     keyEmitter.emit("keypress", {
-      name: "n",
       ctrl: false,
       meta: false,
+      name: "n",
       shift: false,
     });
 
@@ -155,9 +155,9 @@ describe("showMainMenu", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     keyEmitter.emit("keypress", {
-      name: "d",
       ctrl: false,
       meta: false,
+      name: "d",
       shift: false,
     });
 
@@ -175,9 +175,9 @@ describe("showMainMenu", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     keyEmitter.emit("keypress", {
-      name: "a",
       ctrl: false,
       meta: false,
+      name: "a",
       shift: false,
     });
 
@@ -192,17 +192,17 @@ describe("showMainMenu", () => {
 
     // Press 'a' - should be ignored
     keyEmitter.emit("keypress", {
-      name: "a",
       ctrl: false,
       meta: false,
+      name: "a",
       shift: false,
     });
 
     // Then press 'q' to resolve
     keyEmitter.emit("keypress", {
-      name: "q",
       ctrl: false,
       meta: false,
+      name: "q",
       shift: false,
     });
 
@@ -217,17 +217,17 @@ describe("showMainMenu", () => {
 
     // Press 'd' - should be ignored
     keyEmitter.emit("keypress", {
-      name: "d",
       ctrl: false,
       meta: false,
+      name: "d",
       shift: false,
     });
 
     // Then press 'n' to resolve
     keyEmitter.emit("keypress", {
-      name: "n",
       ctrl: false,
       meta: false,
+      name: "n",
       shift: false,
     });
 

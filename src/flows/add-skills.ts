@@ -1,6 +1,6 @@
-import type { CliRenderer } from "@opentui/core";
+import  { type CliRenderer } from "@opentui/core";
 
-import type { Session } from "../types";
+import  { type Session } from "../types";
 
 import { writeAgentsMd } from "../agents-md";
 import { updateSessionSkills } from "../sessions";
@@ -57,12 +57,12 @@ export async function addSkillsFlow(
       if (updatedSession) {
         await writeAgentsMd(updatedSession);
         console.log("\n✅ Skills added.\n");
-        return { session: updatedSession, cancelled: false };
+        return { cancelled: false, session: updatedSession };
       }
     }
 
     console.log("\nNo new skills to add (all already in session).\n");
   }
 
-  return { session, cancelled };
+  return { cancelled, session };
 }

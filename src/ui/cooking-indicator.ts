@@ -31,9 +31,9 @@ export function createCookingIndicator(
   const cooked = pair[1];
 
   const indicator = new TextRenderable(renderer, {
-    id: "cooking-indicator",
     content: "",
     fg: "#f8fafc",
+    id: "cooking-indicator",
   });
   parent.add(indicator);
 
@@ -66,7 +66,7 @@ export function createCookingIndicator(
   };
 
   const start = () => {
-    if (interval) return;
+    if (interval) {return;}
     frame = 1;
     direction = 1;
     render();
@@ -87,5 +87,5 @@ export function createCookingIndicator(
 
   const isRunning = () => interval !== null;
 
-  return { start, stop, isRunning };
+  return { isRunning, start, stop };
 }

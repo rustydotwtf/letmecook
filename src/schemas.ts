@@ -1,22 +1,22 @@
 import { z } from "zod";
 
 export const RepoSpecSchema = z.object({
-  spec: z.string(),
-  owner: z.string(),
-  name: z.string(),
   branch: z.string().optional(),
   dir: z.string(),
-  readOnly: z.boolean().optional(),
   latest: z.boolean().optional(),
+  name: z.string(),
+  owner: z.string(),
+  readOnly: z.boolean().optional(),
+  spec: z.string(),
 });
 
 export const SessionManifestSchema = z.object({
+  created: z.string().datetime(),
+  goal: z.string().optional(),
+  lastAccessed: z.string().datetime(),
   name: z.string(),
   repos: z.array(RepoSpecSchema),
-  goal: z.string().optional(),
   skills: z.array(z.string()).optional(),
-  created: z.string().datetime(),
-  lastAccessed: z.string().datetime(),
 });
 
 export const SessionSchema = SessionManifestSchema.extend({
@@ -24,10 +24,10 @@ export const SessionSchema = SessionManifestSchema.extend({
 });
 
 export const NewSessionParamsSchema = z.object({
-  repos: z.array(RepoSpecSchema).min(1, "At least one repo is required"),
   goal: z.string().optional(),
-  skills: z.array(z.string()).optional(),
   mode: z.enum(["cli", "tui"]),
+  repos: z.array(RepoSpecSchema).min(1, "At least one repo is required"),
+  skills: z.array(z.string()).optional(),
   skipConflictCheck: z.boolean().optional(),
 });
 
@@ -64,22 +64,22 @@ export function parseRepoSpec(spec: string): RepoSpec {
   }
 
   return {
-    spec,
-    owner,
-    name,
     branch,
     dir: name,
+    name,
+    owner,
+    spec,
   };
 }
 
 export function repoSpecsMatch(a: RepoSpec[], b: RepoSpec[]): boolean {
-  if (a.length !== b.length) return false;
+  if (a.length !== b.length) {return false;}
 
   const aSpecs = new Set(a.map((r) => `${r.owner}/${r.name}`));
   const bSpecs = new Set(b.map((r) => `${r.owner}/${r.name}`));
 
   for (const spec of aSpecs) {
-    if (!bSpecs.has(spec)) return false;
+    if (!bSpecs.has(spec)) {return false;}
   }
 
   return true;

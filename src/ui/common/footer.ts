@@ -73,9 +73,9 @@ export function showFooter(
 
   // Create footer text
   footerText = new TextRenderable(renderer, {
-    id: "footer-text",
     content: footerContent,
     fg: "#64748b",
+    id: "footer-text",
   });
   parent.add(footerText);
 

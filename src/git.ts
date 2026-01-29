@@ -1,7 +1,7 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { RepoSpec } from "./types";
+import  { type RepoSpec } from "./types";
 
 import { readProcessOutputWithBuffer } from "./utils/stream";
 
@@ -60,8 +60,8 @@ export async function cloneRepo(
         ];
 
     const proc = Bun.spawn(args, {
-      stdout: "pipe",
       stderr: "pipe",
+      stdout: "pipe",
     });
 
     // Buffer to collect output lines
@@ -88,7 +88,7 @@ export async function cloneRepo(
     const readStderr = async () => {
       while (true) {
         const { done, value } = await stderrReader.read();
-        if (done) break;
+        if (done) {break;}
         stderrBuffer += decoder.decode(value, { stream: true });
 
         // Process lines (split on newline or carriage return for progress updates)
@@ -112,7 +112,7 @@ export async function cloneRepo(
     const readStdout = async () => {
       while (true) {
         const { done, value } = await stdoutReader.read();
-        if (done) break;
+        if (done) {break;}
         stdoutBuffer += decoder.decode(value, { stream: true });
 
         const lines = stdoutBuffer.split(/[\r\n]+/);
@@ -156,7 +156,7 @@ export async function recloneRepo(
   const repoPath = join(sessionPath, repo.dir);
 
   try {
-    await rm(repoPath, { recursive: true, force: true });
+    await rm(repoPath, { force: true, recursive: true });
     await cloneRepo(repo, sessionPath, onProgress);
   } catch (error) {
     onProgress?.("error");
@@ -193,8 +193,8 @@ export async function hasUncommittedChanges(
 ): Promise<boolean> {
   const proc = Bun.spawn(["git", "status", "--porcelain"], {
     cwd: repoPath,
-    stdout: "pipe",
     stderr: "pipe",
+    stdout: "pipe",
   });
   const output = await new Response(proc.stdout).text();
   await proc.exited;
@@ -207,8 +207,8 @@ export async function sessionHasUncommittedChanges(
 ): Promise<{ hasChanges: boolean; reposWithChanges: RepoSpec[] }> {
   const results = await Promise.all(
     repos.map(async (repo) => ({
-      repo,
       hasChanges: await hasUncommittedChanges(join(sessionPath, repo.dir)),
+      repo,
     }))
   );
   const reposWithChanges = results
@@ -227,7 +227,7 @@ export async function refreshLatestRepos(
   ) => void
 ): Promise<RefreshResult[]> {
   const readOnlyRepos = repos.filter((repo) => repo.readOnly);
-  if (readOnlyRepos.length === 0) return [];
+  if (readOnlyRepos.length === 0) {return [];}
 
   const results: RefreshResult[] = [];
 
@@ -237,9 +237,9 @@ export async function refreshLatestRepos(
 
     if (dirty) {
       results.push({
+        reason: "uncommitted changes",
         repo,
         status: "skipped",
-        reason: "uncommitted changes",
       });
       onProgress?.(repoIndex, "skipped", ["Skipped: uncommitted changes"]);
       continue;
@@ -252,8 +252,8 @@ export async function refreshLatestRepos(
     const proc = Bun.spawn(
       ["git", "-C", repoPath, "pull", "--ff-only", "--depth", "1"],
       {
-        stdout: "pipe",
         stderr: "pipe",
+        stdout: "pipe",
       }
     );
 
@@ -271,9 +271,9 @@ export async function refreshLatestRepos(
       const reason =
         fullOutput.trim() || `git pull exited with code ${exitCode}`;
       results.push({
+        reason,
         repo,
         status: "error",
-        reason,
       });
       onProgress?.(
         repoIndex,
