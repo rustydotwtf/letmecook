@@ -1,5 +1,11 @@
+import type { CliRenderer } from "@opentui/core";
+
 import { ChatLogger } from "./chat-logger";
-import { createNewSession, resumeSession } from "./flows";
+import {
+  createNewSession,
+  resumeSession,
+  type NewSessionResult,
+} from "./flows";
 import {
   deleteAllSessions,
   deleteSession,
@@ -7,7 +13,7 @@ import {
   listSessions,
   updateLastAccessed,
 } from "./sessions";
-import { type RepoSpec, parseRepoSpec } from "./types";
+import { type RepoSpec, type Session, parseRepoSpec } from "./types";
 import { showNukeConfirm } from "./ui/confirm-nuke";
 import { showSessionList } from "./ui/list";
 import { showNewSessionPrompt } from "./ui/new-session";
@@ -43,8 +49,8 @@ function cancelSession(): void {
 }
 
 async function resumeExistingSession(
-  renderer: unknown,
-  session: { name: string }
+  renderer: CliRenderer,
+  session: Session
 ): Promise<void> {
   destroyRenderer();
   console.log(`\nResuming existing session: ${session.name}\n`);
@@ -56,8 +62,8 @@ async function resumeExistingSession(
 }
 
 async function startSession(
-  renderer: unknown,
-  session: { name: string; path: string }
+  renderer: CliRenderer,
+  session: Session
 ): Promise<void> {
   destroyRenderer();
   console.log(`\nSession created: ${session.name}`);
@@ -70,13 +76,10 @@ async function startSession(
 }
 
 async function handleNewSessionResult(
-  renderer: unknown,
-  result: unknown
+  renderer: CliRenderer,
+  result: NewSessionResult
 ): Promise<void> {
-  const { session, skipped } = result as {
-    session: { name: string; path: string };
-    skipped: boolean;
-  };
+  const { session, skipped } = result;
 
   if (skipped) {
     await resumeExistingSession(renderer, session);
@@ -86,12 +89,13 @@ async function handleNewSessionResult(
 }
 
 async function runNewSessionFlow(
-  renderer: unknown,
+  renderer: CliRenderer,
   repos: RepoSpec[]
 ): Promise<void> {
   const { goal, cancelled } = await showNewSessionPrompt(renderer, repos);
   if (cancelled) {
     cancelSession();
+    return;
   }
 
   const result = await createNewSession(renderer, {
@@ -102,6 +106,7 @@ async function runNewSessionFlow(
 
   if (!result) {
     cancelSession();
+    return;
   }
 
   await handleNewSessionResult(renderer, result);
@@ -120,12 +125,12 @@ export async function handleNewSessionCLI(repos: RepoSpec[]): Promise<void> {
 }
 
 async function processResumeAction(
-  renderer: unknown,
-  session: unknown
+  renderer: CliRenderer,
+  session: Session
 ): Promise<void> {
   destroyRenderer();
-  await updateLastAccessed((session as { name: string }).name);
-  console.log(`\nResuming session: (session as { name: string }).name`);
+  await updateLastAccessed(session.name);
+  console.log(`\nResuming session: ${session.name}`);
   await resumeSession(renderer, {
     initialRefresh: true,
     mode: "cli",
@@ -134,7 +139,7 @@ async function processResumeAction(
 }
 
 async function processNukeAction(
-  renderer: unknown,
+  renderer: CliRenderer,
   count: number
 ): Promise<void> {
   const choice = await showNukeConfirm(renderer, count);
@@ -148,8 +153,8 @@ async function processNukeAction(
 }
 
 async function processListAction(
-  renderer: unknown,
-  session: unknown
+  renderer: CliRenderer,
+  session: Session
 ): Promise<void> {
   await processResumeAction(renderer, session);
 }
@@ -159,13 +164,15 @@ function processQuitAction(): void {
 }
 
 async function handleSessionAction(
-  renderer: unknown,
-  action: { type: string; session?: unknown },
+  renderer: CliRenderer,
+  action: { type: string; session?: Session },
   sessionCount: number
 ): Promise<void> {
   switch (action.type) {
     case "resume": {
-      await processListAction(renderer, action.session);
+      if (action.session) {
+        await processListAction(renderer, action.session);
+      }
       break;
     }
     case "delete": {
@@ -186,7 +193,7 @@ async function handleSessionAction(
   }
 }
 
-async function listSessionLoop(renderer: unknown): Promise<void> {
+async function listSessionLoop(renderer: CliRenderer): Promise<void> {
   const sessions = await listSessions();
   const action = await showSessionList(renderer, sessions);
   await handleSessionAction(renderer, action, sessions.length);
@@ -228,11 +235,11 @@ export async function handleResume(sessionName: string): Promise<void> {
   const session = await getSession(sessionName);
 
   if (!session) {
-    await handleSessionNotFound(sessionName);
+    return handleSessionNotFound(sessionName);
   }
 
-  await updateLastAccessed((session as { name: string }).name);
-  console.log(`\nResuming session: (session as { name: string }).name`);
+  await updateLastAccessed(session.name);
+  console.log(`\nResuming session: ${session.name}`);
   const renderer = await createRenderer();
   await resumeSession(renderer, {
     initialRefresh: true,
@@ -262,7 +269,7 @@ export async function handleDelete(sessionName: string): Promise<void> {
 }
 
 async function confirmSessionDeletion(
-  renderer: unknown,
+  renderer: CliRenderer,
   count: number
 ): Promise<void> {
   const choice = await showNukeConfirm(renderer, count);
@@ -276,10 +283,14 @@ async function confirmSessionDeletion(
   }
 }
 
-async function performNuke(
-  skipConfirm: boolean,
-  renderer: unknown
+async function performNukeWithConfirmation(
+  renderer: CliRenderer,
+  sessionCount: number
 ): Promise<void> {
+  await confirmSessionDeletion(renderer, sessionCount);
+}
+
+export async function handleNuke(skipConfirm = false): Promise<void> {
   const sessions = await listSessions();
   if (sessions.length === 0) {
     console.log("Nothing to nuke.");
@@ -292,12 +303,8 @@ async function performNuke(
     return;
   }
 
-  await confirmSessionDeletion(renderer, sessions.length);
-}
-
-export async function handleNuke(skipConfirm = false): Promise<void> {
   const renderer = await createRenderer();
-  await performNuke(skipConfirm, renderer);
+  await performNukeWithConfirmation(renderer, sessions.length);
 }
 
 function readStdin(): Promise<string> {

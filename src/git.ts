@@ -122,8 +122,10 @@ async function runCloneProcess(
   });
 
   const decoder = new TextDecoder();
-  const stderrReader = proc.stderr.getReader();
-  const stdoutReader = proc.stdout.getReader();
+  const stderrReader =
+    proc.stderr.getReader() as ReadableStreamDefaultReader<Uint8Array>;
+  const stdoutReader =
+    proc.stdout.getReader() as ReadableStreamDefaultReader<Uint8Array>;
 
   await Promise.all([
     readStreamWithBuffer(stderrReader, decoder, "", addLine),

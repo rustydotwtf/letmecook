@@ -1,12 +1,10 @@
 import type { CliRenderer } from "@opentui/core";
 
-import { test, expect, describe, mock, beforeEach, beforeAll } from "bun:test";
+import { test, expect, describe, mock, beforeEach } from "bun:test";
 
 import type { Session } from "../../src/types";
 
-import { showMainMenu } from "../../src/ui/main-menu";
-
-// Mock @opentui/core before importing the module
+// Mock @opentui/core BEFORE importing the module under test
 const mockTextRenderable = mock(() => ({
   id: "mock-text",
 }));
@@ -41,18 +39,60 @@ const mockASCIIFontRenderable = mock(() => ({
   id: "mock-ascii",
 }));
 
+// Register mock BEFORE dynamic import - must be at top level for Bun mock.module to work
+// oxlint-disable-next-line eslint-plugin-jest(require-hook)
+mock.module("@opentui/core", () => ({
+  ASCIIFontRenderable: function ASCIIFontRenderable() {
+    return mockASCIIFontRenderable();
+  },
+  BoxRenderable: function BoxRenderable() {
+    return mockBoxRenderable();
+  },
+  RGBA: {
+    fromHex: mock(() => ({})),
+  },
+  SelectRenderable: function SelectRenderable() {
+    return mockSelectRenderable();
+  },
+  SelectRenderableEvents: {
+    ITEM_SELECTED: "item-selected",
+  },
+  TextRenderable: function TextRenderable() {
+    return mockTextRenderable();
+  },
+  measureText: mock(() => ({ width: 50 })),
+}));
+
+// Dynamic import AFTER mock.module registration
+const { showMainMenu } = await import("../../src/ui/main-menu");
+
+type HandlerFn = (...args: unknown[]) => void;
+
 // Create mock functions that we can access in tests
-class MockKeyEmitter extends EventTarget {
+class MockKeyEmitter {
+  private handlers = new Map<string, Set<HandlerFn>>();
+
   emit(event: string, data: unknown): void {
-    this.dispatchEvent(new CustomEvent(event, { detail: data }));
+    const handlers = this.handlers.get(event);
+    if (handlers) {
+      for (const handler of handlers) {
+        handler(data);
+      }
+    }
   }
 
-  on(event: string, handler: (...args: unknown[]) => void): void {
-    this.addEventListener(event, handler as EventListener);
+  on(event: string, handler: HandlerFn): void {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, new Set());
+    }
+    this.handlers.get(event)?.add(handler);
   }
 
-  off(event: string, handler: (...args: unknown[]) => void): void {
-    this.removeEventListener(event, handler as EventListener);
+  off(event: string, handler: HandlerFn): void {
+    const handlers = this.handlers.get(event);
+    if (handlers) {
+      handlers.delete(handler);
+    }
   }
 }
 
@@ -104,30 +144,6 @@ function createTestSession(name: string): Session {
 
 describe("showMainMenu", () => {
   let renderer: ReturnType<typeof createMockRenderer>;
-
-  beforeAll(() => {
-    mock.module("@opentui/core", () => ({
-      ASCIIFontRenderable: function ASCIIFontRenderable() {
-        return mockASCIIFontRenderable();
-      },
-      BoxRenderable: function BoxRenderable() {
-        return mockBoxRenderable();
-      },
-      RGBA: {
-        fromHex: mock(() => ({})),
-      },
-      SelectRenderable: function SelectRenderable() {
-        return mockSelectRenderable();
-      },
-      SelectRenderableEvents: {
-        ITEM_SELECTED: "item-selected",
-      },
-      TextRenderable: function TextRenderable() {
-        return mockTextRenderable();
-      },
-      measureText: mock(() => ({ width: 50 })),
-    }));
-  });
 
   beforeEach(() => {
     renderer = createMockRenderer();
