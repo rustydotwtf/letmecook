@@ -78,11 +78,10 @@ export async function registerBackgroundProcess(
   stmt.run(pid, command, description, sessionName, new Date().toISOString());
 }
 
-export async function getRunningProcesses(): Promise<BackgroundProcess[]> {
-  const database = await getDb();
-  const stmt = database.prepare(`SELECT * FROM background_processes`);
-  const rows = stmt.all() as DbRow[];
-
+function filterProcesses(rows: DbRow[]): {
+  alive: BackgroundProcess[];
+  dead: number[];
+} {
   const aliveProcesses: BackgroundProcess[] = [];
   const deadPids: number[] = [];
 
@@ -94,20 +93,34 @@ export async function getRunningProcesses(): Promise<BackgroundProcess[]> {
     }
   }
 
-  // Clean up dead processes from the database
-  if (deadPids.length > 0) {
-    const deleteStmt = database.prepare(
-      `DELETE FROM background_processes WHERE pid = ?`
-    );
-    const deleteMany = database.transaction((pids: number[]) => {
-      for (const pid of pids) {
-        deleteStmt.run(pid);
-      }
-    });
-    deleteMany(deadPids);
+  return { alive: aliveProcesses, dead: deadPids };
+}
+
+function cleanupDeadProcesses(database: Database, deadPids: number[]): void {
+  if (deadPids.length === 0) {
+    return;
   }
 
-  return aliveProcesses;
+  const deleteStmt = database.prepare(
+    `DELETE FROM background_processes WHERE pid = ?`
+  );
+  const deleteMany = database.transaction((pids: number[]) => {
+    for (const pid of pids) {
+      deleteStmt.run(pid);
+    }
+  });
+  deleteMany(deadPids);
+}
+
+export async function getRunningProcesses(): Promise<BackgroundProcess[]> {
+  const database = await getDb();
+  const stmt = database.prepare(`SELECT * FROM background_processes`);
+  const rows = stmt.all() as DbRow[];
+
+  const { alive, dead } = filterProcesses(rows);
+  cleanupDeadProcesses(database, dead);
+
+  return alive;
 }
 
 export async function getProcessesForSession(
@@ -119,56 +132,47 @@ export async function getProcessesForSession(
   );
   const rows = stmt.all(sessionName) as DbRow[];
 
-  const aliveProcesses: BackgroundProcess[] = [];
-  const deadPids: number[] = [];
+  const { alive, dead } = filterProcesses(rows);
+  cleanupDeadProcesses(database, dead);
 
-  for (const row of rows) {
-    if (isProcessAlive(row.pid)) {
-      aliveProcesses.push(rowToProcess(row));
-    } else {
-      deadPids.push(row.pid);
+  return alive;
+}
+
+async function waitForProcessExit(
+  pid: number,
+  timeoutMs: number
+): Promise<boolean> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeoutMs) {
+    await Bun.sleep(100);
+    if (!isProcessAlive(pid)) {
+      return true;
     }
   }
+  return false;
+}
 
-  // Clean up dead processes from the database
-  if (deadPids.length > 0) {
-    const deleteStmt = database.prepare(
-      `DELETE FROM background_processes WHERE pid = ?`
-    );
-    const deleteMany = database.transaction((pids: number[]) => {
-      for (const pid of pids) {
-        deleteStmt.run(pid);
-      }
-    });
-    deleteMany(deadPids);
+function attemptGracefulKill(pid: number): Promise<boolean> {
+  process.kill(pid, "SIGTERM");
+  return waitForProcessExit(pid, 3000);
+}
+
+async function forceKillIfNecessary(pid: number): Promise<void> {
+  if (isProcessAlive(pid)) {
+    process.kill(pid, "SIGKILL");
+    await Bun.sleep(100);
   }
-
-  return aliveProcesses;
 }
 
 export async function killProcess(pid: number): Promise<boolean> {
   try {
-    // First try SIGTERM for graceful shutdown
-    process.kill(pid, "SIGTERM");
-
-    // Wait up to 3 seconds for process to exit
-    const startTime = Date.now();
-    while (Date.now() - startTime < 3000) {
-      await Bun.sleep(100);
-      if (!isProcessAlive(pid)) {
-        await removeProcessFromRegistry(pid);
-        return true;
-      }
+    const gracefullyStopped = await attemptGracefulKill(pid);
+    if (!gracefullyStopped) {
+      await forceKillIfNecessary(pid);
     }
-
-    // Process didn't exit, send SIGKILL
-    process.kill(pid, "SIGKILL");
-    await Bun.sleep(100);
-
     await removeProcessFromRegistry(pid);
     return true;
   } catch {
-    // Process may have already exited
     await removeProcessFromRegistry(pid);
     return false;
   }
