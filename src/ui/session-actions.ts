@@ -53,12 +53,10 @@ function setupActionResolver(
   select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);
   renderer.keyInput.on("keypress", handleKeypress);
 
-  const promise = Promise.resolve().then(
-    () =>
-      new Promise<SessionAction>((resolve) => {
-        resolveFn = resolve;
-      })
-  );
+  // eslint-disable-next-line promise/avoid-new -- Needed to store resolve function for event-driven pattern
+  const promise = new Promise<SessionAction>((resolve) => {
+    resolveFn = resolve;
+  });
 
   return { cleanup, promise };
 }
@@ -136,11 +134,10 @@ function createInstructions(renderer: CliRenderer) {
   });
 }
 
-function setupUI(
+function setupSessionContent(
   renderer: CliRenderer,
   session: Session
-): { promise: Promise<SessionAction>; select: SelectRenderable } {
-  clearLayout(renderer);
+): SelectRenderable {
   const { content } = createBaseLayout(renderer, "Session paused");
 
   content.add(createSessionInfo(renderer, session));
@@ -151,8 +148,16 @@ function setupUI(
   content.add(select);
   content.add(createInstructions(renderer));
 
-  select.focus();
+  return select;
+}
 
+function setupUI(
+  renderer: CliRenderer,
+  session: Session
+): { promise: Promise<SessionAction>; select: SelectRenderable } {
+  clearLayout(renderer);
+  const select = setupSessionContent(renderer, session);
+  select.focus();
   const resolver = setupActionResolver(renderer, select);
 
   return { promise: resolver.promise, select };
