@@ -47,7 +47,6 @@ const config: Config = {
       copyright: `Copyright ${new Date().getFullYear()} rustydotwtf. Built with Docusaurus.`,
       links: [
         {
-          title: "Documentation",
           items: [
             {
               label: "Getting Started",
@@ -58,15 +57,16 @@ const config: Config = {
               to: "/reference/cli-commands",
             },
           ],
+          title: "Documentation",
         },
         {
-          title: "More",
           items: [
             {
-              label: "GitHub",
               href: "https://github.com/rustydotwtf/letmecook",
+              label: "GitHub",
             },
           ],
+          title: "More",
         },
       ],
       style: "dark",
@@ -74,10 +74,10 @@ const config: Config = {
     navbar: {
       items: [
         {
-          type: "docSidebar",
-          sidebarId: "docsSidebar",
-          position: "left",
           label: "Docs",
+          position: "left",
+          sidebarId: "docsSidebar",
+          type: "docSidebar",
         },
         {
           href: "https://github.com/rustydotwtf/letmecook",
