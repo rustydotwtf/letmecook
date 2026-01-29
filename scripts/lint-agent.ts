@@ -92,7 +92,7 @@ async function runLint(): Promise<void> {
     return;
   }
 
-  // Group by file (already sorted alphabetically)
+  // Group by file (sorted by issue count - easiest fixes first)
   const grouped = groupByFile(diagnostics);
   const files = [...grouped.entries()];
   const totalFiles = files.length;
