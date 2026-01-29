@@ -1,0 +1,4 @@
+#!/bin/sh
+bun run fix
+bun run check
+git add -u

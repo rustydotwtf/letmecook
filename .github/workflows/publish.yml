@@ -1,0 +1,95 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      message:
+        description: "Release message (optional)"
+        required: false
+        type: string
+      dry_run:
+        description: "Dry run (skip actual publish)"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint:ci
+
+      - name: Format check
+        run: bun run format:check
+
+  publish:
+    needs: ci
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: write
+      id-token: write # Required for OIDC
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: bun install --frozen-lockfile
+
+      - name: Configure git
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npm version ${{ inputs.version }} -m "Release %s: ${{ inputs.message || 'No message' }}"
+          echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Push version bump
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run == false
+        run: git push --follow-tags
+
+      - name: Publish to npm
+        if: inputs.dry_run != true
+        run: npm publish --provenance --access public
+
+      - name: Dry run - show what would be published
+        if: inputs.dry_run == true
+        run: |
+          echo "=== DRY RUN ==="
+          echo "Version: ${{ env.NEW_VERSION || 'N/A (release trigger)' }}"
+          echo "Message: ${{ inputs.message || 'N/A' }}"
+          echo ""
+          echo "=== Package contents ==="
+          npm pack --dry-run

@@ -1,0 +1,49 @@
+import type { Session } from "./types";
+import { updateSessionSkills } from "./sessions";
+import { writeAgentsMd } from "./agents-md";
+import { readProcessOutput } from "./utils/stream";
+
+export async function updateSkills(
+  session: Session,
+  onProgress?: (output: string) => void,
+): Promise<{ success: boolean; output: string[] }> {
+  if (!session.skills || session.skills.length === 0) {
+    return { success: true, output: [] };
+  }
+
+  const proc = Bun.spawn(["bunx", "skills", "update", "-y"], {
+    cwd: session.path,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return readProcessOutput(proc, onProgress);
+}
+
+export async function addSkillToSession(
+  session: Session,
+  skillString: string,
+  onProgress?: (output: string) => void,
+): Promise<{ success: boolean; output: string[] }> {
+  const proc = Bun.spawn(["bunx", "skills", "add", skillString, "-y"], {
+    cwd: session.path,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return readProcessOutput(proc, onProgress);
+}
+
+export async function removeSkillFromSession(
+  session: Session,
+  skillString: string,
+): Promise<Session> {
+  const updatedSkills = (session.skills || []).filter((s) => s !== skillString);
+  const updatedSession = await updateSessionSkills(session.name, updatedSkills);
+
+  if (updatedSession) {
+    await writeAgentsMd(updatedSession);
+  }
+
+  return updatedSession || session;
+}
