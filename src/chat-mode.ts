@@ -1,9 +1,11 @@
 import type { CliRenderer } from "@opentui/core";
 
+import { once } from "node:events";
+
 import type { Session } from "./types";
 
 import { ChatLogger } from "./chat-logger";
-import { ConfigBuilder, type PartialConfig } from "./config-builder";
+import { ConfigBuilder } from "./config-builder";
 import { createNewSession } from "./flows";
 import {
   type ChatConfig,
@@ -19,12 +21,42 @@ import {
 import { showChatConfirmation } from "./ui/chat-confirmation";
 import {
   createChatWithSidebarLayout,
-  updateSidebar,
   createStreamingMessage,
   waitForChatInput,
   type ChatWithSidebarElements,
 } from "./ui/chat-with-sidebar";
 import { createRenderer, destroyRenderer } from "./ui/renderer";
+
+function formatViewIssueResult(tr: ToolCallResult): string | null {
+  const output = tr.output as {
+    markdown?: string;
+    error?: string;
+    title?: string;
+  };
+  if (output.error) {
+    return `Failed to fetch issue: ${output.error}`;
+  }
+  if (output.markdown) {
+    return output.markdown;
+  }
+  return null;
+}
+
+function formatListReposResult(tr: ToolCallResult): string | null {
+  const output = tr.output as { repos?: string[] };
+  if (output.repos && output.repos.length > 0) {
+    return `Found repositories:\n${output.repos.map((r) => `- ${r}`).join("\n")}`;
+  }
+  return null;
+}
+
+function formatListRepoHistoryResult(tr: ToolCallResult): string | null {
+  const output = tr.output as { repos?: { spec: string }[] };
+  if (output.repos && output.repos.length > 0) {
+    return `Repositories from history:\n${output.repos.map((r) => `- ${r.spec}`).join("\n")}`;
+  }
+  return null;
+}
 
 /**
  * Format a tool result for inclusion in the conversation history
@@ -32,35 +64,17 @@ import { createRenderer, destroyRenderer } from "./ui/renderer";
 function formatToolResultForMessage(tr: ToolCallResult): string | null {
   switch (tr.toolName) {
     case "view_issue": {
-      const output = tr.output as {
-        markdown?: string;
-        error?: string;
-        title?: string;
-      };
-      if (output.error) {
-        return `Failed to fetch issue: ${output.error}`;
-      }
-      if (output.markdown) {
-        return output.markdown;
-      }
-      break;
+      return formatViewIssueResult(tr);
     }
     case "list_repos": {
-      const output = tr.output as { repos?: string[] };
-      if (output.repos && output.repos.length > 0) {
-        return `Found repositories:\n${output.repos.map((r) => `- ${r}`).join("\n")}`;
-      }
-      break;
+      return formatListReposResult(tr);
     }
     case "list_repo_history": {
-      const output = tr.output as { repos?: { spec: string }[] };
-      if (output.repos && output.repos.length > 0) {
-        return `Repositories from history:\n${output.repos.map((r) => `- ${r.spec}`).join("\n")}`;
-      }
+      return formatListRepoHistoryResult(tr);
+    }
+    default: {
       break;
     }
-    default:
-      break;
   }
   return null;
 }
@@ -70,6 +84,259 @@ export interface ChatModeResult {
   cancelled: boolean;
   useManualMode: boolean;
   logPath?: string;
+}
+
+function createStreamHandler(
+  elements: ChatWithSidebarElements,
+  streaming: ReturnType<typeof createStreamingMessage>
+) {
+  return (chunk: string) => {
+    elements.hideCooking();
+    streaming.update(chunk);
+  };
+}
+
+function handleToolResults(
+  toolResults: ToolCallResult[],
+  messages: ChatMessage[],
+  logger: ChatLogger
+): void {
+  for (const tr of toolResults) {
+    logger.addToolCall(tr.toolName, tr.input, tr.output, tr.durationMs);
+    const toolOutput = formatToolResultForMessage(tr);
+    if (toolOutput) {
+      messages.push({ content: toolOutput, role: "assistant" });
+      logger.addMessage("assistant", toolOutput);
+    }
+  }
+}
+
+function handleLLMResponse(
+  chatResult: {
+    response?: string;
+    error?: string;
+  },
+  messages: ChatMessage[],
+  logger: ChatLogger
+): void {
+  if (chatResult.response) {
+    messages.push({ content: chatResult.response, role: "assistant" });
+    logger.addMessage("assistant", chatResult.response);
+  }
+
+  if (chatResult.error) {
+    logger.addError("llm", chatResult.error);
+    const errorMessage = "Sorry, I encountered an error. Please try again.";
+    messages.push({ content: errorMessage, role: "assistant" });
+    logger.addMessage("assistant", errorMessage);
+  }
+}
+
+async function processLLMConversationTurn(
+  renderer: CliRenderer,
+  elements: ChatWithSidebarElements,
+  messages: ChatMessage[],
+  configBuilder: ConfigBuilder,
+  logger: ChatLogger
+): Promise<void> {
+  const streaming = createStreamingMessage(renderer, elements);
+  const streamHandler = createStreamHandler(elements, streaming);
+  const chatResult = await chatToConfigIncremental(
+    messages,
+    configBuilder,
+    streamHandler
+  );
+
+  elements.hideCooking();
+  streaming.finish();
+
+  if (chatResult.toolResults) {
+    handleToolResults(chatResult.toolResults, messages, logger);
+  }
+
+  handleLLMResponse(chatResult, messages, logger);
+}
+
+async function checkApiKey(): Promise<ChatModeResult> {
+  console.clear();
+  console.log(API_KEY_MISSING_MESSAGE);
+  await waitForEnter();
+  return { cancelled: false, useManualMode: true };
+}
+
+async function handleConfirmationResult(
+  confirmResult: { action: string },
+  messages: ChatMessage[],
+  configBuilder: ConfigBuilder,
+  logger: ChatLogger,
+  _renderer: CliRenderer
+): Promise<ChatModeResult | undefined> {
+  const handlers = {
+    back: async () => {
+      const reviseMessage = "Let me revise further.";
+      messages.push({ content: reviseMessage, role: "user" });
+      logger.addMessage("user", reviseMessage);
+
+      destroyRenderer();
+      const activeRenderer = await createRenderer();
+
+      return await continueChatAfterBack(
+        activeRenderer,
+        messages,
+        configBuilder,
+        logger
+      );
+    },
+    cancel: async () => {
+      destroyRenderer();
+      logger.markCancelled();
+      const logPath = await logger.save();
+      return { cancelled: true, logPath, useManualMode: false };
+    },
+    edit: async () => {
+      destroyRenderer();
+      logger.markCancelled();
+      const logPath = await logger.save();
+      return { cancelled: false, logPath, useManualMode: true };
+    },
+  };
+
+  const handler = handlers[confirmResult.action as keyof typeof handlers];
+  if (handler) {
+    return await handler();
+  }
+
+  destroyRenderer();
+  return undefined;
+}
+
+function isReadyAndHasRepos(
+  userMessage: string,
+  configBuilder: ConfigBuilder
+): boolean {
+  return isReadySignal(userMessage) && configBuilder.isReady();
+}
+
+function isReadyButNoRepos(
+  userMessage: string,
+  configBuilder: ConfigBuilder
+): boolean {
+  return isReadySignal(userMessage) && !configBuilder.isReady();
+}
+
+function handleReadyWithNoRepos(
+  userMessage: string,
+  messages: ChatMessage[],
+  logger: ChatLogger
+): void {
+  messages.push({ content: userMessage, role: "user" });
+  logger.addMessage("user", userMessage);
+
+  const needRepoMessage =
+    "I need at least one repository before we can proceed. What would you like to work on?";
+  messages.push({ content: needRepoMessage, role: "assistant" });
+  logger.addMessage("assistant", needRepoMessage);
+}
+
+async function handleUserMessage(
+  userMessage: string,
+  messages: ChatMessage[],
+  configBuilder: ConfigBuilder,
+  logger: ChatLogger,
+  renderer: CliRenderer,
+  elements: ChatWithSidebarElements
+): Promise<boolean> {
+  if (isReadyAndHasRepos(userMessage, configBuilder)) {
+    messages.push({ content: userMessage, role: "user" });
+    logger.addMessage("user", userMessage);
+    return true;
+  }
+
+  if (isReadyButNoRepos(userMessage, configBuilder)) {
+    handleReadyWithNoRepos(userMessage, messages, logger);
+    return false;
+  }
+
+  await handleRegularMessage(
+    userMessage,
+    messages,
+    logger,
+    renderer,
+    elements,
+    configBuilder
+  );
+  return false;
+}
+
+async function handleRegularMessage(
+  userMessage: string,
+  messages: ChatMessage[],
+  logger: ChatLogger,
+  renderer: CliRenderer,
+  elements: ChatWithSidebarElements,
+  configBuilder: ConfigBuilder
+): Promise<void> {
+  messages.push({ content: userMessage, role: "user" });
+  logger.addMessage("user", userMessage);
+
+  await processLLMConversationTurn(
+    renderer,
+    elements,
+    messages,
+    configBuilder,
+    logger
+  );
+}
+
+async function runChatIteration(
+  messages: ChatMessage[],
+  configBuilder: ConfigBuilder,
+  logger: ChatLogger,
+  renderer: CliRenderer
+): Promise<boolean> {
+  const elements = createChatWithSidebarLayout(
+    renderer,
+    messages,
+    configBuilder.config
+  );
+
+  const inputResult = await waitForChatInput(renderer, elements, messages);
+
+  if (inputResult.cancelled) {
+    throw new Error("cancelled");
+  }
+
+  if (!inputResult.message.trim()) {
+    return false;
+  }
+
+  return await handleUserMessage(
+    inputResult.message.trim(),
+    messages,
+    configBuilder,
+    logger,
+    renderer,
+    elements
+  );
+}
+
+async function runMainChatLoop(
+  messages: ChatMessage[],
+  configBuilder: ConfigBuilder,
+  logger: ChatLogger,
+  renderer: CliRenderer
+): Promise<void> {
+  while (true) {
+    const isReady = await runChatIteration(
+      messages,
+      configBuilder,
+      logger,
+      renderer
+    );
+    if (isReady) {
+      return;
+    }
+  }
 }
 
 /**
@@ -92,201 +359,81 @@ function isReadySignal(message: string): boolean {
   );
 }
 
+async function handleChatConfirmation(
+  configBuilder: ConfigBuilder,
+  logger: ChatLogger,
+  renderer: CliRenderer,
+  messages: ChatMessage[]
+): Promise<ChatModeResult> {
+  const config = configBuilder.toFinalConfig();
+  logger.addConfigAttempt(config, true);
+
+  const confirmResult = await showChatConfirmation(renderer, config);
+  const result = await handleConfirmationResult(
+    confirmResult,
+    messages,
+    configBuilder,
+    logger,
+    renderer
+  );
+
+  if (result !== undefined) {
+    return result;
+  }
+
+  destroyRenderer();
+  return await createSessionFromConfig(config, logger);
+}
+
+async function handleChatError(
+  logger: ChatLogger,
+  error: unknown
+): Promise<ChatModeResult> {
+  destroyRenderer();
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  logger.addError("llm", errorMessage);
+  console.error("Chat mode error:", error);
+  const logPath = await logger.save();
+  return { cancelled: true, logPath, useManualMode: false };
+}
+
+async function setupChatSession(
+  logger: ChatLogger,
+  configBuilder: ConfigBuilder
+): Promise<ChatModeResult> {
+  const renderer = await createRenderer();
+  const messages: ChatMessage[] = [];
+
+  try {
+    messages.push({ content: INCREMENTAL_WELCOME_MESSAGE, role: "assistant" });
+    logger.addMessage("assistant", INCREMENTAL_WELCOME_MESSAGE);
+
+    await runMainChatLoop(messages, configBuilder, logger, renderer);
+
+    destroyRenderer();
+
+    const activeRenderer = await createRenderer();
+
+    return await handleChatConfirmation(
+      configBuilder,
+      logger,
+      activeRenderer,
+      messages
+    );
+  } catch (error) {
+    return await handleChatError(logger, error);
+  }
+}
+
 export async function handleChatMode(): Promise<ChatModeResult> {
   const logger = new ChatLogger();
   const configBuilder = new ConfigBuilder();
 
   if (!process.env.AI_GATEWAY_API_KEY) {
-    console.clear();
-    console.log(API_KEY_MISSING_MESSAGE);
-    await waitForEnter();
-    logger.markCancelled();
-    await logger.save();
-    return { cancelled: false, useManualMode: true };
+    return await checkApiKey();
   }
 
-  let renderer = await createRenderer();
-  const messages: ChatMessage[] = [];
-
-  try {
-    // Add welcome message
-    messages.push({ content: INCREMENTAL_WELCOME_MESSAGE, role: "assistant" });
-    logger.addMessage("assistant", INCREMENTAL_WELCOME_MESSAGE);
-
-    let elements: ChatWithSidebarElements;
-    let confirmed = false;
-
-    // Subscribe to config changes for sidebar updates
-    configBuilder.addEventListener("config-changed", (event: Event) => {
-      const config = (event as CustomEvent<PartialConfig>).detail;
-      if (elements) {
-        updateSidebar(renderer, elements, config);
-      }
-    });
-
-    while (!confirmed) {
-      // Create/refresh the layout
-      elements = createChatWithSidebarLayout(
-        renderer,
-        messages,
-        configBuilder.config
-      );
-
-      // Wait for user input
-      const inputResult = await waitForChatInput(renderer, elements, messages);
-
-      if (inputResult.cancelled) {
-        destroyRenderer();
-        logger.markCancelled();
-        const logPath = await logger.save();
-        return { cancelled: true, logPath, useManualMode: false };
-      }
-
-      if (!inputResult.message.trim()) {
-        continue;
-      }
-
-      const userMessage = inputResult.message.trim();
-
-      // Check if user is ready (and config is valid)
-      if (isReadySignal(userMessage) && configBuilder.isReady()) {
-        // Add final message and break to confirmation
-        messages.push({ content: userMessage, role: "user" });
-        logger.addMessage("user", userMessage);
-        break;
-      }
-
-      // If user says ready but no repos, tell them
-      if (isReadySignal(userMessage) && !configBuilder.isReady()) {
-        messages.push({ content: userMessage, role: "user" });
-        logger.addMessage("user", userMessage);
-
-        const needRepoMessage =
-          "I need at least one repository before we can proceed. What would you like to work on?";
-        messages.push({ content: needRepoMessage, role: "assistant" });
-        logger.addMessage("assistant", needRepoMessage);
-        continue;
-      }
-
-      // Add user message
-      messages.push({ content: userMessage, role: "user" });
-      logger.addMessage("user", userMessage);
-
-      // Refresh layout to show user message
-      destroyRenderer();
-      renderer = await createRenderer();
-      elements = createChatWithSidebarLayout(
-        renderer,
-        messages,
-        configBuilder.config
-      );
-
-      // Show cooking indicator while waiting for LLM
-      elements.showCooking();
-
-      // Create streaming message area
-      const streaming = createStreamingMessage(renderer, elements);
-
-      // Process with LLM
-      const chatResult = await chatToConfigIncremental(
-        messages,
-        configBuilder,
-        (chunk) => {
-          // Hide cooking indicator on first chunk
-          elements.hideCooking();
-          streaming.update(chunk);
-        }
-      );
-
-      // Hide cooking indicator if it wasn't hidden yet (e.g., empty response)
-      elements.hideCooking();
-
-      streaming.finish();
-
-      // Log tool calls and add results to conversation history
-      if (chatResult.toolResults) {
-        for (const tr of chatResult.toolResults) {
-          logger.addToolCall(tr.toolName, tr.input, tr.output, tr.durationMs);
-          // Add tool results to messages so LLM can reference them later
-          const toolOutput = formatToolResultForMessage(tr);
-          if (toolOutput) {
-            messages.push({ content: toolOutput, role: "assistant" });
-            logger.addMessage("assistant", toolOutput);
-          }
-        }
-      }
-
-      // Add assistant response
-      if (chatResult.response) {
-        messages.push({ content: chatResult.response, role: "assistant" });
-        logger.addMessage("assistant", chatResult.response);
-      }
-
-      if (chatResult.error) {
-        logger.addError("llm", chatResult.error);
-        const errorMessage = "Sorry, I encountered an error. Please try again.";
-        messages.push({ content: errorMessage, role: "assistant" });
-        logger.addMessage("assistant", errorMessage);
-      }
-
-      // Refresh layout with new messages
-      destroyRenderer();
-      renderer = await createRenderer();
-    }
-
-    // Show confirmation screen
-    destroyRenderer();
-    renderer = await createRenderer();
-
-    const config = configBuilder.toFinalConfig();
-    logger.addConfigAttempt(config, true);
-
-    const confirmResult = await showChatConfirmation(renderer, config);
-
-    if (confirmResult.action === "cancel") {
-      destroyRenderer();
-      logger.markCancelled();
-      const logPath = await logger.save();
-      return { cancelled: true, logPath, useManualMode: false };
-    }
-
-    if (confirmResult.action === "back") {
-      // Go back to chat - add a message and continue
-      const reviseMessage = "Let me revise what I'm looking for.";
-      messages.push({ content: reviseMessage, role: "user" });
-      logger.addMessage("user", reviseMessage);
-
-      destroyRenderer();
-      renderer = await createRenderer();
-
-      // Recursive call to continue the chat loop
-      // Reset confirmed state and continue in a new loop
-      return await continueChatAfterBack(
-        renderer,
-        messages,
-        configBuilder,
-        logger
-      );
-    }
-
-    if (confirmResult.action === "edit") {
-      destroyRenderer();
-      logger.markCancelled();
-      const logPath = await logger.save();
-      return { cancelled: false, logPath, useManualMode: true };
-    }
-
-    // Confirmed - create session
-    destroyRenderer();
-    return await createSessionFromConfig(config, logger);
-  } catch (error) {
-    destroyRenderer();
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.addError("llm", errorMessage);
-    console.error("Chat mode error:", error);
-    const logPath = await logger.save();
-    return { cancelled: true, logPath, useManualMode: false };
-  }
+  return await setupChatSession(logger, configBuilder);
 }
 
 /**
@@ -298,158 +445,82 @@ async function continueChatAfterBack(
   configBuilder: ConfigBuilder,
   logger: ChatLogger
 ): Promise<ChatModeResult> {
-  let elements: ChatWithSidebarElements;
   let activeRenderer: CliRenderer = initialRenderer;
 
-  // Subscribe to config changes
-  configBuilder.addEventListener("config-changed", (event: Event) => {
-    const config = (event as CustomEvent<PartialConfig>).detail;
-    if (elements) {
-      updateSidebar(activeRenderer, elements, config);
-    }
-  });
-
-  while (true) {
-    elements = createChatWithSidebarLayout(
-      activeRenderer,
-      messages,
-      configBuilder.config
-    );
-
-    const inputResult = await waitForChatInput(
-      activeRenderer,
-      elements,
-      messages
-    );
-
-    if (inputResult.cancelled) {
-      destroyRenderer();
-      logger.markCancelled();
-      const logPath = await logger.save();
-      return { cancelled: true, logPath, useManualMode: false };
-    }
-
-    if (!inputResult.message.trim()) {
-      continue;
-    }
-
-    const userMessage = inputResult.message.trim();
-
-    // Check if user is ready
-    if (isReadySignal(userMessage) && configBuilder.isReady()) {
-      messages.push({ content: userMessage, role: "user" });
-      logger.addMessage("user", userMessage);
-      break;
-    }
-
-    if (isReadySignal(userMessage) && !configBuilder.isReady()) {
-      messages.push({ content: userMessage, role: "user" });
-      logger.addMessage("user", userMessage);
-
-      const needRepoMessage =
-        "I need at least one repository before we can proceed. What would you like to work on?";
-      messages.push({ content: needRepoMessage, role: "assistant" });
-      logger.addMessage("assistant", needRepoMessage);
-      continue;
-    }
-
-    messages.push({ content: userMessage, role: "user" });
-    logger.addMessage("user", userMessage);
-
-    destroyRenderer();
-    activeRenderer = await createRenderer();
-    elements = createChatWithSidebarLayout(
-      activeRenderer,
-      messages,
-      configBuilder.config
-    );
-
-    // Show cooking indicator while waiting for LLM
-    elements.showCooking();
-
-    const streaming = createStreamingMessage(activeRenderer, elements);
-
-    const chatResult = await chatToConfigIncremental(
-      messages,
-      configBuilder,
-      (chunk) => {
-        // Hide cooking indicator on first chunk
-        elements.hideCooking();
-        streaming.update(chunk);
-      }
-    );
-
-    // Hide cooking indicator if it wasn't hidden yet
-    elements.hideCooking();
-
-    streaming.finish();
-
-    if (chatResult.toolResults) {
-      for (const tr of chatResult.toolResults) {
-        logger.addToolCall(tr.toolName, tr.input, tr.output, tr.durationMs);
-        // Add tool results to messages so LLM can reference them later
-        const toolOutput = formatToolResultForMessage(tr);
-        if (toolOutput) {
-          messages.push({ content: toolOutput, role: "assistant" });
-          logger.addMessage("assistant", toolOutput);
-        }
-      }
-    }
-
-    if (chatResult.response) {
-      messages.push({ content: chatResult.response, role: "assistant" });
-      logger.addMessage("assistant", chatResult.response);
-    }
-
-    if (chatResult.error) {
-      logger.addError("llm", chatResult.error);
-    }
-
-    destroyRenderer();
-    activeRenderer = await createRenderer();
-  }
-
-  // Show confirmation again
-  destroyRenderer();
-  activeRenderer = await createRenderer();
+  await runMainChatLoop(messages, configBuilder, logger, activeRenderer);
 
   const config = configBuilder.toFinalConfig();
   logger.addConfigAttempt(config, true);
 
   const confirmResult = await showChatConfirmation(activeRenderer, config);
+  const result = await handleConfirmationResult(
+    confirmResult,
+    messages,
+    configBuilder,
+    logger,
+    activeRenderer
+  );
 
-  if (confirmResult.action === "cancel") {
-    destroyRenderer();
+  if (result !== undefined) {
+    return result;
+  }
+
+  return await createSessionFromConfig(config, logger);
+}
+
+async function handleNoValidRepos(logger: ChatLogger): Promise<ChatModeResult> {
+  logger.addError("validation", "No valid repositories found in configuration");
+  const logPath = await logger.save();
+  console.error("No valid repositories found in configuration.");
+  return { cancelled: true, logPath, useManualMode: false };
+}
+
+async function handleSessionError(
+  logger: ChatLogger,
+  error: unknown
+): Promise<ChatModeResult> {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  logger.addError("llm", errorMessage);
+  console.error("Failed to create session:", error);
+  const logPath = await logger.save();
+  return { cancelled: true, logPath, useManualMode: false };
+}
+
+async function runSessionCreation(
+  config: ChatConfig,
+  repos: Awaited<ReturnType<typeof configToRepoSpecs>>,
+  logger: ChatLogger
+): Promise<ChatModeResult> {
+  const renderer = await createRenderer();
+
+  const result = await createNewSession(renderer, {
+    goal: config.goal || undefined,
+    mode: "tui",
+    repos,
+    skills: config.skills.length > 0 ? config.skills : undefined,
+  });
+
+  destroyRenderer();
+
+  if (!result) {
     logger.markCancelled();
     const logPath = await logger.save();
     return { cancelled: true, logPath, useManualMode: false };
   }
 
-  if (confirmResult.action === "back") {
-    const reviseMessage = "Let me revise further.";
-    messages.push({ content: reviseMessage, role: "user" });
-    logger.addMessage("user", reviseMessage);
+  logger.markSessionCreated(result.session.name, {
+    goal: config.goal,
+    repos: config.repos,
+    skills: config.skills,
+  });
+  const logPath = await logger.save();
 
-    destroyRenderer();
-    activeRenderer = await createRenderer();
-
-    return await continueChatAfterBack(
-      activeRenderer,
-      messages,
-      configBuilder,
-      logger
-    );
-  }
-
-  if (confirmResult.action === "edit") {
-    destroyRenderer();
-    logger.markCancelled();
-    const logPath = await logger.save();
-    return { cancelled: false, logPath, useManualMode: true };
-  }
-
-  destroyRenderer();
-  return await createSessionFromConfig(config, logger);
+  return {
+    cancelled: false,
+    logPath,
+    session: result.session,
+    useManualMode: false,
+  };
 }
 
 async function createSessionFromConfig(
@@ -460,62 +531,21 @@ async function createSessionFromConfig(
     const repos = configToRepoSpecs(config);
 
     if (repos.length === 0) {
-      logger.addError(
-        "validation",
-        "No valid repositories found in configuration"
-      );
-      const logPath = await logger.save();
-      console.error("No valid repositories found in configuration.");
-      return { cancelled: true, logPath, useManualMode: false };
+      return await handleNoValidRepos(logger);
     }
 
-    const renderer = await createRenderer();
-
-    const result = await createNewSession(renderer, {
-      goal: config.goal || undefined,
-      mode: "tui",
-      repos,
-      skills: config.skills.length > 0 ? config.skills : undefined,
-    });
-
-    destroyRenderer();
-
-    if (!result) {
-      logger.markCancelled();
-      const logPath = await logger.save();
-      return { cancelled: true, logPath, useManualMode: false };
-    }
-
-    logger.markSessionCreated(result.session.name, {
-      goal: config.goal,
-      repos: config.repos,
-      skills: config.skills,
-    });
-    const logPath = await logger.save();
-
-    return {
-      cancelled: false,
-      logPath,
-      session: result.session,
-      useManualMode: false,
-    };
+    return await runSessionCreation(config, repos, logger);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.addError("llm", errorMessage);
-    console.error("Failed to create session:", error);
-    const logPath = await logger.save();
-    return { cancelled: true, logPath, useManualMode: false };
+    return await handleSessionError(logger, error);
   }
 }
 
-function waitForEnter(): Promise<void> {
-  return new Promise((resolve) => {
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.once("data", () => {
-      process.stdin.setRawMode(false);
-      process.stdin.pause();
-      resolve();
-    });
-  });
+async function waitForEnter(): Promise<void> {
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+
+  await once(process.stdin, "data");
+
+  process.stdin.setRawMode(false);
+  process.stdin.pause();
 }
