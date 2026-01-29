@@ -18,12 +18,44 @@ export function showNewSessionPrompt(
   renderer: CliRenderer,
   repos: RepoSpec[]
 ): Promise<NewSessionResult> {
-  return new Promise((resolve) => {
-    clearLayout(renderer);
+  clearLayout(renderer);
+  const { content } = createBaseLayout(renderer, "Creating new session");
+  const goalInput = setupUI();
+  return setupEventHandlers(goalInput);
 
-    const { content } = createBaseLayout(renderer, "Creating new session");
+  function setupUI() {
+    addRepos();
+    const goalInput = addGoalPrompt();
+    addInstructions();
+    goalInput.focus();
+    return goalInput;
+  }
 
-    // Show repos
+  function setupEventHandlers(goalInput: InputRenderable) {
+    const { promise, resolve } = Promise.withResolvers<NewSessionResult>();
+
+    function handleKeypress(key: KeyEvent) {
+      if (key.name === "escape") {
+        cleanupHandleKeypress();
+        resolve({ cancelled: true });
+      } else if (key.name === "return" || key.name === "enter") {
+        cleanupHandleKeypress();
+        const goal = goalInput.value.trim() || undefined;
+        resolve({ cancelled: false, goal });
+      }
+    }
+
+    function cleanupHandleKeypress() {
+      renderer.keyInput.off("keypress", handleKeypress);
+      goalInput.blur();
+      clearLayout(renderer);
+    }
+
+    renderer.keyInput.on("keypress", handleKeypress);
+    return promise;
+  }
+
+  function addRepos() {
     const reposLabel = new TextRenderable(renderer, {
       content: "Repositories:",
       fg: "#e2e8f0",
@@ -42,8 +74,9 @@ export function showNewSessionPrompt(
       });
       content.add(repoText);
     }
+  }
 
-    // Goal prompt
+  function addGoalPrompt() {
     const goalLabel = new TextRenderable(renderer, {
       content: "\nAnything you'd like to add? (goal/context for AI agents)",
       fg: "#e2e8f0",
@@ -73,8 +106,10 @@ export function showNewSessionPrompt(
       goalInput.insertText(text);
       event.preventDefault();
     };
+    return goalInput;
+  }
 
-    // Instructions
+  function addInstructions() {
     const instructions = new TextRenderable(renderer, {
       content: "\n[Enter] Continue   [Esc] Cancel",
       fg: "#64748b",
@@ -82,26 +117,5 @@ export function showNewSessionPrompt(
       marginTop: 1,
     });
     content.add(instructions);
-
-    goalInput.focus();
-
-    const handleKeypress = (key: KeyEvent) => {
-      if (key.name === "escape") {
-        cleanup();
-        resolve({ cancelled: true });
-      } else if (key.name === "return" || key.name === "enter") {
-        cleanup();
-        const goal = goalInput.value.trim() || undefined;
-        resolve({ cancelled: false, goal });
-      }
-    };
-
-    const cleanup = () => {
-      renderer.keyInput.off("keypress", handleKeypress);
-      goalInput.blur();
-      clearLayout(renderer);
-    };
-
-    renderer.keyInput.on("keypress", handleKeypress);
-  });
+  }
 }
