@@ -1,5 +1,3 @@
-import { EventEmitter } from "node:events";
-
 import type { ChatConfig } from "./flows/chat-to-config";
 
 export interface PartialConfig {
@@ -16,7 +14,7 @@ export interface ConfigBuilderEvents {
   "goal-set": (goal: string) => void;
 }
 
-export class ConfigBuilder extends EventEmitter {
+export class ConfigBuilder extends EventTarget {
   private _config: PartialConfig;
 
   constructor() {
@@ -34,7 +32,7 @@ export class ConfigBuilder extends EventEmitter {
 
   /**
    * Add a repository to the config
-   * @returns true if added, false if already exists
+   * @returns {boolean} true if added, false if already exists
    */
   addRepo(repo: string): boolean {
     const normalized = repo.trim();
@@ -48,14 +46,14 @@ export class ConfigBuilder extends EventEmitter {
     }
 
     this._config.repos.push(normalized);
-    this.emit("repo-added", normalized);
-    this.emit("config-changed", this.config);
+    this.dispatchEvent(new CustomEvent("repo-added", { detail: normalized }));
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: this.config }));
     return true;
   }
 
   /**
    * Remove a repository from the config
-   * @returns true if removed, false if not found
+   * @returns {boolean} true if removed, false if not found
    */
   removeRepo(repo: string): boolean {
     const normalized = repo.trim();
@@ -66,14 +64,14 @@ export class ConfigBuilder extends EventEmitter {
     }
 
     this._config.repos.splice(index, 1);
-    this.emit("repo-removed", normalized);
-    this.emit("config-changed", this.config);
+    this.dispatchEvent(new CustomEvent("repo-removed", { detail: normalized }));
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: this.config }));
     return true;
   }
 
   /**
    * Add a skill to the config
-   * @returns true if added, false if already exists
+   * @returns {boolean} true if added, false if already exists
    */
   addSkill(skill: string): boolean {
     const normalized = skill.trim();
@@ -87,14 +85,14 @@ export class ConfigBuilder extends EventEmitter {
     }
 
     this._config.skills.push(normalized);
-    this.emit("skill-added", normalized);
-    this.emit("config-changed", this.config);
+    this.dispatchEvent(new CustomEvent("skill-added", { detail: normalized }));
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: this.config }));
     return true;
   }
 
   /**
    * Remove a skill from the config
-   * @returns true if removed, false if not found
+   * @returns {boolean} true if removed, false if not found
    */
   removeSkill(skill: string): boolean {
     const normalized = skill.trim();
@@ -105,7 +103,7 @@ export class ConfigBuilder extends EventEmitter {
     }
 
     this._config.skills.splice(index, 1);
-    this.emit("config-changed", this.config);
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: this.config }));
     return true;
   }
 
@@ -115,8 +113,8 @@ export class ConfigBuilder extends EventEmitter {
   setGoal(goal: string): void {
     const normalized = goal.trim();
     this._config.goal = normalized || null;
-    this.emit("goal-set", normalized);
-    this.emit("config-changed", this.config);
+    this.dispatchEvent(new CustomEvent("goal-set", { detail: normalized }));
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: this.config }));
   }
 
   /**
@@ -147,6 +145,6 @@ export class ConfigBuilder extends EventEmitter {
       repos: [],
       skills: [],
     };
-    this.emit("config-changed", this.config);
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: this.config }));
   }
 }

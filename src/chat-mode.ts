@@ -3,7 +3,7 @@ import type { CliRenderer } from "@opentui/core";
 import type { Session } from "./types";
 
 import { ChatLogger } from "./chat-logger";
-import { ConfigBuilder } from "./config-builder";
+import { ConfigBuilder, type PartialConfig } from "./config-builder";
 import { createNewSession } from "./flows";
 import {
   type ChatConfig,
@@ -117,7 +117,8 @@ export async function handleChatMode(): Promise<ChatModeResult> {
     let confirmed = false;
 
     // Subscribe to config changes for sidebar updates
-    configBuilder.on("config-changed", (config) => {
+    configBuilder.addEventListener("config-changed", (event: Event) => {
+      const config = (event as CustomEvent<PartialConfig>).detail;
       if (elements) {
         updateSidebar(renderer, elements, config);
       }
@@ -301,7 +302,8 @@ async function continueChatAfterBack(
   let activeRenderer: CliRenderer = initialRenderer;
 
   // Subscribe to config changes
-  configBuilder.on("config-changed", (config) => {
+  configBuilder.addEventListener("config-changed", (event: Event) => {
+    const config = (event as CustomEvent<PartialConfig>).detail;
     if (elements) {
       updateSidebar(activeRenderer, elements, config);
     }
