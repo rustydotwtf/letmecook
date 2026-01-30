@@ -1,14 +1,18 @@
 import { generateText } from "ai";
+
 import type { RepoSpec } from "./types";
+
 import { generateUniqueName } from "./sessions";
 
-export async function generateSessionName(repos: RepoSpec[], goal?: string): Promise<string> {
+export async function generateSessionName(
+  repos: RepoSpec[],
+  goal?: string
+): Promise<string> {
   const repoList = repos.map((r) => `${r.owner}/${r.name}`).join(", ");
 
   try {
     const { text } = await generateText({
       model: "xai/grok-3-mini-fast",
-      temperature: 1.2, // Higher temperature for more creative/varied names
       prompt: `Generate a creative, memorable session name for a coding workspace.
 
 Repos: ${repoList}
@@ -23,15 +27,16 @@ Requirements:
 - No numbers unless they add meaning
 
 Reply with ONLY the name, nothing else. No quotes, no explanation.`,
+      temperature: 1.2, // Higher temperature for more creative/varied names
     });
 
     // Clean up the response
     let name = text
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/--+/g, "-")
-      .replace(/^-|-$/g, "")
+      .replaceAll(/[^a-z0-9-]/g, "")
+      .replaceAll(/--+/g, "-")
+      .replaceAll(/^-|-$/g, "")
       .slice(0, 24);
 
     // Fallback if AI returns garbage

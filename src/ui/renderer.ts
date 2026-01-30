@@ -1,12 +1,12 @@
 import {
-  createCliRenderer,
-  type CliRenderer,
-  BoxRenderable,
-  TextRenderable,
   ASCIIFontRenderable,
+  BoxRenderable,
+  type CliRenderer,
+  createCliRenderer,
+  measureText,
   RGBA,
+  TextRenderable,
 } from "@opentui/core";
-import { measureText } from "@opentui/core";
 
 let renderer: CliRenderer | null = null;
 
@@ -42,62 +42,84 @@ export interface LayoutElements {
   content: BoxRenderable;
 }
 
-export function createBaseLayout(r: CliRenderer, subtitle?: string): LayoutElements {
-  const width = r.terminalWidth;
-
-  // Main container
-  const container = new BoxRenderable(r, {
-    id: "main-container",
-    width: "100%",
-    height: "100%",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: 1,
-  });
-  r.root.add(container);
-
-  // Title
+function createTitle(r: CliRenderer, width: number): ASCIIFontRenderable {
   const titleText = "letmecook";
   const titleFont = "tiny";
-  const { width: titleWidth } = measureText({ text: titleText, font: titleFont });
+  const { width: titleWidth } = measureText({
+    font: titleFont,
+    text: titleText,
+  });
   const centerX = Math.floor(width / 2) - Math.floor(titleWidth / 2);
 
   const title = new ASCIIFontRenderable(r, {
-    id: "title",
-    text: titleText,
-    font: titleFont,
     color: RGBA.fromHex("#f8fafc"),
-    position: "absolute",
+    font: titleFont,
+    id: "title",
     left: centerX,
+    position: "absolute",
+    text: titleText,
     top: 11,
   });
   r.root.add(title);
+  return title;
+}
 
-  // Content box below title
-  const content = new BoxRenderable(r, {
+function createContent(r: CliRenderer, width: number): BoxRenderable {
+  return new BoxRenderable(r, {
+    backgroundColor: "#1e293b",
+    borderColor: "#475569",
+    borderStyle: "single",
+    flexDirection: "column",
     id: "content",
-    width: Math.min(70, width - 4),
     marginTop: 15,
     padding: 1,
-    flexDirection: "column",
-    borderStyle: "single",
-    borderColor: "#475569",
-    backgroundColor: "#1e293b",
+    width: Math.min(70, width - 4),
   });
-  container.add(content);
+}
 
-  // Add subtitle if provided
-  if (subtitle) {
-    const subtitleText = new TextRenderable(r, {
-      id: "subtitle",
+function createMainContainer(r: CliRenderer): BoxRenderable {
+  const container = new BoxRenderable(r, {
+    alignItems: "center",
+    flexDirection: "column",
+    height: "100%",
+    id: "main-container",
+    padding: 1,
+    width: "100%",
+  });
+  r.root.add(container);
+  return container;
+}
+
+function addSubtitle(
+  r: CliRenderer,
+  content: BoxRenderable,
+  subtitle: string
+): void {
+  content.add(
+    new TextRenderable(r, {
       content: subtitle,
       fg: "#94a3b8",
+      id: "subtitle",
       marginBottom: 1,
-    });
-    content.add(subtitleText);
+    })
+  );
+}
+
+export function createBaseLayout(
+  r: CliRenderer,
+  subtitle?: string
+): LayoutElements {
+  const width = r.terminalWidth;
+  const container = createMainContainer(r);
+  const title = createTitle(r, width);
+  const content = createContent(r, width);
+  container.add(content);
+
+  if (subtitle) {
+    addSubtitle(r, content, subtitle);
   }
 
-  return { container, title, content };
+  return { container, content, title };
 }
 
 export function clearLayout(r: CliRenderer): void {

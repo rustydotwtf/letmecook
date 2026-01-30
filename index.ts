@@ -1,15 +1,12 @@
 #!/usr/bin/env bun
 
-import { loadEnv } from "./src/env";
-
-// Load env files from ~/.letmecook/.env and ./.env
-loadEnv();
-
 import pkg from "./package.json";
-import { handleTUIMode } from "./src/tui-mode";
 import { handleCLIMode } from "./src/cli-mode";
+import { loadEnv } from "./src/env";
+import { handleTUIMode } from "./src/tui-mode";
 
-const block = (r: number, g: number, b: number): string => `\x1b[48;2;${r};${g};${b}m  \x1b[0m`;
+const block = (r: number, g: number, b: number): string =>
+  `\u001B[48;2;${r};${g};${b}m  \u001B[0m`;
 
 function printUsage(): void {
   console.log(`
@@ -41,34 +38,54 @@ Examples:
 function printWhy(): void {
   const palette: Record<string, string> = {
     ".": "  ",
-    s: block(200, 200, 200), // steam
-    d: block(88, 62, 52), // dark brown
-    l: block(121, 85, 72), // light brown (crust)
-    r: block(214, 64, 36), // red (pepperoni)
-    o: block(245, 124, 0), // orange
-    y: block(255, 193, 7), // yellow (cheese)
     Y: block(255, 220, 80), // bright yellow (cheese highlight)
+    b: block(79, 118, 170), // blue (fish)
+    d: block(88, 62, 52), // dark brown
     g: block(76, 175, 80), // green (basil)
     k: block(20, 20, 20), // black (nori)
+    l: block(121, 85, 72), // light brown (crust)
+    o: block(245, 124, 0), // orange
+    r: block(214, 64, 36), // red (pepperoni)
+    s: block(200, 200, 200), // steam
     w: block(236, 236, 236), // white (rice)
-    b: block(79, 118, 170), // blue (fish)
+    y: block(255, 193, 7), // yellow (cheese)
   };
   const arts = [
     // Pizza slice (7x7)
-    ["..yy...", ".yyyy..", ".yryry.", "yyyyyyy", "yygyrry", "lllllll", "ddddddd"],
+    [
+      "..yy...",
+      ".yyyy..",
+      ".yryry.",
+      "yyyyyyy",
+      "yygyrry",
+      "lllllll",
+      "ddddddd",
+    ],
     // Burger (7x7)
-    [".yyyyy.", "ggggggg", "rrrrrrr", "ddddddd", "ggggggg", "ooooooo", ".yyyyy."],
+    [
+      ".yyyyy.",
+      "ggggggg",
+      "rrrrrrr",
+      "ddddddd",
+      "ggggggg",
+      "ooooooo",
+      ".yyyyy.",
+    ],
     // Fried egg (7x7)
-    ["..www..", ".wwwww.", "wwwyyww", "wwyyyyw", "wwwyyww", ".wwwww.", "..www.."],
+    [
+      "..www..",
+      ".wwwww.",
+      "wwwyyww",
+      "wwyyyyw",
+      "wwwyyww",
+      ".wwwww.",
+      "..www..",
+    ],
   ];
-  const artRows = arts[Math.floor(Math.random() * arts.length)]!;
+  const defaultArt = arts[0] ?? [".", ".", ".", ".", ".", ".", "."];
+  const artRows = arts[Math.floor(Math.random() * arts.length)] ?? defaultArt;
   const art = artRows
-    .map((row) =>
-      row
-        .split("")
-        .map((cell) => palette[cell] ?? "  ")
-        .join(""),
-    )
+    .map((row) => [...row].map((cell) => palette[cell] ?? "  ").join(""))
     .join("\n");
   console.log(`
 ${art}
@@ -82,63 +99,82 @@ Agents are good at problem-solving when you give them what they need and let the
   `);
 }
 
-console.clear();
-const args = process.argv.slice(2);
-const firstArg = args[0];
+function handleSimpleFlags(firstArg: string | undefined): boolean {
+  if (firstArg === "--version" || firstArg === "-v") {
+    console.log(`letmecook v${pkg.version}`);
+    process.exit(0);
+  }
 
-// Version flag
-if (firstArg === "--version" || firstArg === "-v") {
-  console.log(`letmecook v${pkg.version}`);
-  process.exit(0);
+  if (firstArg === "--why") {
+    printWhy();
+    process.exit(0);
+  }
+
+  if (firstArg === "--help" || firstArg === "-h") {
+    printUsage();
+    process.exit(0);
+  }
+
+  return false;
 }
 
-// Why flag
-if (firstArg === "--why") {
-  printWhy();
-  process.exit(0);
-}
-
-// Help flag
-if (firstArg === "--help" || firstArg === "-h") {
-  printUsage();
-  process.exit(0);
-}
-
-// CLI mode with --cli prefix
-if (firstArg === "--cli") {
+async function runCLIMode(args: string[]): Promise<void> {
   const cliArgs = args.slice(1);
   await handleCLIMode(cliArgs);
   process.exit(0);
 }
 
-// Explicit TUI mode
-if (firstArg === "--tui") {
+async function runTUIMode(): Promise<void> {
   await handleTUIMode();
   process.exit(0);
 }
 
-// Default: TUI mode (no args)
-if (args.length === 0) {
-  await handleTUIMode();
-  process.exit(0);
+async function handleModeFlags(
+  firstArg: string | undefined,
+  args: string[]
+): Promise<void> {
+  if (firstArg === "--cli") {
+    await runCLIMode(args);
+  }
+  if (firstArg === "--tui" || args.length === 0) {
+    await runTUIMode();
+  }
 }
 
-// Catch bare repo args without --cli prefix
-if (firstArg && !firstArg.startsWith("-") && firstArg.includes("/")) {
+function printRepoError(args: string[]): void {
   console.error(`Error: Repo arguments require --cli prefix.`);
   console.log(`\nUsage: letmecook --cli ${args.join(" ")}`);
   console.log(`\nOr launch the interactive TUI: letmecook`);
-  process.exit(1);
 }
 
-// Unknown flag
-if (firstArg?.startsWith("-")) {
-  console.error(`Unknown option: ${firstArg}`);
+function handleErrorCases(firstArg: string | undefined, args: string[]): void {
+  const isRepoArg =
+    firstArg && !firstArg.startsWith("-") && firstArg.includes("/");
+  const isUnknownFlag = firstArg?.startsWith("-");
+
+  if (isRepoArg) {
+    printRepoError(args);
+  } else if (isUnknownFlag) {
+    console.error(`Unknown option: ${firstArg}`);
+  } else {
+    console.error(`Unknown argument: ${firstArg}`);
+  }
+
   printUsage();
   process.exit(1);
 }
 
-// Unknown positional argument that's not a repo
-console.error(`Unknown argument: ${firstArg}`);
-printUsage();
-process.exit(1);
+async function main(): Promise<void> {
+  loadEnv();
+  console.clear();
+
+  const args = process.argv.slice(2);
+  const [firstArg] = args;
+
+  handleSimpleFlags(firstArg);
+  await handleModeFlags(firstArg, args);
+  handleErrorCases(firstArg, args);
+}
+
+// eslint-disable-next-line jest/require-hook
+main();

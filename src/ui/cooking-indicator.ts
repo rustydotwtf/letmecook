@@ -19,61 +19,52 @@ export interface CookingIndicator {
   isRunning: () => boolean;
 }
 
-export function createCookingIndicator(
-  renderer: CliRenderer,
-  parent: { add: (child: unknown) => void; remove: (id: string) => void },
-): CookingIndicator {
-  const pair = FOOD_PAIRS[Math.floor(Math.random() * FOOD_PAIRS.length)] || ["🦐", "🍤"];
-  const raw = pair[0];
-  const cooked = pair[1];
+function selectFoodPair(): [string, string] {
+  return (
+    FOOD_PAIRS[Math.floor(Math.random() * FOOD_PAIRS.length)] || ["🦐", "🍤"]
+  );
+}
 
-  const indicator = new TextRenderable(renderer, {
-    id: "cooking-indicator",
-    content: "",
-    fg: "#f8fafc",
-  });
-  parent.add(indicator);
-
-  let frame = 1;
-  let direction = 1;
-  let interval: NodeJS.Timeout | null = null;
-
-  const render = () => {
-    let content = "";
-    for (let i = 0; i < COUNT; i++) {
-      if (i < frame) {
-        content += cooked;
-      } else {
-        content += raw;
-      }
-    }
-    indicator.content = content;
-  };
-
-  const tick = () => {
-    frame += direction;
-    if (frame > COUNT) {
-      frame = COUNT - 1;
-      direction = -1;
-    } else if (frame < 1) {
-      frame = 1;
-      direction = 1;
+function createTickFunction(
+  state: { frame: { value: number }; direction: { value: number } },
+  render: () => void
+): () => void {
+  return () => {
+    state.frame.value += state.direction.value;
+    if (state.frame.value > COUNT) {
+      state.frame.value = COUNT - 1;
+      state.direction.value = -1;
+    } else if (state.frame.value < 1) {
+      state.frame.value = 1;
+      state.direction.value = 1;
     }
     render();
   };
+}
 
+function createStartStopFunctions(
+  state: {
+    frame: { value: number };
+    direction: { value: number };
+    interval: { value: NodeJS.Timeout | null };
+  },
+  tick: () => void,
+  parent: { remove: (id: string) => void }
+): { isRunning: () => boolean; start: () => void; stop: () => void } {
   const start = () => {
-    if (interval) return;
-    frame = 1;
-    direction = 1;
-    render();
-    interval = setInterval(tick, FRAME_MS);
+    if (state.interval.value) {
+      return;
+    }
+    state.frame.value = 1;
+    state.direction.value = 1;
+    tick();
+    state.interval.value = setInterval(tick, FRAME_MS);
   };
 
   const stop = () => {
-    if (interval) {
-      clearInterval(interval);
-      interval = null;
+    if (state.interval.value) {
+      clearInterval(state.interval.value);
+      state.interval.value = null;
     }
     try {
       parent.remove("cooking-indicator");
@@ -82,7 +73,46 @@ export function createCookingIndicator(
     }
   };
 
-  const isRunning = () => interval !== null;
+  const isRunning = () => state.interval.value !== null;
 
-  return { start, stop, isRunning };
+  return { isRunning, start, stop };
+}
+
+function createIndicator(
+  renderer: CliRenderer,
+  parent: { add: (child: unknown) => void; remove: (id: string) => void },
+  raw: string,
+  cooked: string
+): { isRunning: () => boolean; start: () => void; stop: () => void } {
+  const indicator = new TextRenderable(renderer, {
+    content: "",
+    fg: "#f8fafc",
+    id: "cooking-indicator",
+  });
+  parent.add(indicator);
+
+  const state = {
+    direction: { value: 1 },
+    frame: { value: 1 },
+    interval: { value: null as NodeJS.Timeout | null },
+  };
+
+  const render = () => {
+    let content = "";
+    for (let i = 0; i < COUNT; i += 1) {
+      content += i < state.frame.value ? cooked : raw;
+    }
+    indicator.content = content;
+  };
+
+  const tick = createTickFunction(state, render);
+  return createStartStopFunctions(state, tick, parent);
+}
+
+export function createCookingIndicator(
+  renderer: CliRenderer,
+  parent: { add: (child: unknown) => void; remove: (id: string) => void }
+): CookingIndicator {
+  const [raw, cooked] = selectFoodPair();
+  return createIndicator(renderer, parent, raw, cooked);
 }

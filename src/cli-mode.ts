@@ -1,17 +1,23 @@
-import { parseRepoSpec, type RepoSpec } from "./types";
+import type { CliRenderer } from "@opentui/core";
+
+import { ChatLogger } from "./chat-logger";
 import {
-  listSessions,
-  getSession,
-  updateLastAccessed,
+  createNewSession,
+  resumeSession,
+  type NewSessionResult,
+} from "./flows";
+import {
   deleteAllSessions,
   deleteSession,
+  getSession,
+  listSessions,
+  updateLastAccessed,
 } from "./sessions";
-import { createRenderer, destroyRenderer } from "./ui/renderer";
-import { showNewSessionPrompt } from "./ui/new-session";
-import { showSessionList } from "./ui/list";
+import { type RepoSpec, type Session, parseRepoSpec } from "./types";
 import { showNukeConfirm } from "./ui/confirm-nuke";
-import { createNewSession, resumeSession } from "./flows";
-import { ChatLogger } from "./chat-logger";
+import { showSessionList } from "./ui/list";
+import { showNewSessionPrompt } from "./ui/new-session";
+import { createRenderer, destroyRenderer } from "./ui/renderer";
 
 export function printCLIUsage(): void {
   console.log(`
@@ -37,57 +43,160 @@ Examples:
   `);
 }
 
+function cancelSession(): void {
+  destroyRenderer();
+  console.log("\nCancelled.");
+}
+
+async function resumeExistingSession(
+  renderer: CliRenderer,
+  session: Session
+): Promise<void> {
+  destroyRenderer();
+  console.log(`\nResuming existing session: ${session.name}\n`);
+  await resumeSession(renderer, {
+    initialRefresh: true,
+    mode: "cli",
+    session,
+  });
+}
+
+async function startSession(
+  renderer: CliRenderer,
+  session: Session
+): Promise<void> {
+  destroyRenderer();
+  console.log(`\nSession created: ${session.name}`);
+  console.log(`Path: ${session.path}\n`);
+  await resumeSession(renderer, {
+    initialRefresh: false,
+    mode: "cli",
+    session,
+  });
+}
+
+async function handleNewSessionResult(
+  renderer: CliRenderer,
+  result: NewSessionResult
+): Promise<void> {
+  const { session, skipped } = result;
+
+  if (skipped) {
+    await resumeExistingSession(renderer, session);
+  } else {
+    await startSession(renderer, session);
+  }
+}
+
+async function runNewSessionFlow(
+  renderer: CliRenderer,
+  repos: RepoSpec[]
+): Promise<void> {
+  const { goal, cancelled } = await showNewSessionPrompt(renderer, repos);
+  if (cancelled) {
+    cancelSession();
+    return;
+  }
+
+  const result = await createNewSession(renderer, {
+    goal,
+    mode: "cli",
+    repos,
+  });
+
+  if (!result) {
+    cancelSession();
+    return;
+  }
+
+  await handleNewSessionResult(renderer, result);
+}
+
 export async function handleNewSessionCLI(repos: RepoSpec[]): Promise<void> {
   const renderer = await createRenderer();
 
   try {
-    const { goal, cancelled } = await showNewSessionPrompt(renderer, repos);
-
-    if (cancelled) {
-      destroyRenderer();
-      console.log("\nCancelled.");
-      return;
-    }
-
-    const result = await createNewSession(renderer, {
-      repos,
-      goal,
-      mode: "cli",
-    });
-
-    if (!result) {
-      destroyRenderer();
-      console.log("\nCancelled.");
-      return;
-    }
-
-    const { session, skipped } = result;
-
-    if (skipped) {
-      destroyRenderer();
-      console.log(`\nResuming existing session: ${session.name}\n`);
-      await resumeSession(renderer, {
-        session,
-        mode: "cli",
-        initialRefresh: true,
-      });
-      return;
-    }
-
-    destroyRenderer();
-    console.log(`\nSession created: ${session.name}`);
-    console.log(`Path: ${session.path}\n`);
-
-    await resumeSession(renderer, {
-      session,
-      mode: "cli",
-      initialRefresh: false,
-    });
+    await runNewSessionFlow(renderer, repos);
   } catch (error) {
     destroyRenderer();
     console.error("\nError:", error instanceof Error ? error.message : error);
     process.exit(1);
   }
+}
+
+async function processResumeAction(
+  renderer: CliRenderer,
+  session: Session
+): Promise<void> {
+  destroyRenderer();
+  await updateLastAccessed(session.name);
+  console.log(`\nResuming session: ${session.name}`);
+  await resumeSession(renderer, {
+    initialRefresh: true,
+    mode: "cli",
+    session,
+  });
+}
+
+async function processNukeAction(
+  renderer: CliRenderer,
+  count: number
+): Promise<void> {
+  const choice = await showNukeConfirm(renderer, count);
+  if (choice === "confirm") {
+    const deletedCount = await deleteAllSessions();
+    destroyRenderer();
+    console.log(`\nNuked ${deletedCount} session(s) and all data.`);
+  } else {
+    destroyRenderer();
+  }
+}
+
+async function processListAction(
+  renderer: CliRenderer,
+  session: Session
+): Promise<void> {
+  await processResumeAction(renderer, session);
+}
+
+function processQuitAction(): void {
+  destroyRenderer();
+}
+
+async function handleSessionAction(
+  renderer: CliRenderer,
+  action: { type: string; session?: Session },
+  sessionCount: number
+): Promise<void> {
+  switch (action.type) {
+    case "resume": {
+      if (action.session) {
+        await processListAction(renderer, action.session);
+      }
+      break;
+    }
+    case "delete": {
+      console.log("[TODO] Delete session flow");
+      break;
+    }
+    case "nuke": {
+      await processNukeAction(renderer, sessionCount);
+      break;
+    }
+    case "quit": {
+      processQuitAction();
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+}
+
+async function listSessionLoop(renderer: CliRenderer): Promise<void> {
+  const sessions = await listSessions();
+  const action = await showSessionList(renderer, sessions);
+  await handleSessionAction(renderer, action, sessions.length);
 }
 
 export async function handleList(): Promise<void> {
@@ -95,40 +204,7 @@ export async function handleList(): Promise<void> {
 
   try {
     while (true) {
-      const sessions = await listSessions();
-      const action = await showSessionList(renderer, sessions);
-
-      switch (action.type) {
-        case "resume":
-          destroyRenderer();
-          await updateLastAccessed(action.session.name);
-          console.log(`\nResuming session: ${action.session.name}\n`);
-          await resumeSession(renderer, {
-            session: action.session,
-            mode: "cli",
-            initialRefresh: true,
-          });
-          return;
-
-        case "delete":
-          console.log("[TODO] Delete session flow");
-          break;
-
-        case "nuke": {
-          const choice = await showNukeConfirm(renderer, sessions.length);
-          if (choice === "confirm") {
-            const count = await deleteAllSessions();
-            destroyRenderer();
-            console.log(`\nNuked ${count} session(s) and all data.`);
-            return;
-          }
-          break;
-        }
-
-        case "quit":
-          destroyRenderer();
-          return;
-      }
+      await listSessionLoop(renderer);
     }
   } catch (error) {
     destroyRenderer();
@@ -137,52 +213,81 @@ export async function handleList(): Promise<void> {
   }
 }
 
+function printSessionsList(sessions: unknown[]): void {
+  if (sessions.length === 0) {
+    console.log("  (none)");
+  } else {
+    for (const s of sessions) {
+      console.log(`  - ${(s as { name: string }).name}`);
+    }
+  }
+}
+
+async function handleSessionNotFound(sessionName: string): Promise<never> {
+  console.error(`Session not found: ${sessionName}`);
+  console.log("\nAvailable sessions:");
+  const sessions = await listSessions();
+  printSessionsList(sessions);
+  process.exit(1);
+}
+
 export async function handleResume(sessionName: string): Promise<void> {
   const session = await getSession(sessionName);
 
   if (!session) {
-    console.error(`Session not found: ${sessionName}`);
-    console.log("\nAvailable sessions:");
-    const sessions = await listSessions();
-    if (sessions.length === 0) {
-      console.log("  (none)");
-    } else {
-      sessions.forEach((s) => console.log(`  - ${s.name}`));
-    }
-    process.exit(1);
+    return handleSessionNotFound(sessionName);
   }
 
   await updateLastAccessed(session.name);
-  console.log(`\nResuming session: ${session.name}\n`);
-
+  console.log(`\nResuming session: ${session.name}`);
   const renderer = await createRenderer();
   await resumeSession(renderer, {
-    session,
-    mode: "cli",
     initialRefresh: true,
+    mode: "cli",
+    session,
   });
+}
+
+async function attemptDeleteSession(sessionName: string): Promise<boolean> {
+  const deleted = await deleteSession(sessionName);
+  if (deleted) {
+    console.log(`Deleted session: ${sessionName}`);
+    return true;
+  }
+  console.error(`Failed to delete session: ${sessionName}`);
+  process.exit(1);
 }
 
 export async function handleDelete(sessionName: string): Promise<void> {
   const session = await getSession(sessionName);
 
   if (!session) {
-    console.error(`Session not found: ${sessionName}`);
-    const sessions = await listSessions();
-    if (sessions.length > 0) {
-      console.log("\nAvailable sessions:");
-      sessions.forEach((s) => console.log(`  - ${s.name}`));
-    }
-    process.exit(1);
+    await handleSessionNotFound(sessionName);
   }
 
-  const deleted = await deleteSession(sessionName);
-  if (deleted) {
-    console.log(`Deleted session: ${sessionName}`);
+  await attemptDeleteSession(sessionName);
+}
+
+async function confirmSessionDeletion(
+  renderer: CliRenderer,
+  count: number
+): Promise<void> {
+  const choice = await showNukeConfirm(renderer, count);
+  destroyRenderer();
+
+  if (choice === "confirm") {
+    const deletedCount = await deleteAllSessions();
+    console.log(`Nuked ${deletedCount} session(s) and all data.`);
   } else {
-    console.error(`Failed to delete session: ${sessionName}`);
-    process.exit(1);
+    console.log("Cancelled.");
   }
+}
+
+async function performNukeWithConfirmation(
+  renderer: CliRenderer,
+  sessionCount: number
+): Promise<void> {
+  await confirmSessionDeletion(renderer, sessionCount);
 }
 
 export async function handleNuke(skipConfirm = false): Promise<void> {
@@ -192,7 +297,6 @@ export async function handleNuke(skipConfirm = false): Promise<void> {
     return;
   }
 
-  // Skip confirmation if --yes flag or non-interactive (piped input)
   if (skipConfirm || !process.stdin.isTTY) {
     const count = await deleteAllSessions();
     console.log(`Nuked ${count} session(s) and all data.`);
@@ -200,15 +304,61 @@ export async function handleNuke(skipConfirm = false): Promise<void> {
   }
 
   const renderer = await createRenderer();
-  const choice = await showNukeConfirm(renderer, sessions.length);
-  destroyRenderer();
+  await performNukeWithConfirmation(renderer, sessions.length);
+}
 
-  if (choice === "confirm") {
-    const count = await deleteAllSessions();
-    console.log(`Nuked ${count} session(s) and all data.`);
+function readStdin(): Promise<string> {
+  const { promise, resolve } = Promise.withResolvers<string>();
+  process.stdin.once("data", (data) => {
+    resolve(data.toString().trim().toLowerCase());
+  });
+  return promise;
+}
+
+async function confirmNudgeLogs(): Promise<void> {
+  const count = await ChatLogger.deleteAllLogs();
+  console.log(`Deleted ${count} chat log(s).`);
+}
+
+function cancelNukeLogs(): void {
+  console.log("Cancelled.");
+}
+
+async function processChatLogsNukeConfirmation(
+  logsCount: number
+): Promise<void> {
+  process.stdout.write(`Delete all ${logsCount} chat logs? [y/N] `);
+  const response = await readStdin();
+
+  if (response === "y" || response === "yes") {
+    await confirmNudgeLogs();
   } else {
-    console.log("Cancelled.");
+    await cancelNukeLogs();
   }
+}
+
+async function deleteAllChatLogs(): Promise<void> {
+  const count = await ChatLogger.deleteAllLogs();
+  console.log(`Deleted ${count} chat log(s).`);
+}
+
+async function performChatLogsNuke(skipConfirm: boolean): Promise<void> {
+  const logs = await ChatLogger.listLogs();
+  if (logs.length === 0) {
+    console.log("No chat logs to delete.");
+    return;
+  }
+
+  if (skipConfirm || !process.stdin.isTTY) {
+    await deleteAllChatLogs();
+    return;
+  }
+
+  await processChatLogsNukeConfirmation(logs.length);
+}
+
+export async function handleChatLogsNuke(skipConfirm = false): Promise<void> {
+  await performChatLogsNuke(skipConfirm);
 }
 
 export async function handleChatLogsList(): Promise<void> {
@@ -252,41 +402,13 @@ export async function handleChatLogDelete(logId: string): Promise<void> {
   }
 }
 
-export async function handleChatLogsNuke(skipConfirm = false): Promise<void> {
-  const logs = await ChatLogger.listLogs();
-  if (logs.length === 0) {
-    console.log("No chat logs to delete.");
-    return;
-  }
-
-  // Skip confirmation if --yes flag or non-interactive (piped input)
-  if (skipConfirm || !process.stdin.isTTY) {
-    const count = await ChatLogger.deleteAllLogs();
-    console.log(`Deleted ${count} chat log(s).`);
-    return;
-  }
-
-  // Prompt for confirmation
-  process.stdout.write(`Delete all ${logs.length} chat logs? [y/N] `);
-  const response = await new Promise<string>((resolve) => {
-    process.stdin.once("data", (data) => {
-      resolve(data.toString().trim().toLowerCase());
-    });
-  });
-
-  if (response === "y" || response === "yes") {
-    const count = await ChatLogger.deleteAllLogs();
-    console.log(`\nDeleted ${count} chat log(s).`);
-  } else {
-    console.log("Cancelled.");
-  }
-}
-
 export function parseRepos(args: string[]): RepoSpec[] {
   const repos: RepoSpec[] = [];
 
   for (const arg of args) {
-    if (!arg || arg.startsWith("-")) continue;
+    if (!arg || arg.startsWith("-")) {
+      continue;
+    }
 
     if (!arg.includes("/")) {
       throw new Error(`Invalid repo format: ${arg} (expected owner/repo)`);
@@ -299,68 +421,135 @@ export function parseRepos(args: string[]): RepoSpec[] {
   return repos;
 }
 
-export async function handleCLIMode(args: string[]): Promise<void> {
-  const firstArg = args[0];
-
-  if (firstArg === "--list" || firstArg === "-l") {
-    await handleList();
-  } else if (firstArg === "--resume" || firstArg === "-r") {
-    const sessionName = args[1];
-    if (!sessionName) {
-      console.error("Missing session name. Usage: letmecook --cli --resume <session-name>");
-      process.exit(1);
-    }
-    await handleResume(sessionName);
-  } else if (firstArg === "--delete" || firstArg === "-d") {
-    const sessionName = args[1];
-    if (!sessionName) {
-      console.error("Missing session name. Usage: letmecook --cli --delete <session-name>");
-      process.exit(1);
-    }
-    await handleDelete(sessionName);
-  } else if (firstArg === "--nuke") {
-    const hasYes = args.includes("--yes") || args.includes("-y");
-    await handleNuke(hasYes);
-  } else if (firstArg === "--logs") {
-    const secondArg = args[1];
-    if (secondArg === "--view") {
-      const logId = args[2];
-      if (!logId) {
-        console.error("Missing log ID. Usage: letmecook --cli --logs --view <log-id>");
-        process.exit(1);
-      }
-      await handleChatLogView(logId);
-    } else if (secondArg === "--delete") {
-      const logId = args[2];
-      if (!logId) {
-        console.error("Missing log ID. Usage: letmecook --cli --logs --delete <log-id>");
-        process.exit(1);
-      }
-      await handleChatLogDelete(logId);
-    } else if (secondArg === "--nuke") {
-      const hasYes = args.includes("--yes") || args.includes("-y");
-      await handleChatLogsNuke(hasYes);
-    } else {
-      await handleChatLogsList();
-    }
-  } else if (!firstArg || firstArg.startsWith("-")) {
-    // No args or unknown flag after --cli
-    if (firstArg?.startsWith("-")) {
-      console.error(`Unknown CLI option: ${firstArg}`);
-    }
-    printCLIUsage();
-    process.exit(firstArg ? 1 : 0);
-  } else {
-    try {
-      const repos = parseRepos(args);
-      if (repos.length === 0) {
-        printCLIUsage();
-        process.exit(1);
-      }
-      await handleNewSessionCLI(repos);
-    } catch (error) {
-      console.error("Error:", error instanceof Error ? error.message : error);
-      process.exit(1);
-    }
+async function handleResumeCommand(
+  secondArg: string | undefined,
+  _args: string[]
+): Promise<void> {
+  if (!secondArg) {
+    console.error(
+      "Missing session name. Usage: letmecook --cli --resume <session-name>"
+    );
+    process.exit(1);
   }
+  await handleResume(secondArg);
+}
+
+async function handleDeleteCommand(
+  secondArg: string | undefined,
+  _args: string[]
+): Promise<void> {
+  if (!secondArg) {
+    console.error(
+      "Missing session name. Usage: letmecook --cli --delete <session-name>"
+    );
+    process.exit(1);
+  }
+  await handleDelete(secondArg);
+}
+
+async function handleLogsViewCommand(
+  thirdArg: string | undefined,
+  _args: string[]
+): Promise<void> {
+  if (!thirdArg) {
+    console.error(
+      "Missing log ID. Usage: letmecook --cli --logs --view <log-id>"
+    );
+    process.exit(1);
+  }
+  await handleChatLogView(thirdArg);
+}
+
+async function handleLogsDeleteCommand(
+  thirdArg: string | undefined,
+  _args: string[]
+): Promise<void> {
+  if (!thirdArg) {
+    console.error(
+      "Missing log ID. Usage: letmecook --cli --logs --delete <log-id>"
+    );
+    process.exit(1);
+  }
+  await handleChatLogDelete(thirdArg);
+}
+
+async function handleLogsNukeCommand(args: string[]): Promise<void> {
+  const hasYes = args.includes("--yes") || args.includes("-y");
+  await handleChatLogsNuke(hasYes);
+}
+
+async function handleLogsCommands(
+  secondArg: string | undefined,
+  args: string[]
+): Promise<void> {
+  if (secondArg === "--view") {
+    await handleLogsViewCommand(args[2], args);
+  } else if (secondArg === "--delete") {
+    await handleLogsDeleteCommand(args[2], args);
+  } else if (secondArg === "--nuke") {
+    await handleLogsNukeCommand(args);
+  } else {
+    await handleChatLogsList();
+  }
+}
+
+async function handleNewSessionCommand(args: string[]): Promise<void> {
+  const repos = parseRepos(args);
+  if (repos.length === 0) {
+    printCLIUsage();
+    process.exit(1);
+  }
+  await handleNewSessionCLI(repos);
+}
+
+function handleUnknownCommand(firstArg: string | undefined): never {
+  if (firstArg?.startsWith("-")) {
+    console.error(`Unknown CLI option: ${firstArg}`);
+  }
+  printCLIUsage();
+  process.exit(firstArg ? 1 : 0);
+}
+
+async function handleNukeCommand(args: string[]): Promise<void> {
+  const hasYes = args.includes("--yes") || args.includes("-y");
+  await handleNuke(hasYes);
+}
+
+const CLI_COMMAND_MAP: Record<
+  string,
+  (args: string[], secondArg?: string) => Promise<void>
+> = {
+  "--delete": (args, secondArg) => handleDeleteCommand(secondArg, args),
+  "--list": () => handleList(),
+  "--logs": (args, secondArg) => handleLogsCommands(secondArg, args),
+  "--nuke": (args) => handleNukeCommand(args),
+  "--resume": (args, secondArg) => handleResumeCommand(secondArg, args),
+  "-d": (args, secondArg) => handleDeleteCommand(secondArg, args),
+  "-l": () => handleList(),
+  "-r": (args, secondArg) => handleResumeCommand(secondArg, args),
+};
+
+async function runNewSessionWithErrorHandling(args: string[]): Promise<void> {
+  try {
+    await handleNewSessionCommand(args);
+  } catch (error) {
+    console.error("Error:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+}
+
+export async function handleCLIMode(args: string[]): Promise<void> {
+  const [firstArg, secondArg] = args;
+
+  const handler = firstArg ? CLI_COMMAND_MAP[firstArg] : undefined;
+  if (handler) {
+    await handler(args, secondArg);
+    return;
+  }
+
+  if (!firstArg || firstArg.startsWith("-")) {
+    handleUnknownCommand(firstArg);
+  }
+
+  await runNewSessionWithErrorHandling(args);
 }

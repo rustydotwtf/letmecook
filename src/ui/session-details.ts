@@ -5,69 +5,94 @@ import {
   SelectRenderableEvents,
   type KeyEvent,
 } from "@opentui/core";
-import { createBaseLayout, clearLayout } from "./renderer";
+
 import type { Session } from "../types";
-import { formatRepoList } from "./common/repo-formatter";
+
 import { showFooter, hideFooter } from "./common/footer";
 import { isEscape } from "./common/keyboard";
+import { formatRepoList } from "./common/repo-formatter";
+import { createBaseLayout, clearLayout } from "./renderer";
 
 export type SessionDetailsAction = "resume" | "edit" | "add-repos" | "back";
 
-export function showSessionDetails(
+function createTextRenderables(
   renderer: CliRenderer,
   session: Session,
+  content: unknown
+) {
+  const contentContainer = content as { add: (element: unknown) => void };
+  const sessionInfo = new TextRenderable(renderer, {
+    content: `Session: ${session.name}`,
+    fg: "#38bdf8",
+    id: "session-info",
+    marginBottom: 1,
+  });
+  contentContainer.add(sessionInfo);
+
+  const goalText = session.goal ?? "(none)";
+  const goalInfo = new TextRenderable(renderer, {
+    content: `Goal: ${goalText}`,
+    fg: "#94a3b8",
+    id: "goal-info",
+    marginBottom: 1,
+  });
+  contentContainer.add(goalInfo);
+
+  const reposText = formatRepoList(session.repos, { prefix: "  " });
+  const reposInfo = new TextRenderable(renderer, {
+    content: `Repositories:\n${reposText || "  (none)"}`,
+    fg: "#94a3b8",
+    id: "repos-info",
+    marginBottom: 1,
+  });
+  contentContainer.add(reposInfo);
+}
+
+function createSelectRenderable(
+  renderer: CliRenderer,
+  content: unknown
+): SelectRenderable {
+  const contentContainer = content as { add: (element: unknown) => void };
+  const select = new SelectRenderable(renderer, {
+    backgroundColor: "transparent",
+    focusedBackgroundColor: "transparent",
+    height: 3,
+    id: "session-details-select",
+    marginTop: 1,
+    options: [
+      { description: "", name: "Resume session", value: "resume" },
+      { description: "", name: "Edit settings", value: "edit" },
+      { description: "", name: "Back", value: "back" },
+    ],
+    selectedBackgroundColor: "#334155",
+    selectedTextColor: "#38bdf8",
+    showDescription: false,
+    textColor: "#e2e8f0",
+    width: 40,
+  });
+  contentContainer.add(select);
+  return select;
+}
+
+function createSessionDetailsUI(renderer: CliRenderer, session: Session) {
+  clearLayout(renderer);
+  const { content } = createBaseLayout(renderer, "Session details");
+
+  createTextRenderables(renderer, session, content);
+  const select = createSelectRenderable(renderer, content);
+
+  showFooter(renderer, content, { back: true, navigate: true, select: true });
+
+  return select;
+}
+
+export function showSessionDetails(
+  renderer: CliRenderer,
+  session: Session
 ): Promise<SessionDetailsAction> {
+  // eslint-disable-next-line promise/avoid-new
   return new Promise((resolve) => {
-    clearLayout(renderer);
-
-    const { content } = createBaseLayout(renderer, "Session details");
-
-    const sessionInfo = new TextRenderable(renderer, {
-      id: "session-info",
-      content: `Session: ${session.name}`,
-      fg: "#38bdf8",
-      marginBottom: 1,
-    });
-    content.add(sessionInfo);
-
-    const goalText = session.goal ? session.goal : "(none)";
-    const goalInfo = new TextRenderable(renderer, {
-      id: "goal-info",
-      content: `Goal: ${goalText}`,
-      fg: "#94a3b8",
-      marginBottom: 1,
-    });
-    content.add(goalInfo);
-
-    const reposText = formatRepoList(session.repos, { prefix: "  " });
-
-    const reposInfo = new TextRenderable(renderer, {
-      id: "repos-info",
-      content: `Repositories:\n${reposText || "  (none)"}`,
-      fg: "#94a3b8",
-      marginBottom: 1,
-    });
-    content.add(reposInfo);
-
-    const select = new SelectRenderable(renderer, {
-      id: "session-details-select",
-      width: 40,
-      height: 3,
-      options: [
-        { name: "Resume session", description: "", value: "resume" },
-        { name: "Edit settings", description: "", value: "edit" },
-        { name: "Back", description: "", value: "back" },
-      ],
-      showDescription: false,
-      backgroundColor: "transparent",
-      focusedBackgroundColor: "transparent",
-      selectedBackgroundColor: "#334155",
-      textColor: "#e2e8f0",
-      selectedTextColor: "#38bdf8",
-      marginTop: 1,
-    });
-    content.add(select);
-
+    const select = createSessionDetailsUI(renderer, session);
     select.focus();
 
     const handleSelect = (_index: number, option: { value: string }) => {
@@ -89,12 +114,6 @@ export function showSessionDetails(
       hideFooter(renderer);
       clearLayout(renderer);
     };
-
-    showFooter(renderer, content, {
-      navigate: true,
-      select: true,
-      back: true,
-    });
 
     select.on(SelectRenderableEvents.ITEM_SELECTED, handleSelect);
     renderer.keyInput.on("keypress", handleKeypress);

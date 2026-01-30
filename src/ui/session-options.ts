@@ -7,18 +7,28 @@ export interface SessionOption {
 }
 
 function formatTimeAgo(date: string): string {
-  const now = new Date();
-  const then = new Date(date);
-  const diffMs = now.getTime() - then.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+  const [diffMins, diffHours, diffDays] = (() => {
+    const diffMs = Date.now() - new Date(date).getTime();
+    return [
+      Math.floor(diffMs / 60_000),
+      Math.floor(diffMs / 3_600_000),
+      Math.floor(diffMs / 86_400_000),
+    ];
+  })();
 
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return then.toLocaleDateString();
+  if (diffMins < 1) {
+    return "just now";
+  }
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+  return new Date(date).toLocaleDateString();
 }
 
 export function buildSessionOptions(sessions: Session[]): SessionOption[] {
@@ -28,13 +38,15 @@ export function buildSessionOptions(sessions: Session[]): SessionOption[] {
 
     if (session.goal) {
       const truncatedGoal =
-        session.goal.length > 60 ? `${session.goal.slice(0, 60)}...` : session.goal;
+        session.goal.length > 60
+          ? `${session.goal.slice(0, 60)}...`
+          : session.goal;
       description += `\n  "${truncatedGoal}"`;
     }
 
     return {
-      name: `${session.name} (${time})`,
       description,
+      name: `${session.name} (${time})`,
       value: session,
     };
   });

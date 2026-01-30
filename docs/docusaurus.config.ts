@@ -1,72 +1,52 @@
-import { themes as prismThemes } from "prism-react-renderer";
-import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import type { Config } from "@docusaurus/types";
+
+import { themes as prismThemes } from "prism-react-renderer";
 
 const config: Config = {
-  title: "letmecook",
-  tagline: "Multi-repo workspace manager for AI coding sessions",
+  baseUrl: "/",
   favicon: "img/favicon.ico",
-
   future: {
     v4: true,
   },
-
-  url: "https://letmecook.sh",
-  baseUrl: "/",
-
-  organizationName: "rustydotwtf",
-  projectName: "letmecook",
-
-  onBrokenLinks: "throw",
 
   i18n: {
     defaultLocale: "en",
     locales: ["en"],
   },
 
+  onBrokenLinks: "throw",
+  organizationName: "rustydotwtf",
+
   presets: [
     [
       "classic",
       {
-        docs: {
-          sidebarPath: "./sidebars.ts",
-          routeBasePath: "/",
-          editUrl: "https://github.com/rustydotwtf/letmecook/tree/main/docs/",
-        },
         blog: false,
+        docs: {
+          editUrl: "https://github.com/rustydotwtf/letmecook/tree/main/docs/",
+          routeBasePath: "/",
+          sidebarPath: "./sidebars.ts",
+        },
         theme: {
           customCss: "./src/css/custom.css",
         },
       } satisfies Preset.Options,
     ],
   ],
+  projectName: "letmecook",
+
+  tagline: "Multi-repo workspace manager for AI coding sessions",
 
   themeConfig: {
     colorMode: {
       defaultMode: "dark",
       respectPrefersColorScheme: true,
     },
-    navbar: {
-      title: "letmecook",
-      items: [
-        {
-          type: "docSidebar",
-          sidebarId: "docsSidebar",
-          position: "left",
-          label: "Docs",
-        },
-        {
-          href: "https://github.com/rustydotwtf/letmecook",
-          label: "GitHub",
-          position: "right",
-        },
-      ],
-    },
     footer: {
-      style: "dark",
+      copyright: `Copyright ${new Date().getFullYear()} rustydotwtf. Built with Docusaurus.`,
       links: [
         {
-          title: "Documentation",
           items: [
             {
               label: "Getting Started",
@@ -77,25 +57,46 @@ const config: Config = {
               to: "/reference/cli-commands",
             },
           ],
+          title: "Documentation",
         },
         {
-          title: "More",
           items: [
             {
-              label: "GitHub",
               href: "https://github.com/rustydotwtf/letmecook",
+              label: "GitHub",
             },
           ],
+          title: "More",
         },
       ],
-      copyright: `Copyright ${new Date().getFullYear()} rustydotwtf. Built with Docusaurus.`,
+      style: "dark",
+    },
+    navbar: {
+      items: [
+        {
+          label: "Docs",
+          position: "left",
+          sidebarId: "docsSidebar",
+          type: "docSidebar",
+        },
+        {
+          href: "https://github.com/rustydotwtf/letmecook",
+          label: "GitHub",
+          position: "right",
+        },
+      ],
+      title: "letmecook",
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
       additionalLanguages: ["bash", "json", "typescript"],
+      darkTheme: prismThemes.dracula,
+      theme: prismThemes.github,
     },
   } satisfies Preset.ThemeConfig,
+
+  title: "letmecook",
+
+  url: "https://letmecook.sh",
 };
 
 export default config;

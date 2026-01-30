@@ -23,8 +23,8 @@ export async function generateRepoHistorySection(): Promise<string> {
   const repoList = items
     .map((item) => {
       const date = new Date(item.lastUsed).toLocaleDateString("en-US", {
-        month: "short",
         day: "numeric",
+        month: "short",
       });
       return `- ${item.owner}/${item.name} (last used: ${date})`;
     })

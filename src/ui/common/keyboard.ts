@@ -11,31 +11,22 @@ import type { KeyEvent } from "@opentui/core";
  */
 
 export const KEYBOARD = {
-  // Navigation
-  UP: "up",
-  DOWN: "down",
-  LEFT: "left",
-  RIGHT: "right",
-  TAB: "tab",
-
-  // Actions
-  ENTER: "enter",
-  RETURN: "return",
-  ESCAPE: "escape",
-
-  // Global shortcuts (only on list screens)
-  NEW: "n",
-  DELETE: "d",
-  QUIT: "q",
-
-  // Text input shortcuts
-  BACKSPACE: "backspace",
-  CTRL_D: "d", // Ctrl+D (handled via ctrl modifier)
-
-  // Command control shortcuts
   ABORT: "a",
-  SKIP: "s",
   BACKGROUND: "b",
+  BACKSPACE: "backspace",
+  CTRL_D: "d",
+  DELETE: "d",
+  DOWN: "down",
+  ENTER: "enter",
+  ESCAPE: "escape",
+  LEFT: "left",
+  NEW: "n",
+  QUIT: "q",
+  RETURN: "return",
+  RIGHT: "right",
+  SKIP: "s",
+  TAB: "tab",
+  UP: "up",
 } as const;
 
 /**

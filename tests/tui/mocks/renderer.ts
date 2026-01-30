@@ -1,5 +1,15 @@
 import type { CliRenderer, KeyEvent } from "@opentui/core";
-import { EventEmitter } from "events";
+
+class KeyPressEvent extends Event {
+  static readonly eventName = "keypress" as const;
+
+  keyData: Partial<KeyEvent>;
+
+  constructor(keyData: Partial<KeyEvent>) {
+    super(KeyPressEvent.eventName);
+    this.keyData = keyData;
+  }
+}
 
 interface MockElement {
   id?: string;
@@ -16,7 +26,7 @@ interface MockRendererExtras {
 export type MockCliRenderer = CliRenderer & MockRendererExtras;
 
 export function createMockRenderer(): MockCliRenderer {
-  const keyEmitter = new EventEmitter();
+  const keyEmitter = new EventTarget();
   const elements: MockElement[] = [];
 
   const mockRoot = {
@@ -24,42 +34,50 @@ export function createMockRenderer(): MockCliRenderer {
       const element = el as { id?: string; constructor?: { name?: string } };
       elements.push({
         id: element.id,
-        type: element.constructor?.name || "unknown",
         props: element as Record<string, unknown>,
+        type: element.constructor?.name || "unknown",
       });
     },
-    remove: () => {},
+    remove: () => {
+      /* noop */
+    },
   };
 
   const mock = {
-    root: mockRoot,
-    keyInput: {
-      on: (event: string, handler: (...args: unknown[]) => void) => {
-        keyEmitter.on(event, handler);
-      },
-      off: (event: string, handler: (...args: unknown[]) => void) => {
-        keyEmitter.off(event, handler);
-      },
-    },
-    terminalWidth: 80,
-    terminalHeight: 24,
-    setBackgroundColor: () => {},
-    destroy: () => {},
-
-    // Test helpers
-    simulateKey: (key: Partial<KeyEvent>) => {
-      keyEmitter.emit("keypress", {
-        name: "",
-        ctrl: false,
-        meta: false,
-        shift: false,
-        ...key,
-      });
-    },
-    getAddedElements: () => elements,
     clearElements: () => {
       elements.length = 0;
     },
+
+    // Test helpers
+    destroy: () => {
+      /* noop */
+    },
+    getAddedElements: () => elements,
+    keyInput: {
+      off: (event: string, handler: (...args: unknown[]) => void) => {
+        keyEmitter.removeEventListener(event, handler as EventListener);
+      },
+      on: (event: string, handler: (...args: unknown[]) => void) => {
+        keyEmitter.addEventListener(event, handler as EventListener);
+      },
+    },
+    root: mockRoot,
+    setBackgroundColor: () => {
+      /* noop */
+    },
+    simulateKey: (key: Partial<KeyEvent>) => {
+      keyEmitter.dispatchEvent(
+        new KeyPressEvent({
+          ctrl: false,
+          meta: false,
+          name: "",
+          shift: false,
+          ...key,
+        })
+      );
+    },
+    terminalHeight: 24,
+    terminalWidth: 80,
   };
 
   return mock as unknown as MockCliRenderer;
