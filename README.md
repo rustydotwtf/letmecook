@@ -1,4 +1,4 @@
-# letmecook
+# letmecook WIP
 
 Ephemeral workspaces for AI coding sessions.
 
