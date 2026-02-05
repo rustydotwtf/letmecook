@@ -1,6 +1,6 @@
+import { mkdir, readdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdir, readdir, rm } from "node:fs/promises";
 
 const LETMECOOK_DIR = join(homedir(), ".letmecook");
 const CHAT_LOGS_DIR = join(LETMECOOK_DIR, "chat-logs");
@@ -61,64 +61,73 @@ export interface ChatLog {
 export class ChatLogger {
   private log: ChatLog;
   private startTime: number;
-  private attemptCounter: number = 0;
+  private attemptCounter = 0;
 
   constructor() {
     this.startTime = Date.now();
     this.log = {
-      id: this.generateId(),
-      startedAt: new Date().toISOString(),
-      sessionCreated: false,
-      messages: [],
-      toolCalls: [],
-      errors: [],
-      configAttempts: [],
       cancelled: false,
+      configAttempts: [],
+      errors: [],
+      id: ChatLogger.generateId(),
+      messages: [],
       metadata: {
         apiKeyPresent: !!process.env.AI_GATEWAY_API_KEY,
+        errorCount: 0,
         messageCount: 0,
         toolCallCount: 0,
-        errorCount: 0,
       },
+      sessionCreated: false,
+      startedAt: new Date().toISOString(),
+      toolCalls: [],
     };
   }
 
-  private generateId(): string {
-    return Date.now() + "-" + Math.random().toString(36).substring(2, 9);
+  private static generateId(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   }
 
   addMessage(role: LoggedMessage["role"], content: string): void {
     this.log.messages.push({
-      role,
       content,
+      role,
       timestamp: new Date().toISOString(),
     });
-    this.log.metadata.messageCount++;
+    this.log.metadata.messageCount += 1;
   }
 
-  addToolCall(toolName: string, input: unknown, output: unknown, durationMs: number): void {
+  addToolCall(
+    toolName: string,
+    input: unknown,
+    output: unknown,
+    durationMs: number
+  ): void {
     this.log.toolCalls.push({
-      toolName,
+      durationMs,
       input,
       output,
       timestamp: new Date().toISOString(),
-      durationMs,
+      toolName,
     });
-    this.log.metadata.toolCallCount++;
+    this.log.metadata.toolCallCount += 1;
   }
 
-  addError(type: ErrorRecord["type"], message: string, details?: unknown): void {
+  addError(
+    type: ErrorRecord["type"],
+    message: string,
+    details?: unknown
+  ): void {
     this.log.errors.push({
-      type,
-      message,
       details,
+      message,
       timestamp: new Date().toISOString(),
+      type,
     });
-    this.log.metadata.errorCount++;
+    this.log.metadata.errorCount += 1;
   }
 
-  addConfigAttempt(config?: unknown, success: boolean = false): void {
-    this.attemptCounter++;
+  addConfigAttempt(config?: unknown, success = false): void {
+    this.attemptCounter += 1;
     this.log.configAttempts.push({
       attempt: this.attemptCounter,
       config,
@@ -127,7 +136,10 @@ export class ChatLogger {
     });
   }
 
-  markSessionCreated(sessionName: string, finalConfig: ChatLog["finalConfig"]): void {
+  markSessionCreated(
+    sessionName: string,
+    finalConfig: ChatLog["finalConfig"]
+  ): void {
     this.log.sessionCreated = true;
     this.log.sessionName = sessionName;
     this.log.finalConfig = finalConfig;
@@ -143,7 +155,7 @@ export class ChatLogger {
 
     await mkdir(CHAT_LOGS_DIR, { recursive: true });
 
-    const filename = this.log.id + ".json";
+    const filename = `${this.log.id}.json`;
     const filepath = join(CHAT_LOGS_DIR, filename);
 
     await Bun.write(filepath, JSON.stringify(this.log, null, 2));
@@ -155,7 +167,9 @@ export class ChatLogger {
     return this.log;
   }
 
-  static async listLogs(): Promise<{ id: string; filename: string; createdAt: string }[]> {
+  static async listLogs(): Promise<
+    { id: string; filename: string; createdAt: string }[]
+  > {
     try {
       const entries = await readdir(CHAT_LOGS_DIR);
       const logs: { id: string; filename: string; createdAt: string }[] = [];
@@ -165,15 +179,16 @@ export class ChatLogger {
           const id = filename.replace(".json", "");
           const stat = await Bun.file(join(CHAT_LOGS_DIR, filename)).stat();
           logs.push({
-            id,
-            filename,
             createdAt: stat.mtime.toISOString(),
+            filename,
+            id,
           });
         }
       }
 
       return logs.toSorted(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     } catch {
       return [];
@@ -182,7 +197,7 @@ export class ChatLogger {
 
   static async getLog(id: string): Promise<ChatLog | null> {
     try {
-      const filepath = join(CHAT_LOGS_DIR, id + ".json");
+      const filepath = join(CHAT_LOGS_DIR, `${id}.json`);
       const file = Bun.file(filepath);
       if (await file.exists()) {
         return await file.json();
@@ -195,7 +210,7 @@ export class ChatLogger {
 
   static async deleteLog(id: string): Promise<boolean> {
     try {
-      const filepath = join(CHAT_LOGS_DIR, id + ".json");
+      const filepath = join(CHAT_LOGS_DIR, `${id}.json`);
       await rm(filepath);
       return true;
     } catch {
@@ -209,7 +224,7 @@ export class ChatLogger {
       let count = 0;
       for (const log of logs) {
         if (await ChatLogger.deleteLog(log.id)) {
-          count++;
+          count += 1;
         }
       }
       return count;

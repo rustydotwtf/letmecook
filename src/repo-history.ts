@@ -1,7 +1,8 @@
 import { Database } from "bun:sqlite";
+import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
+
 import type { RepoSpec } from "./types";
 
 const DATA_DIR = join(homedir(), ".letmecook");
@@ -19,7 +20,9 @@ export interface RepoHistoryItem {
 }
 
 async function getDb(): Promise<Database> {
-  if (db) return db;
+  if (db) {
+    return db;
+  }
 
   await mkdir(DATA_DIR, { recursive: true });
   db = new Database(DB_PATH, { create: true });
@@ -33,7 +36,9 @@ async function getDb(): Promise<Database> {
       times_used integer not null default 1
     );
   `);
-  db.exec("create index if not exists idx_repo_history_last_used on repo_history(last_used);");
+  db.exec(
+    "create index if not exists idx_repo_history_last_used on repo_history(last_used);"
+  );
 
   return db;
 }
@@ -57,7 +62,9 @@ export async function listRepoHistory(limit = 50): Promise<RepoHistoryItem[]> {
 }
 
 export async function recordRepoHistory(repos: RepoSpec[]): Promise<void> {
-  if (repos.length === 0) return;
+  if (repos.length === 0) {
+    return;
+  }
 
   const database = await getDb();
   const now = new Date().toISOString();

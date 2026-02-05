@@ -1,5 +1,7 @@
-import { test, expect, describe } from "bun:test";
 import type { KeyEvent } from "@opentui/core";
+
+import { test, expect, describe } from "bun:test";
+
 import {
   KEYBOARD,
   isKey,
@@ -17,11 +19,11 @@ import {
 
 function createKeyEvent(overrides: Partial<KeyEvent>): KeyEvent {
   return {
-    name: "",
     ctrl: false,
     meta: false,
-    shift: false,
+    name: "",
     sequence: "",
+    shift: false,
     ...overrides,
   } as KeyEvent;
 }
@@ -130,17 +132,17 @@ describe("isArrowDown", () => {
 
 describe("isCtrlD", () => {
   test("returns true for Ctrl+D", () => {
-    const key = createKeyEvent({ name: "d", ctrl: true });
+    const key = createKeyEvent({ ctrl: true, name: "d" });
     expect(isCtrlD(key)).toBe(true);
   });
 
   test("returns false for just D", () => {
-    const key = createKeyEvent({ name: "d", ctrl: false });
+    const key = createKeyEvent({ ctrl: false, name: "d" });
     expect(isCtrlD(key)).toBe(false);
   });
 
   test("returns false for Ctrl+other", () => {
-    const key = createKeyEvent({ name: "c", ctrl: true });
+    const key = createKeyEvent({ ctrl: true, name: "c" });
     expect(isCtrlD(key)).toBe(false);
   });
 });

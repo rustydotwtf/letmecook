@@ -20,7 +20,9 @@ export function formatZodError(error: unknown): string[] {
     "issues" in error &&
     Array.isArray((error as { issues: unknown[] }).issues)
   ) {
-    const issues = (error as { issues: { path: PropertyKey[]; message: string }[] }).issues;
+    const { issues } = error as {
+      issues: { path: PropertyKey[]; message: string }[];
+    };
     return issues.map((e) => {
       const path = e.path.length > 0 ? String(e.path.join(".")) : "root";
       return `${path}: ${e.message}`;
@@ -48,19 +50,19 @@ export function validateRepoSpecSafe(spec: string): ValidationResult<RepoSpec> {
 
     if (!result.success) {
       return {
-        success: false,
         errors: formatZodError(result.error),
+        success: false,
       };
     }
 
     return {
-      success: true,
       data: result.data,
+      success: true,
     };
   } catch (error) {
     return {
-      success: false,
       errors: [error instanceof Error ? error.message : "Unknown error"],
+      success: false,
     };
   }
 }
@@ -76,19 +78,21 @@ export function validateSessionManifest(manifest: unknown): SessionManifest {
   return result.data;
 }
 
-export function validateSessionManifestSafe(manifest: unknown): ValidationResult<SessionManifest> {
+export function validateSessionManifestSafe(
+  manifest: unknown
+): ValidationResult<SessionManifest> {
   const result = SessionManifestSchema.safeParse(manifest);
 
   if (!result.success) {
     return {
-      success: false,
       errors: formatZodError(result.error),
+      success: false,
     };
   }
 
   return {
-    success: true,
     data: result.data,
+    success: true,
   };
 }
 
@@ -103,20 +107,41 @@ export function validateNewSessionParams(params: unknown): NewSessionParams {
   return result.data;
 }
 
-export function validateNewSessionParamsSafe(params: unknown): ValidationResult<NewSessionParams> {
+export function validateNewSessionParamsSafe(
+  params: unknown
+): ValidationResult<NewSessionParams> {
   const result = NewSessionParamsSchema.safeParse(params);
 
   if (!result.success) {
     return {
-      success: false,
       errors: formatZodError(result.error),
+      success: false,
     };
   }
 
   return {
-    success: true,
     data: result.data,
+    success: true,
   };
+}
+
+function validateRepoParts(
+  spec: string,
+  slashIndex: number,
+  owner: string,
+  name: string
+): void {
+  if (slashIndex === -1) {
+    throw new Error(
+      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+    );
+  }
+
+  if (!owner || !name) {
+    throw new Error(
+      `Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`
+    );
+  }
 }
 
 function parseRepoSpec(spec: string): {
@@ -129,24 +154,17 @@ function parseRepoSpec(spec: string): {
   const colonIndex = spec.indexOf(":");
   const repoPath = colonIndex === -1 ? spec : spec.slice(0, colonIndex);
   const branch = colonIndex === -1 ? undefined : spec.slice(colonIndex + 1);
-
   const slashIndex = repoPath.indexOf("/");
-  if (slashIndex === -1) {
-    throw new Error(`Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`);
-  }
-
   const owner = repoPath.slice(0, slashIndex);
   const name = repoPath.slice(slashIndex + 1);
 
-  if (!owner || !name) {
-    throw new Error(`Invalid repo format: ${spec} (expected owner/repo or owner/repo:branch)`);
-  }
+  validateRepoParts(spec, slashIndex, owner, name);
 
   return {
-    spec,
-    owner,
-    name,
     branch,
     dir: name,
+    name,
+    owner,
+    spec,
   };
 }

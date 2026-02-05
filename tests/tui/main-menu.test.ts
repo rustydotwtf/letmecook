@@ -1,92 +1,144 @@
+import type { CliRenderer } from "@opentui/core";
+
 import { test, expect, describe, mock, beforeEach } from "bun:test";
-import { EventEmitter } from "events";
+
 import type { Session } from "../../src/types";
 
-// Mock @opentui/core before importing the module
+// Mock @opentui/core BEFORE importing the module under test
 const mockTextRenderable = mock(() => ({
   id: "mock-text",
 }));
 
 const mockSelectRenderable = mock(() => ({
+  blur: mock(() => {
+    /* noop */
+  }),
+  focus: mock(() => {
+    /* noop */
+  }),
   id: "mock-select",
-  focus: mock(() => {}),
-  blur: mock(() => {}),
-  on: mock(() => {}),
-  off: mock(() => {}),
+  off: mock(() => {
+    /* noop */
+  }),
+  on: mock(() => {
+    /* noop */
+  }),
 }));
 
 const mockBoxRenderable = mock(() => ({
+  add: mock(() => {
+    /* noop */
+  }),
   id: "mock-box",
-  add: mock(() => {}),
-  remove: mock(() => {}),
+  remove: mock(() => {
+    /* noop */
+  }),
 }));
 
 const mockASCIIFontRenderable = mock(() => ({
   id: "mock-ascii",
 }));
 
-// Create mock functions that we can access in tests
-let keyEmitter: EventEmitter;
-let mockRoot: { add: ReturnType<typeof mock>; remove: ReturnType<typeof mock> };
-
-function createMockRenderer() {
-  keyEmitter = new EventEmitter();
-  mockRoot = {
-    add: mock(() => {}),
-    remove: mock(() => {}),
-  };
-
-  return {
-    root: mockRoot,
-    keyInput: {
-      on: (event: string, handler: (...args: unknown[]) => void) => {
-        keyEmitter.on(event, handler);
-      },
-      off: (event: string, handler: (...args: unknown[]) => void) => {
-        keyEmitter.off(event, handler);
-      },
-    },
-    terminalWidth: 80,
-    terminalHeight: 24,
-    setBackgroundColor: mock(() => {}),
-    destroy: mock(() => {}),
-  };
-}
-
-// Mock module system
+// Register mock BEFORE dynamic import - must be at top level for Bun mock.module to work
+// oxlint-disable-next-line eslint-plugin-jest(require-hook)
 mock.module("@opentui/core", () => ({
-  TextRenderable: function () {
-    return mockTextRenderable();
+  ASCIIFontRenderable: function ASCIIFontRenderable() {
+    return mockASCIIFontRenderable();
   },
-  SelectRenderable: function () {
+  BoxRenderable: function BoxRenderable() {
+    return mockBoxRenderable();
+  },
+  RGBA: {
+    fromHex: mock(() => ({})),
+  },
+  SelectRenderable: function SelectRenderable() {
     return mockSelectRenderable();
   },
   SelectRenderableEvents: {
     ITEM_SELECTED: "item-selected",
   },
-  BoxRenderable: function () {
-    return mockBoxRenderable();
-  },
-  ASCIIFontRenderable: function () {
-    return mockASCIIFontRenderable();
-  },
-  RGBA: {
-    fromHex: mock(() => ({})),
+  TextRenderable: function TextRenderable() {
+    return mockTextRenderable();
   },
   measureText: mock(() => ({ width: 50 })),
 }));
 
-// Now import after mocking
-import { showMainMenu } from "../../src/ui/main-menu";
+// Dynamic import AFTER mock.module registration
+const { showMainMenu } = await import("../../src/ui/main-menu");
+
+type HandlerFn = (...args: unknown[]) => void;
+
+// Create mock functions that we can access in tests
+class MockKeyEmitter {
+  private handlers = new Map<string, Set<HandlerFn>>();
+
+  emit(event: string, data: unknown): void {
+    const handlers = this.handlers.get(event);
+    if (handlers) {
+      for (const handler of handlers) {
+        handler(data);
+      }
+    }
+  }
+
+  on(event: string, handler: HandlerFn): void {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, new Set());
+    }
+    this.handlers.get(event)?.add(handler);
+  }
+
+  off(event: string, handler: HandlerFn): void {
+    const handlers = this.handlers.get(event);
+    if (handlers) {
+      handlers.delete(handler);
+    }
+  }
+}
+
+let keyEmitter: MockKeyEmitter;
+let mockRoot: { add: ReturnType<typeof mock>; remove: ReturnType<typeof mock> };
+
+function createMockRenderer() {
+  keyEmitter = new MockKeyEmitter();
+  mockRoot = {
+    add: mock(() => {
+      /* noop */
+    }),
+    remove: mock(() => {
+      /* noop */
+    }),
+  };
+
+  return {
+    destroy: mock(() => {
+      /* noop */
+    }),
+    keyInput: {
+      off: (event: string, handler: (...args: unknown[]) => void) => {
+        keyEmitter.off(event, handler);
+      },
+      on: (event: string, handler: (...args: unknown[]) => void) => {
+        keyEmitter.on(event, handler);
+      },
+    },
+    root: mockRoot,
+    setBackgroundColor: mock(() => {
+      /* noop */
+    }),
+    terminalHeight: 24,
+    terminalWidth: 80,
+  };
+}
 
 function createTestSession(name: string): Session {
   return {
-    name,
-    repos: [{ spec: "owner/repo", owner: "owner", name: "repo", dir: "repo" }],
-    goal: "Test goal",
     created: new Date().toISOString(),
+    goal: "Test goal",
     lastAccessed: new Date().toISOString(),
+    name,
     path: `/tmp/${name}`,
+    repos: [{ dir: "repo", name: "repo", owner: "owner", spec: "owner/repo" }],
   };
 }
 
@@ -98,35 +150,50 @@ describe("showMainMenu", () => {
   });
 
   test("'q' key resolves with quit action when no sessions", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
     // Give the promise time to set up listeners
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     // Simulate pressing 'q'
-    keyEmitter.emit("keypress", { name: "q", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "q",
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("quit");
   });
 
   test("escape key resolves with quit action", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
-    keyEmitter.emit("keypress", { name: "escape", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "escape",
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("quit");
   });
 
   test("'n' key resolves with new-session action", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
-    keyEmitter.emit("keypress", { name: "n", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "n",
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("new-session");
@@ -134,56 +201,92 @@ describe("showMainMenu", () => {
 
   test("'d' key resolves with delete action when sessions exist", async () => {
     const sessions = [createTestSession("test-session")];
-    const resultPromise = showMainMenu(renderer as any, sessions);
+    const resultPromise = showMainMenu(
+      renderer as unknown as CliRenderer,
+      sessions
+    );
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
-    keyEmitter.emit("keypress", { name: "d", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "d",
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("delete");
-    if (result.type === "delete") {
-      expect(result.session.name).toBe("test-session");
-    }
+    expect((result as { type: "delete"; session: Session }).session.name).toBe(
+      "test-session"
+    );
   });
 
   test("'a' key resolves with nuke action when sessions exist", async () => {
     const sessions = [createTestSession("test-session")];
-    const resultPromise = showMainMenu(renderer as any, sessions);
+    const resultPromise = showMainMenu(
+      renderer as unknown as CliRenderer,
+      sessions
+    );
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
-    keyEmitter.emit("keypress", { name: "a", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "a",
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("nuke");
   });
 
   test("'a' key does nothing when no sessions", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     // Press 'a' - should be ignored
-    keyEmitter.emit("keypress", { name: "a", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "a",
+      shift: false,
+    });
 
     // Then press 'q' to resolve
-    keyEmitter.emit("keypress", { name: "q", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "q",
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("quit"); // Not nuke
   });
 
   test("'d' key does nothing when no sessions", async () => {
-    const resultPromise = showMainMenu(renderer as any, []);
+    const resultPromise = showMainMenu(renderer as unknown as CliRenderer, []);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Bun.sleep(10);
 
     // Press 'd' - should be ignored
-    keyEmitter.emit("keypress", { name: "d", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "d",
+      shift: false,
+    });
 
     // Then press 'n' to resolve
-    keyEmitter.emit("keypress", { name: "n", ctrl: false, meta: false, shift: false });
+    keyEmitter.emit("keypress", {
+      ctrl: false,
+      meta: false,
+      name: "n",
+      shift: false,
+    });
 
     const result = await resultPromise;
     expect(result.type).toBe("new-session"); // Not delete

@@ -1,6 +1,8 @@
-import { join } from "node:path";
 import { rm } from "node:fs/promises";
+import { join } from "node:path";
+
 import type { RepoSpec } from "./types";
+
 import { readProcessOutputWithBuffer } from "./utils/stream";
 
 export interface CloneProgress {
@@ -16,131 +18,187 @@ export interface RefreshResult {
   reason?: string;
 }
 
-export type RefreshProgressStatus = "refreshing" | "updated" | "up-to-date" | "skipped" | "error";
+export type RefreshProgressStatus =
+  | "refreshing"
+  | "updated"
+  | "up-to-date"
+  | "skipped"
+  | "error";
+
+function buildCloneArgs(
+  repo: RepoSpec,
+  url: string,
+  targetDir: string
+): string[] {
+  const baseArgs = [
+    "git",
+    "clone",
+    "--depth",
+    "1",
+    "--single-branch",
+    "--progress",
+    url,
+    targetDir,
+  ];
+  return repo.branch
+    ? [
+        "git",
+        "clone",
+        "--depth",
+        "1",
+        "--single-branch",
+        "--branch",
+        repo.branch,
+        "--progress",
+        url,
+        targetDir,
+      ]
+    : baseArgs;
+}
+
+function processStreamLines(
+  buffer: string,
+  addLine: (line: string) => void
+): string {
+  const lines = buffer.split(/[\r\n]+/);
+  const remainingBuffer = lines.pop() || "";
+
+  for (const line of lines) {
+    addLine(line);
+  }
+
+  return remainingBuffer;
+}
+
+async function readStreamWithBuffer(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  decoder: TextDecoder,
+  initialBuffer: string,
+  addLine: (line: string) => void
+): Promise<void> {
+  let buffer = initialBuffer;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    buffer = processStreamLines(buffer, addLine);
+  }
+  if (buffer.trim()) {
+    addLine(buffer);
+  }
+}
+
+function createAddLineCallback(
+  outputBuffer: string[],
+  maxLines: number,
+  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void
+) {
+  return (line: string) => {
+    const trimmed = line.trim();
+    if (trimmed) {
+      outputBuffer.push(trimmed);
+      if (outputBuffer.length > maxLines) {
+        outputBuffer.shift();
+      }
+      onProgress?.("cloning", [...outputBuffer]);
+    }
+  };
+}
+
+async function runCloneProcess(
+  repo: RepoSpec,
+  sessionPath: string,
+  addLine: (line: string) => void
+): Promise<number> {
+  const url = `https://github.com/${repo.owner}/${repo.name}.git`;
+  const targetDir = join(sessionPath, repo.dir);
+  const args = buildCloneArgs(repo, url, targetDir);
+
+  const proc = Bun.spawn(args, {
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+
+  const decoder = new TextDecoder();
+  const stderrReader =
+    proc.stderr.getReader() as ReadableStreamDefaultReader<Uint8Array>;
+  const stdoutReader =
+    proc.stdout.getReader() as ReadableStreamDefaultReader<Uint8Array>;
+
+  await Promise.all([
+    readStreamWithBuffer(stderrReader, decoder, "", addLine),
+    readStreamWithBuffer(stdoutReader, decoder, "", addLine),
+  ]);
+
+  const exitCode = await proc.exited;
+  return exitCode;
+}
+
+function handleCloneError(
+  repo: RepoSpec,
+  error: unknown,
+  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void
+): never {
+  onProgress?.("error");
+  throw new Error(
+    `Failed to clone ${repo.owner}/${repo.name}: ${
+      error instanceof Error ? error.message : String(error)
+    }`,
+    { cause: error }
+  );
+}
+
+async function performCloneWithExitHandling(
+  repo: RepoSpec,
+  sessionPath: string,
+  addLine: (line: string) => void,
+  outputBuffer: string[],
+  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void
+): Promise<void> {
+  const exitCode = await runCloneProcess(repo, sessionPath, addLine);
+
+  if (exitCode !== 0) {
+    onProgress?.("error", [...outputBuffer]);
+    throw new Error(`git clone exited with code ${exitCode}`);
+  }
+
+  onProgress?.("done", [...outputBuffer]);
+}
 
 export async function cloneRepo(
   repo: RepoSpec,
   sessionPath: string,
-  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void,
+  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void
 ): Promise<void> {
-  const url = `https://github.com/${repo.owner}/${repo.name}.git`;
-  const targetDir = join(sessionPath, repo.dir);
   onProgress?.("cloning");
+  const outputBuffer: string[] = [];
+  const MAX_LINES = 5;
 
   try {
-    const args = repo.branch
-      ? [
-          "git",
-          "clone",
-          "--depth",
-          "1",
-          "--single-branch",
-          "--branch",
-          repo.branch,
-          "--progress",
-          url,
-          targetDir,
-        ]
-      : ["git", "clone", "--depth", "1", "--single-branch", "--progress", url, targetDir];
-
-    const proc = Bun.spawn(args, {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-
-    // Buffer to collect output lines
-    const outputBuffer: string[] = [];
-    const MAX_LINES = 5;
-
-    // Helper to add line to buffer and notify
-    const addLine = (line: string) => {
-      const trimmed = line.trim();
-      if (trimmed) {
-        outputBuffer.push(trimmed);
-        if (outputBuffer.length > MAX_LINES) {
-          outputBuffer.shift();
-        }
-        onProgress?.("cloning", [...outputBuffer]);
-      }
-    };
-
-    // Read stderr (git clone sends progress to stderr)
-    const stderrReader = proc.stderr.getReader();
-    const decoder = new TextDecoder();
-    let stderrBuffer = "";
-
-    const readStderr = async () => {
-      while (true) {
-        const { done, value } = await stderrReader.read();
-        if (done) break;
-        stderrBuffer += decoder.decode(value, { stream: true });
-
-        // Process lines (split on newline or carriage return for progress updates)
-        const lines = stderrBuffer.split(/[\r\n]+/);
-        stderrBuffer = lines.pop() || "";
-
-        for (const line of lines) {
-          addLine(line);
-        }
-      }
-      // Process remaining buffer
-      if (stderrBuffer.trim()) {
-        addLine(stderrBuffer);
-      }
-    };
-
-    // Read stdout as well
-    const stdoutReader = proc.stdout.getReader();
-    let stdoutBuffer = "";
-
-    const readStdout = async () => {
-      while (true) {
-        const { done, value } = await stdoutReader.read();
-        if (done) break;
-        stdoutBuffer += decoder.decode(value, { stream: true });
-
-        const lines = stdoutBuffer.split(/[\r\n]+/);
-        stdoutBuffer = lines.pop() || "";
-
-        for (const line of lines) {
-          addLine(line);
-        }
-      }
-      if (stdoutBuffer.trim()) {
-        addLine(stdoutBuffer);
-      }
-    };
-
-    // Read both streams and wait for process
-    await Promise.all([readStderr(), readStdout()]);
-    const exitCode = await proc.exited;
-
-    if (exitCode !== 0) {
-      onProgress?.("error", [...outputBuffer]);
-      throw new Error(`git clone exited with code ${exitCode}`);
-    }
-
-    onProgress?.("done", [...outputBuffer]);
-  } catch (error) {
-    onProgress?.("error");
-    throw new Error(
-      `Failed to clone ${repo.owner}/${repo.name}: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      { cause: error },
+    const addLine = createAddLineCallback(outputBuffer, MAX_LINES, onProgress);
+    await performCloneWithExitHandling(
+      repo,
+      sessionPath,
+      addLine,
+      outputBuffer,
+      onProgress
     );
+  } catch (error) {
+    handleCloneError(repo, error, onProgress);
   }
 }
 
 export async function recloneRepo(
   repo: RepoSpec,
   sessionPath: string,
-  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void,
+  onProgress?: (status: CloneProgress["status"], outputLines?: string[]) => void
 ): Promise<void> {
   const repoPath = join(sessionPath, repo.dir);
 
   try {
-    await rm(repoPath, { recursive: true, force: true });
+    await rm(repoPath, { force: true, recursive: true });
     await cloneRepo(repo, sessionPath, onProgress);
   } catch (error) {
     onProgress?.("error");
@@ -148,7 +206,7 @@ export async function recloneRepo(
       `Failed to reclone ${repo.owner}/${repo.name}: ${
         error instanceof Error ? error.message : String(error)
       }`,
-      { cause: error },
+      { cause: error }
     );
   }
 }
@@ -156,7 +214,11 @@ export async function recloneRepo(
 export async function cloneAllRepos(
   repos: RepoSpec[],
   sessionPath: string,
-  onProgress?: (repoIndex: number, status: CloneProgress["status"], outputLines?: string[]) => void,
+  onProgress?: (
+    repoIndex: number,
+    status: CloneProgress["status"],
+    outputLines?: string[]
+  ) => void
 ): Promise<void> {
   // Clone repos in parallel
   await Promise.all(
@@ -164,15 +226,17 @@ export async function cloneAllRepos(
       await cloneRepo(repo, sessionPath, (status, outputLines) => {
         onProgress?.(index, status, outputLines);
       });
-    }),
+    })
   );
 }
 
-export async function hasUncommittedChanges(repoPath: string): Promise<boolean> {
+export async function hasUncommittedChanges(
+  repoPath: string
+): Promise<boolean> {
   const proc = Bun.spawn(["git", "status", "--porcelain"], {
     cwd: repoPath,
-    stdout: "pipe",
     stderr: "pipe",
+    stdout: "pipe",
   });
   const output = await new Response(proc.stdout).text();
   await proc.exited;
@@ -181,75 +245,171 @@ export async function hasUncommittedChanges(repoPath: string): Promise<boolean> 
 
 export async function sessionHasUncommittedChanges(
   repos: RepoSpec[],
-  sessionPath: string,
+  sessionPath: string
 ): Promise<{ hasChanges: boolean; reposWithChanges: RepoSpec[] }> {
   const results = await Promise.all(
     repos.map(async (repo) => ({
-      repo,
       hasChanges: await hasUncommittedChanges(join(sessionPath, repo.dir)),
-    })),
+      repo,
+    }))
   );
-  const reposWithChanges = results.filter((r) => r.hasChanges).map((r) => r.repo);
+  const reposWithChanges = results
+    .filter((r) => r.hasChanges)
+    .map((r) => r.repo);
   return { hasChanges: reposWithChanges.length > 0, reposWithChanges };
+}
+
+function handleDirtyRepo(
+  repo: RepoSpec,
+  repoIndex: number,
+  onProgress?: (
+    repoIndex: number,
+    status: RefreshProgressStatus,
+    outputLines?: string[]
+  ) => void
+): RefreshResult {
+  onProgress?.(repoIndex, "skipped", ["Skipped: uncommitted changes"]);
+  return {
+    reason: "uncommitted changes",
+    repo,
+    status: "skipped",
+  };
+}
+
+async function runPullAndCheckStatus(
+  repoPath: string,
+  repoIndex: number,
+  onProgress?: (
+    repoIndex: number,
+    status: RefreshProgressStatus,
+    outputLines?: string[]
+  ) => void
+): Promise<{ fullOutput: string; output: string[]; success: boolean }> {
+  const proc = Bun.spawn(
+    ["git", "-C", repoPath, "pull", "--ff-only", "--depth", "1"],
+    {
+      stderr: "pipe",
+      stdout: "pipe",
+    }
+  );
+
+  const { fullOutput, output, success } = await readProcessOutputWithBuffer(
+    proc,
+    {
+      maxBufferLines: 5,
+      onBufferUpdate: (buffer) => onProgress?.(repoIndex, "refreshing", buffer),
+    }
+  );
+
+  return { fullOutput, output, success };
+}
+
+function determineUpdateStatus(fullOutput: string): "up-to-date" | "updated" {
+  const normalized = fullOutput.toLowerCase();
+  const upToDate =
+    normalized.includes("already up to date") ||
+    normalized.includes("already up-to-date");
+
+  return upToDate ? "up-to-date" : "updated";
+}
+
+function handlePullError(
+  repo: RepoSpec,
+  fullOutput: string,
+  output: string[],
+  repoIndex: number,
+  onProgress?: (
+    repoIndex: number,
+    status: RefreshProgressStatus,
+    outputLines?: string[]
+  ) => void
+): RefreshResult {
+  const reason = fullOutput.trim() || "git pull exited with code 1";
+  onProgress?.(repoIndex, "error", output.length > 0 ? [...output] : [reason]);
+  return {
+    reason,
+    repo,
+    status: "error",
+  };
+}
+
+function createSuccessResult(
+  repo: RepoSpec,
+  output: string[],
+  repoIndex: number,
+  onProgress?: (
+    repoIndex: number,
+    status: RefreshProgressStatus,
+    outputLines?: string[]
+  ) => void
+): RefreshResult {
+  const updateStatus = determineUpdateStatus(output.join("\n"));
+  onProgress?.(repoIndex, updateStatus, [...output]);
+
+  return {
+    repo,
+    status: updateStatus,
+  };
+}
+
+async function refreshSingleRepo(
+  repo: RepoSpec,
+  sessionPath: string,
+  repoIndex: number,
+  onProgress?: (
+    repoIndex: number,
+    status: RefreshProgressStatus,
+    outputLines?: string[]
+  ) => void
+): Promise<RefreshResult> {
+  const repoPath = join(sessionPath, repo.dir);
+  const dirty = await hasUncommittedChanges(repoPath);
+
+  if (dirty) {
+    return handleDirtyRepo(repo, repoIndex, onProgress);
+  }
+
+  onProgress?.(repoIndex, "refreshing", [
+    `Pulling ${repo.owner}/${repo.name}...`,
+  ]);
+
+  const { fullOutput, output, success } = await runPullAndCheckStatus(
+    repoPath,
+    repoIndex,
+    onProgress
+  );
+
+  if (!success) {
+    return handlePullError(repo, fullOutput, output, repoIndex, onProgress);
+  }
+
+  return createSuccessResult(repo, output, repoIndex, onProgress);
 }
 
 export async function refreshLatestRepos(
   repos: RepoSpec[],
   sessionPath: string,
-  onProgress?: (repoIndex: number, status: RefreshProgressStatus, outputLines?: string[]) => void,
+  onProgress?: (
+    repoIndex: number,
+    status: RefreshProgressStatus,
+    outputLines?: string[]
+  ) => void
 ): Promise<RefreshResult[]> {
   const readOnlyRepos = repos.filter((repo) => repo.readOnly);
-  if (readOnlyRepos.length === 0) return [];
+  if (readOnlyRepos.length === 0) {
+    return [];
+  }
 
   const results: RefreshResult[] = [];
 
   for (const [repoIndex, repo] of readOnlyRepos.entries()) {
-    const repoPath = join(sessionPath, repo.dir);
-    const dirty = await hasUncommittedChanges(repoPath);
-
-    if (dirty) {
-      results.push({
-        repo,
-        status: "skipped",
-        reason: "uncommitted changes",
-      });
-      onProgress?.(repoIndex, "skipped", ["Skipped: uncommitted changes"]);
-      continue;
-    }
-
-    onProgress?.(repoIndex, "refreshing", [`Pulling ${repo.owner}/${repo.name}...`]);
-
-    const proc = Bun.spawn(["git", "-C", repoPath, "pull", "--ff-only", "--depth", "1"], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-
-    const { success, output, fullOutput } = await readProcessOutputWithBuffer(proc, {
-      maxBufferLines: 5,
-      onBufferUpdate: (buffer) => onProgress?.(repoIndex, "refreshing", buffer),
-    });
-    const exitCode = success ? 0 : 1;
-
-    if (exitCode !== 0) {
-      const reason = fullOutput.trim() || `git pull exited with code ${exitCode}`;
-      results.push({
-        repo,
-        status: "error",
-        reason,
-      });
-      onProgress?.(repoIndex, "error", output.length > 0 ? [...output] : [reason]);
-      continue;
-    }
-
-    const normalized = fullOutput.toLowerCase();
-    const upToDate =
-      normalized.includes("already up to date") || normalized.includes("already up-to-date");
-
-    results.push({
+    const result = await refreshSingleRepo(
       repo,
-      status: upToDate ? "up-to-date" : "updated",
-    });
-    onProgress?.(repoIndex, upToDate ? "up-to-date" : "updated", [...output]);
+      sessionPath,
+      repoIndex,
+      onProgress
+    );
+    results.push(result);
   }
 
   return results;

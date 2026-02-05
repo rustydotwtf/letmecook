@@ -1,4 +1,5 @@
 import { test, expect, describe } from "bun:test";
+
 import { parseRepos } from "../../src/cli-mode";
 
 describe("parseRepos", () => {
@@ -6,11 +7,11 @@ describe("parseRepos", () => {
     const repos = parseRepos(["owner/repo"]);
     expect(repos).toHaveLength(1);
     expect(repos[0]).toEqual({
-      spec: "owner/repo",
-      owner: "owner",
-      name: "repo",
       branch: undefined,
       dir: "repo",
+      name: "repo",
+      owner: "owner",
+      spec: "owner/repo",
     });
   });
 
@@ -55,7 +56,7 @@ describe("parseRepos", () => {
 
   test("throws on invalid repo format", () => {
     expect(() => parseRepos(["invalid"])).toThrow(
-      "Invalid repo format: invalid (expected owner/repo)",
+      "Invalid repo format: invalid (expected owner/repo)"
     );
   });
 

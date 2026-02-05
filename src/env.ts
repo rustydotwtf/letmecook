@@ -3,73 +3,72 @@ import { join } from "node:path";
 
 const LETMECOOK_DIR = join(homedir(), ".letmecook");
 
+async function loadEnvFile(file: ReturnType<typeof Bun.file>): Promise<void> {
+  if (await file.exists()) {
+    try {
+      const content = await file.text();
+      parseAndSetEnv(content);
+    } catch {
+      // Ignore errors
+    }
+  }
+}
+
 export async function loadEnvAsync(): Promise<void> {
-  // Check if AI_GATEWAY_API_KEY is already set
   if (process.env.AI_GATEWAY_API_KEY) {
     return;
   }
 
-  // Try loading from ~/.letmecook/.env
   const globalEnvPath = join(LETMECOOK_DIR, ".env");
   const globalEnvFile = Bun.file(globalEnvPath);
-
-  // Try loading from ./.env (current directory)
   const localEnvPath = join(process.cwd(), ".env");
   const localEnvFile = Bun.file(localEnvPath);
 
-  // Load global first, then local (local overrides)
-  try {
-    if (await globalEnvFile.exists()) {
-      const content = await globalEnvFile.text();
-      parseAndSetEnv(content);
-    }
-  } catch {
-    // Ignore errors
-  }
-
-  try {
-    if (await localEnvFile.exists()) {
-      const content = await localEnvFile.text();
-      parseAndSetEnv(content);
-    }
-  } catch {
-    // Ignore errors
-  }
+  await loadEnvFile(globalEnvFile);
+  await loadEnvFile(localEnvFile);
 }
 
 export function loadEnv(): void {
-  // Synchronous version - fire and forget
-  loadEnvAsync().catch(() => {
-    // Ignore errors
-  });
+  (async () => {
+    try {
+      await loadEnvAsync();
+    } catch {
+      // Ignore errors
+    }
+  })();
+}
+
+function removeQuotes(value: string): string {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+function parseEnvLine(line: string): [string, string] | undefined {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) {
+    return;
+  }
+  const equalIndex = trimmed.indexOf("=");
+  if (equalIndex === -1) {
+    return;
+  }
+  const key = trimmed.slice(0, equalIndex).trim();
+  const value = removeQuotes(trimmed.slice(equalIndex + 1).trim());
+  if (key) {
+    return [key, value];
+  }
 }
 
 function parseAndSetEnv(content: string): void {
   for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-
-    // Skip comments and empty lines
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const equalIndex = trimmed.indexOf("=");
-    if (equalIndex === -1) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, equalIndex).trim();
-    let value = trimmed.slice(equalIndex + 1).trim();
-
-    // Remove quotes if present
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    if (key) {
+    const parsed = parseEnvLine(line);
+    if (parsed) {
+      const [key, value] = parsed;
       process.env[key] = value;
     }
   }
